@@ -2314,7 +2314,7 @@ class BackgroundMusicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 
 @admin.register(TaskCommentReport)
 class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
-    tenant_lookup = 'comment__task__tenant'
+    tenant_lookup = 'comment__task_translation__task__tenant'
     """Админка для управления жалобами на комментарии."""
     list_display = ('id', 'comment_author_info', 'reporter_info', 'reason', 'is_reviewed', 'created_at', 'ban_user_buttons')
     list_filter = ('reason', 'is_reviewed', 'created_at')
