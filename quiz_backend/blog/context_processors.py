@@ -116,14 +116,7 @@ def personal_info(request):
             logger.info("=== DEBUG: top_users_data disabled for path: %s", path)
 
         tenant = getattr(request, 'tenant', None)
-        # ГАРАНТИРОВАННЫЙ ВЫВОД В КОНСОЛЬ
-        print(f"\n!!! [CRITICAL DEBUG] Request Path: {request.path}")
-        print(f"!!! [CRITICAL DEBUG] Host Header: {request.get_host()}")
-        print(f"!!! [CRITICAL DEBUG] Tenant from request: {tenant.slug if tenant else 'MISSING'}")
-        
-        # СТРОГАЯ ПРОВЕРКА
         is_quiz_code = tenant is not None and tenant.slug == 'quiz-code'
-        print(f"!!! [CRITICAL DEBUG] is_quiz_code result: {is_quiz_code}\n")
 
         # Пытаемся получить динамические данные владельца
         try:
