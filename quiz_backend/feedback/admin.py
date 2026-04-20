@@ -175,7 +175,7 @@ class FeedbackMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления сообщениями обратной связи
     """
-    list_display = ('id', 'user_id', 'username', 'short_message', 'source', 'category', 'images_count_display', 'created_at', 'is_processed', 'replies_count', 'status_display')
+    list_display = ('id', 'tenant', 'user_id', 'username', 'short_message', 'source', 'category', 'images_count_display', 'created_at', 'is_processed', 'replies_count', 'status_display')
     list_filter = ('is_processed', 'source', 'category', 'created_at')
     search_fields = ('user_id', 'username', 'message')
     readonly_fields = ('created_at', 'replies_count', 'last_reply_info', 'send_all_replies_button', 'images_preview')
@@ -473,13 +473,20 @@ class FeedbackReplyAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления ответами на сообщения поддержки
     """
-    list_display = ('id', 'feedback_link', 'admin', 'short_reply', 'images_count_display', 'created_at', 'is_sent_to_user', 'sent_at', 'send_reply_link')
+    list_display = ('id', 'tenant_display', 'feedback_link', 'admin', 'short_reply', 'images_count_display', 'created_at', 'is_sent_to_user', 'sent_at', 'send_reply_link')
     list_filter = ('is_sent_to_user', 'created_at', 'admin')
     search_fields = ('reply_text', 'admin__username', 'feedback__message')
-    readonly_fields = ('created_at', 'sent_at', 'send_error', 'images_preview')
+    readonly_fields = ('tenant_display', 'created_at', 'sent_at', 'send_error', 'images_preview')
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
     inlines = [FeedbackReplyImageInline]
+    
+    def tenant_display(self, obj):
+        try:
+            return obj.feedback.tenant.name
+        except Exception:
+            return '-'
+    tenant_display.short_description = 'Тенант'
     
     def images_count_display(self, obj):
         """Отображение количества изображений в списке"""

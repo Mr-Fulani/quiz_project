@@ -2316,10 +2316,10 @@ class BackgroundMusicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     tenant_lookup = 'comment__task_translation__task__tenant'
     """Админка для управления жалобами на комментарии."""
-    list_display = ('id', 'comment_author_info', 'reporter_info', 'reason', 'is_reviewed', 'created_at', 'ban_user_buttons')
+    list_display = ('id', 'tenant_display', 'comment_author_info', 'reporter_info', 'reason', 'is_reviewed', 'created_at', 'ban_user_buttons')
     list_filter = ('reason', 'is_reviewed', 'created_at')
     search_fields = ('comment__text', 'reporter_telegram_id', 'comment__author_telegram_id', 'comment__author_username')
-    readonly_fields = ('comment_link', 'comment_author_info', 'reporter_info', 'comment_text_preview', 'ban_user_buttons', 'created_at')
+    readonly_fields = ('tenant_display', 'comment_link', 'comment_author_info', 'reporter_info', 'comment_text_preview', 'ban_user_buttons', 'created_at')
     fields = (
         'comment_link',
         'comment_author_info',
@@ -2333,6 +2333,13 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     )
     actions = ['mark_as_reviewed', 'mark_as_unreviewed', 'ban_author_1_hour', 'ban_author_24_hours', 'ban_author_7_days', 'ban_author_permanent', 'unban_author']
     
+    def tenant_display(self, obj):
+        try:
+            return obj.comment.task_translation.task.tenant.name
+        except Exception:
+            return '-'
+    tenant_display.short_description = 'Тенант'
+
     def comment_link(self, obj):
         """Ссылка на комментарий."""
         if obj.comment:
