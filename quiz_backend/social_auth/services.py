@@ -808,10 +808,10 @@ class TelegramAuthService:
         else:
             base_username = f"user_{telegram_id}"
         
-        # Проверяем уникальность username в рамках тенанта
+        # Проверяем уникальность username глобально, так как поле username уникально в БД
         username = base_username
         counter = 1
-        while User.objects.filter(username=username, tenant=tenant).exists():
+        while User.objects.filter(username=username).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:  # Защита от бесконечного цикла
@@ -1332,7 +1332,7 @@ class GitHubAuthService:
         base_username = github_username or f"github_{github_id}"
         username = base_username
         counter = 1
-        while User.objects.filter(username=username, tenant=tenant).exists():
+        while User.objects.filter(username=username).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:
@@ -1856,7 +1856,7 @@ class GoogleAuthService:
         base_username = google_email.split('@')[0] if google_email else f"google_{google_id}"
         username = base_username
         counter = 1
-        while User.objects.filter(username=username, tenant=tenant).exists():
+        while User.objects.filter(username=username).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:
