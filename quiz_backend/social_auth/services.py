@@ -858,19 +858,29 @@ class GitHubAuthService:
     GITHUB_USER_API_URL = "https://api.github.com/user"
     
     @staticmethod
-    def get_github_settings() -> Optional[SocialAuthSettings]:
+    def get_github_settings(tenant=None) -> Optional[SocialAuthSettings]:
         """
         Получает настройки GitHub из базы данных или переменных окружения.
+        Сначала ищет настройки для конкретного тенанта, затем глобальные.
         
+        Args:
+            tenant: Текущий тенант (опционально)
+            
         Returns:
             SocialAuthSettings: Настройки GitHub или None
         """
         try:
             # Сначала пытаемся получить из базы данных
-            settings = SocialAuthSettings.objects.filter(
-                provider='github',
-                is_enabled=True
-            ).first()
+            qs = SocialAuthSettings.objects.filter(provider='github', is_enabled=True)
+            
+            settings = None
+            if tenant:
+                # Ищем настройки конкретного тенанта
+                settings = qs.filter(tenant=tenant).first()
+            
+            # Если настроек для тенанта нет, или тенант не указан, берем глобальные
+            if not settings:
+                settings = qs.filter(tenant__isnull=True).first()
             
             if settings:
                 return settings
@@ -896,19 +906,20 @@ class GitHubAuthService:
             return None
     
     @staticmethod
-    def get_auth_url(redirect_uri: str, state: str = None) -> Optional[str]:
+    def get_auth_url(redirect_uri: str, state: str = None, tenant=None) -> Optional[str]:
         """
         Генерирует URL для авторизации через GitHub.
         
         Args:
             redirect_uri: URI для перенаправления после авторизации
             state: Опциональный параметр состояния для защиты от CSRF
+            tenant: Текущий тенант (опционально)
             
         Returns:
             str: URL для авторизации или None
         """
         try:
-            settings = GitHubAuthService.get_github_settings()
+            settings = GitHubAuthService.get_github_settings(tenant)
             if not settings:
                 logger.error("Настройки GitHub не найдены")
                 return None
@@ -932,19 +943,20 @@ class GitHubAuthService:
             return None
     
     @staticmethod
-    def exchange_code_for_token(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
+    def exchange_code_for_token(code: str, redirect_uri: str, tenant=None) -> Optional[Dict[str, Any]]:
         """
         Обменивает код авторизации на access token.
         
         Args:
             code: Код авторизации от GitHub
             redirect_uri: URI для перенаправления (должен совпадать с тем, что был при авторизации)
+            tenant: Текущий тенант (опционально)
             
         Returns:
             Dict с токеном или None при ошибке
         """
         try:
-            settings = GitHubAuthService.get_github_settings()
+            settings = GitHubAuthService.get_github_settings(tenant)
             if not settings:
                 logger.error("Настройки GitHub не найдены для обмена кода на токен")
                 return None
@@ -1076,8 +1088,10 @@ class GitHubAuthService:
             Dict с результатом авторизации или None при ошибке
         """
         try:
+            tenant = getattr(request, 'tenant', None)
+            
             # Обмениваем код на токен
-            token_data = GitHubAuthService.exchange_code_for_token(code, redirect_uri)
+            token_data = GitHubAuthService.exchange_code_for_token(code, redirect_uri, tenant)
             if not token_data:
                 return {
                     'success': False,

@@ -988,7 +988,8 @@ def github_auth_redirect(request):
         logger.info(f"⚠️ ВАЖНО: Убедитесь, что этот redirect_uri настроен в GitHub OAuth App!")
         
         # Генерируем URL для GitHub OAuth
-        github_oauth_url = GitHubAuthService.get_auth_url(redirect_uri, state)
+        tenant = getattr(request, 'tenant', None)
+        github_oauth_url = GitHubAuthService.get_auth_url(redirect_uri, state, tenant)
         
         if not github_oauth_url:
             logger.error("Не удалось сгенерировать URL для GitHub OAuth")
