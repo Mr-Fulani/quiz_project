@@ -165,7 +165,7 @@
             {% for service in services %}
             <li class="service-item">
                 {% if service.link %}
-                <a href="{% if '://' in service.link or service.link|slice:":1" == "/" %}{{ service.link }}{% elif ':' in service.link %}{% url service.link %}{% else %}{{ service.link }}{% endif %}" class="service-link">
+                <a href="{% if service.title_ru == 'Общение' or service.title_en == 'Communication' %}{% url 'blog:global_chat' %}{% elif '://' in service.link or service.link|slice:":1" == "/" %}{{ service.link }}{% elif ':' in service.link %}{% url service.link %}{% else %}{{ service.link }}{% endif %}" class="service-link">
                 {% endif %}
                     <div class="service-icon-box">
                         {% if service.icon_svg %}

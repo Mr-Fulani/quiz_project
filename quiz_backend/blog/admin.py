@@ -17,7 +17,8 @@ from django.utils.translation import gettext_lazy as _
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
     MessageAttachment, MarqueeText, CustomURLValidator, PostLike, ProjectLike, PostShare, ProjectShare, \
     PostView, ProjectView, Resume, ResumeWebsite, ResumeSkill, ResumeWorkHistory, ResumeResponsibility, \
-    ResumeEducation, ResumeLanguage, Service, TenantInfo, TinyMCEUpload, PlatformResource
+    ResumeEducation, ResumeLanguage, Service, TenantInfo, TinyMCEUpload, PlatformResource, GlobalChatMessage, \
+    GlobalChatBan
 
 @admin.register(PlatformResource)
 class PlatformResourceAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
@@ -1772,6 +1773,21 @@ class TinyMCEUploadAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         """Разрешаем удаление неиспользуемых файлов."""
         return True
 
+
+@admin.register(GlobalChatMessage)
+class GlobalChatMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    list_display = ('id', 'author', 'tenant', 'created_at', 'is_deleted')
+    list_filter = ('tenant', 'is_deleted', 'created_at')
+    search_fields = ('author__username', 'content')
+    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+
+
+@admin.register(GlobalChatBan)
+class GlobalChatBanAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    list_display = ('user', 'tenant', 'banned_until', 'banned_by', 'updated_at')
+    search_fields = ('user__username', 'reason')
+    list_filter = ('tenant', 'banned_until', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
 
 
 
