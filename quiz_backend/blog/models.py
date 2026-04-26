@@ -740,6 +740,14 @@ class GlobalChatMessage(models.Model):
 
     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, related_name='global_chat_messages')
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='global_chat_messages')
+    reply_to = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='replies',
+        verbose_name='Ответ на сообщение'
+    )
     content = models.TextField(verbose_name='Текст сообщения')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

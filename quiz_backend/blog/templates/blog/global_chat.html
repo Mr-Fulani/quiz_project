@@ -21,6 +21,7 @@
     <section class="global-chat-layout">
         <div class="global-chat-feed" id="global-chat-feed"></div>
         <form id="global-chat-form" class="global-chat-form" method="post" action="{% url 'blog:global_chat_send' %}">
+            <div id="global-chat-reply" class="global-chat-reply" style="display:none;"></div>
             <textarea id="global-chat-input" name="content" maxlength="2000" placeholder="{% if language == 'ru' %}Введите сообщение. Используйте @username для упоминания.{% else %}Type a message. Use @username to mention someone.{% endif %}" required></textarea>
             <div class="global-chat-actions">
                 <button type="submit" class="form-btn">{% if language == 'ru' %}Отправить{% else %}Send{% endif %}</button>
@@ -59,7 +60,10 @@
             bannedUntil: "{% if language == 'ru' %}Бан до:{% else %}Banned until:{% endif %}",
             banReasonLabel: "{% if language == 'ru' %}Причина:{% else %}Reason:{% endif %}",
             banOk: "{% if language == 'ru' %}Понятно{% else %}Got it{% endif %}",
-            banPermanent: "{% if language == 'ru' %}Навсегда{% else %}Permanently{% endif %}"
+            banPermanent: "{% if language == 'ru' %}Навсегда{% else %}Permanently{% endif %}",
+            actionReply: "{% if language == 'ru' %}Ответить{% else %}Reply{% endif %}",
+            replyToLabel: "{% if language == 'ru' %}Ответ на{% else %}Reply to{% endif %}",
+            replyCancel: "{% if language == 'ru' %}Отменить{% else %}Cancel{% endif %}"
         }
     };
 </script>

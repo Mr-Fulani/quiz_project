@@ -7,10 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const feed = document.getElementById('global-chat-feed');
     const form = document.getElementById('global-chat-form');
     const input = document.getElementById('global-chat-input');
+    const replyBox = document.getElementById('global-chat-reply');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     let sinceCursor = null;
     let isInitialLoad = true;
     const language = document.documentElement.lang || 'en';
+    let replyToMessage = null;
 
     const showNotice = (text, type = 'success') => {
         const notification = document.createElement('div');
@@ -107,6 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         wrapper.dataset.chatMessageId = message.id;
 
         const canModerate = config.isAdmin && Number(config.currentUserId) !== Number(message.author.id);
+        const canReply = true;
+        const quoteHtml = message.reply_to ? `
+            <div class="global-chat-quote">
+                <div><strong>${escapeHtml(config.texts.replyToLabel)}</strong> <a href="#chat-msg-${message.reply_to.id}" data-scroll-to="${message.reply_to.id}">@${escapeHtml(message.reply_to.author_username)}</a></div>
+                <div>${escapeHtml(message.reply_to.content_preview)}</div>
+            </div>
+        ` : '';
         wrapper.innerHTML = `
             <a href="${message.author.profile_url}">
                 <img class="global-chat-avatar" src="${message.author.avatar_url || config.defaultAvatar}" alt="${message.author.username}">
@@ -118,15 +127,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="global-chat-time">${message.created_at}</span>
                 </div>
                 <div class="global-chat-content">${message.content_html.replace(/\n/g, '<br>')}</div>
-                ${canModerate ? `
-                    <div class="global-chat-admin-actions">
+                ${quoteHtml}
+                <div class="global-chat-admin-actions">
+                    ${canReply ? `<button type="button" data-action="reply">${config.texts.actionReply}</button>` : ''}
+                    ${canModerate ? `
                         <button type="button" data-action="delete">${config.texts.actionDelete}</button>
                         <button type="button" data-action="ban">${config.texts.actionBan}</button>
                         <button type="button" data-action="unban">${config.texts.actionUnban}</button>
-                    </div>
-                ` : ''}
+                    ` : ''}
+                </div>
             </div>
         `;
+
+        wrapper.id = `chat-msg-${message.id}`;
+
+        const replyButton = wrapper.querySelector('[data-action="reply"]');
+        if (replyButton) {
+            replyButton.addEventListener('click', () => {
+                replyToMessage = {
+                    id: message.id,
+                    author_username: message.author.username,
+                    author_display_name: message.author.display_name || message.author.username,
+                    content_preview: (message.content || '').slice(0, 160),
+                };
+                if (replyBox) {
+                    replyBox.style.display = 'flex';
+                    replyBox.innerHTML = `
+                        <div>
+                            <div class="reply-meta"><strong>${escapeHtml(config.texts.replyToLabel)}</strong> @${escapeHtml(replyToMessage.author_username)}</div>
+                            <div class="reply-preview">${escapeHtml(replyToMessage.content_preview)}</div>
+                        </div>
+                        <button type="button" class="reply-cancel">${escapeHtml(config.texts.replyCancel)}</button>
+                    `;
+                    replyBox.querySelector('.reply-cancel').addEventListener('click', () => {
+                        replyToMessage = null;
+                        replyBox.style.display = 'none';
+                        replyBox.innerHTML = '';
+                    });
+                }
+                input?.focus();
+            });
+        }
+
+        // Скролл к оригиналу из цитаты
+        wrapper.querySelectorAll('[data-scroll-to]').forEach((a) => {
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = a.getAttribute('data-scroll-to');
+                const targetEl = document.getElementById(`chat-msg-${targetId}`);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        });
 
         if (canModerate) {
             const deleteButton = wrapper.querySelector('[data-action="delete"]');
@@ -233,6 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const body = new URLSearchParams({ content });
+        if (replyToMessage?.id) {
+            body.set('reply_to_id', String(replyToMessage.id));
+        }
         const response = await apiFetch(config.sendUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -262,6 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage(data.message);
             input.value = '';
             feed.scrollTop = feed.scrollHeight;
+            replyToMessage = null;
+            if (replyBox) {
+                replyBox.style.display = 'none';
+                replyBox.innerHTML = '';
+            }
         }
     });
 

@@ -2649,6 +2649,15 @@ def _serialize_global_chat_message(message, current_user):
     """Сериализация сообщения общего чата в формат для клиента."""
     profile_url = reverse('accounts:user_profile', kwargs={'username': message.author.username})
     inbox_url = reverse('blog:inbox')
+    reply_to = None
+    if getattr(message, 'reply_to_id', None) and getattr(message, 'reply_to', None):
+        reply_author = message.reply_to.author
+        reply_to = {
+            'id': message.reply_to.id,
+            'author_username': reply_author.username,
+            'author_display_name': reply_author.get_display_name(),
+            'content_preview': (message.reply_to.content or '')[:160],
+        }
     return {
         'id': message.id,
         'content': message.content,
@@ -2662,6 +2671,7 @@ def _serialize_global_chat_message(message, current_user):
             'profile_url': profile_url,
             'dm_url': f'{inbox_url}?with={message.author.username}',
         },
+        'reply_to': reply_to,
         'can_delete': current_user.is_staff or current_user.is_superuser,
     }
 
@@ -2697,7 +2707,7 @@ def global_chat_messages(request):
     if not since_raw:
         messages = list(
             GlobalChatMessage.objects.filter(tenant=tenant, is_deleted=False)
-            .select_related('author')
+            .select_related('author', 'reply_to', 'reply_to__author')
             .order_by('-id')[:200]
         )
         messages.reverse()
@@ -2713,7 +2723,7 @@ def global_chat_messages(request):
     # Инкрементальная загрузка: всё, что менялось после since (включая soft-delete)
     changed = list(
         GlobalChatMessage.objects.filter(tenant=tenant, updated_at__gt=since_dt)
-        .select_related('author')
+        .select_related('author', 'reply_to', 'reply_to__author')
         .order_by('id')[:400]
     )
 
@@ -2748,9 +2758,18 @@ def global_chat_send_message(request):
     if not content:
         return JsonResponse({'status': 'error', 'message': 'Введите текст сообщения'}, status=400)
 
+    reply_to_id = request.POST.get('reply_to_id')
+    reply_to = None
+    if reply_to_id:
+        try:
+            reply_to = GlobalChatMessage.objects.filter(tenant=tenant, id=int(reply_to_id), is_deleted=False).first()
+        except (TypeError, ValueError):
+            return JsonResponse({'status': 'error', 'message': 'Некорректный reply_to_id'}, status=400)
+
     message = GlobalChatMessage.objects.create(
         tenant=tenant,
         author=request.user,
+        reply_to=reply_to,
         content=content,
     )
     return JsonResponse({'status': 'sent', 'message': _serialize_global_chat_message(message, request.user)})
