@@ -1083,68 +1083,53 @@ class MiniAppUser(models.Model):
                 logger.warning(f"Не удалось получить данные из Telegram для пользователя {self.telegram_id}: требуется telegram_data")
                 return False
             
-            # Обновляем first_name
-            if first_name and first_name.strip() and first_name.strip() != (self.first_name or '').strip():
+            # Обновляем first_name ТОЛЬКО если оно пустое
+            if first_name and first_name.strip() and not (self.first_name or '').strip():
                 self.first_name = first_name.strip()
                 changed_fields.append('first_name')
                 updated = True
-                logger.debug(f"Обновлено first_name для MiniAppUser (telegram_id={self.telegram_id}): {first_name}")
+                logger.debug(f"Заполнено first_name для MiniAppUser (telegram_id={self.telegram_id}): {first_name}")
             
-            # Обновляем last_name (может быть пустым, но это валидное значение)
-            # Всегда проверяем last_name, даже если он None или пустая строка
-            # Это важно, так как пользователь может удалить фамилию в Telegram
+            # Обновляем last_name ТОЛЬКО если оно пустое
             last_name_clean = ''
             if last_name is not None:
                 last_name_clean = last_name.strip() if last_name else ''
             elif telegram_data and 'last_name' in telegram_data:
-                # Если last_name явно передан в telegram_data (может быть None или пустая строка)
                 last_name_value = telegram_data.get('last_name')
                 last_name_clean = last_name_value.strip() if last_name_value else ''
             
             current_last_name = (self.last_name or '').strip()
             
-            logger.info(f"🔍 Проверка last_name для MiniAppUser (telegram_id={self.telegram_id}): новое='{last_name_clean}', текущее='{current_last_name}', last_name из данных={last_name}, в telegram_data={'last_name' in (telegram_data or {})}")
-            
-            # Обновляем если значение изменилось
-            if last_name_clean != current_last_name:
-                self.last_name = last_name_clean if last_name_clean else None
+            # Обновляем только если текущее значение пустое, а новое нет
+            if not current_last_name and last_name_clean:
+                self.last_name = last_name_clean
                 changed_fields.append('last_name')
                 updated = True
-                logger.info(f"✅ Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}' (было: '{current_last_name}')")
-            else:
-                logger.info(f"⏭️ last_name не изменилось для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}'")
+                logger.info(f"✅ Заполнено last_name для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}'")
             
-            # Обновляем username
+            # Обновляем username ТОЛЬКО если оно пустое
             username_clean = None
             if username is not None:
                 username_clean = username.strip() if username else None
                 current_username = (self.username or '').strip() if self.username else None
-                if username_clean != current_username:
+                
+                # Обновляем только если текущее пустое, а новое нет
+                if not current_username and username_clean:
                     self.username = username_clean
                     changed_fields.append('username')
                     updated = True
-                    logger.info(f"Обновлено username для MiniAppUser (telegram_id={self.telegram_id}): '{username_clean}' (было: '{current_username}')")
+                    logger.info(f"Заполнено username для MiniAppUser (telegram_id={self.telegram_id}): '{username_clean}'")
             
-            # Обновляем поле telegram на основе username
-            # Проверяем, нужно ли обновить поле telegram
-            # Используем username_clean если он был обработан выше, иначе берем текущий username
+            # Обновляем поле telegram ТОЛЬКО если оно пустое
             telegram_username = username_clean if username_clean is not None else (self.username.strip() if self.username else None)
+            current_telegram = (self.telegram or '').strip()
             
-            if telegram_username:
+            if telegram_username and not current_telegram:
                 telegram_link = f"https://t.me/{telegram_username}"
-                current_telegram = (self.telegram or '').strip()
-                if telegram_link != current_telegram:
-                    self.telegram = telegram_link
-                    changed_fields.append('telegram')
-                    updated = True
-                    logger.info(f"Обновлено поле telegram для MiniAppUser (telegram_id={self.telegram_id}): '{telegram_link}' (было: '{current_telegram}')")
-            elif not telegram_username:
-                # Если username пустой, очищаем поле telegram
-                if self.telegram:
-                    self.telegram = ''
-                    changed_fields.append('telegram')
-                    updated = True
-                    logger.info(f"Очищено поле telegram для MiniAppUser (telegram_id={self.telegram_id}), так как username пустой")
+                self.telegram = telegram_link
+                changed_fields.append('telegram')
+                updated = True
+                logger.info(f"Заполнено поле telegram для MiniAppUser (telegram_id={self.telegram_id}): '{telegram_link}'")
             
             # Обновляем telegram_photo_url и скачиваем аватарку
             if photo_url and photo_url.strip():
