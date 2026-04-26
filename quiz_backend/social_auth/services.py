@@ -28,12 +28,13 @@ class TelegramAuthService:
     """
     
     @staticmethod
-    def verify_telegram_auth(data: Dict[str, Any]) -> bool:
+    def verify_telegram_auth(data: Dict[str, Any], bot_token: Optional[str] = None) -> bool:
         """
         Проверяет подпись данных от Telegram Login Widget.
         
         Args:
             data: Данные от Telegram Login Widget
+            bot_token: Опциональный токен бота (например, из настроек тенанта)
             
         Returns:
             bool: True если подпись верна, False иначе
@@ -45,10 +46,12 @@ class TelegramAuthService:
                 logger.info("Пропущена проверка подписи для мок данных")
                 return True
             
-            # Получаем токен бота из настроек
-            bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+            # Получаем токен бота из аргументов или настроек
             if not bot_token:
-                logger.error("TELEGRAM_BOT_TOKEN не настроен в settings")
+                bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+                
+            if not bot_token:
+                logger.error("TELEGRAM_BOT_TOKEN не настроен в settings и не передан")
                 return False
             
             # Проверяем наличие обязательных полей
@@ -121,9 +124,15 @@ class TelegramAuthService:
             # Получаем текущий тенант из запроса
             tenant = getattr(request, 'tenant', None)
             
+            # Определяем токен для проверки
+            bot_token = None
+            if tenant and getattr(tenant, 'bot_token', None):
+                bot_token = tenant.bot_token
+                logger.info(f"Используем токен бота из тенанта {tenant.slug}")
+            
             # Проверяем подпись
             logger.info(f"Проверка подписи Telegram для данных: id={data.get('id')}, auth_date={data.get('auth_date')}")
-            if not TelegramAuthService.verify_telegram_auth(data):
+            if not TelegramAuthService.verify_telegram_auth(data, bot_token=bot_token):
                 logger.warning("Неверная подпись Telegram - авторизация отклонена")
                 logger.warning(f"Полученные данные: {data}")
                 return {
