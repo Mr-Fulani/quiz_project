@@ -963,17 +963,12 @@ def github_auth_redirect(request):
     logger.info(f"Request GET params: {dict(request.GET)}")
     
     try:
-        # Используем PUBLIC_URL из настроек для корректного redirect_uri
-        # Это важно для работы за прокси и для правильной настройки в GitHub OAuth App
-        public_url = getattr(settings, 'PUBLIC_URL', None)
-        if not public_url:
-            # Fallback: получаем из запроса
-            current_domain = request.get_host()
-            protocol = 'https' if request.is_secure() else 'http'
-            public_url = f"{protocol}://{current_domain}"
-        
-        # Убираем trailing slash если есть, чтобы избежать проблем
-        public_url = public_url.rstrip('/')
+        # Используем текущий домен для поддержки мульти-тенантности
+        current_domain = request.get_host()
+        protocol = 'https' if request.is_secure() or 'localhost' not in current_domain else 'http'
+        if 'localhost' not in current_domain and '127.0.0.1' not in current_domain:
+            protocol = 'https'
+        public_url = f"{protocol}://{current_domain}"
         
         # URL для возврата после авторизации (без trailing slash)
         redirect_uri = f"{public_url}/api/social-auth/github/callback"
@@ -1054,16 +1049,12 @@ class GitHubAuthCallbackView(APIView):
                 request.session.save()
             
             # Получаем redirect_uri (используем тот же, что был при авторизации)
-            # Используем PUBLIC_URL из настроек для консистентности
-            public_url = getattr(settings, 'PUBLIC_URL', None)
-            if not public_url:
-                # Fallback: получаем из запроса
-                current_domain = request.get_host()
-                protocol = 'https' if request.is_secure() else 'http'
-                public_url = f"{protocol}://{current_domain}"
-            
-            # Убираем trailing slash если есть
-            public_url = public_url.rstrip('/')
+            # Используем текущий домен для поддержки мульти-тенантности
+            current_domain = request.get_host()
+            protocol = 'https' if request.is_secure() or 'localhost' not in current_domain else 'http'
+            if 'localhost' not in current_domain and '127.0.0.1' not in current_domain:
+                protocol = 'https'
+            public_url = f"{protocol}://{current_domain}"
             redirect_uri = f"{public_url}/api/social-auth/github/callback"
             
             logger.info(f"Обработка авторизации GitHub: code={code[:20]}..., redirect_uri={redirect_uri}")
@@ -1146,17 +1137,12 @@ def google_auth_redirect(request):
     logger.info(f"Request GET params: {dict(request.GET)}")
     
     try:
-        # Используем PUBLIC_URL из настроек для корректного redirect_uri
-        # Это важно для работы за прокси и для правильной настройки в Google OAuth App
-        public_url = getattr(settings, 'PUBLIC_URL', None)
-        if not public_url:
-            # Fallback: получаем из запроса
-            current_domain = request.get_host()
-            protocol = 'https' if request.is_secure() else 'http'
-            public_url = f"{protocol}://{current_domain}"
-
-        # Убираем trailing slash если есть, чтобы избежать проблем
-        public_url = public_url.rstrip('/')
+        # Используем текущий домен для поддержки мульти-тенантности
+        current_domain = request.get_host()
+        protocol = 'https' if request.is_secure() or 'localhost' not in current_domain else 'http'
+        if 'localhost' not in current_domain and '127.0.0.1' not in current_domain:
+            protocol = 'https'
+        public_url = f"{protocol}://{current_domain}"
         
         # URL для возврата после авторизации (без trailing slash)
         redirect_uri = f"{public_url}/api/social-auth/google/callback"
@@ -1237,16 +1223,12 @@ class GoogleAuthCallbackView(APIView):
                 request.session.save()
             
             # Получаем redirect_uri (используем тот же, что был при авторизации)
-            # Используем PUBLIC_URL из настроек для консистентности
-            public_url = getattr(settings, 'PUBLIC_URL', None)
-            if not public_url:
-                # Fallback: получаем из запроса
-                current_domain = request.get_host()
-                protocol = 'https' if request.is_secure() else 'http'
-                public_url = f"{protocol}://{current_domain}"
-            
-            # Убираем trailing slash если есть
-            public_url = public_url.rstrip('/')
+            # Используем текущий домен для поддержки мульти-тенантности
+            current_domain = request.get_host()
+            protocol = 'https' if request.is_secure() or 'localhost' not in current_domain else 'http'
+            if 'localhost' not in current_domain and '127.0.0.1' not in current_domain:
+                protocol = 'https'
+            public_url = f"{protocol}://{current_domain}"
             redirect_uri = f"{public_url}/api/social-auth/google/callback"
             
             logger.info(f"Обработка авторизации Google: code={code[:20]}..., redirect_uri={redirect_uri}")
@@ -1544,8 +1526,13 @@ def telegram_oauth_redirect(request):
         bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', None)
         bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
         
+        tenant = getattr(request, 'tenant', None)
+        if tenant and tenant.bot_username and tenant.bot_token:
+            bot_username = tenant.bot_username
+            bot_token = tenant.bot_token
+        
         if not bot_username:
-            logger.error("TELEGRAM_BOT_USERNAME не настроен в settings")
+            logger.error("TELEGRAM_BOT_USERNAME не настроен в settings или тенанте")
             return redirect('/?open_login=true&error=Настройки Telegram бота не найдены')
         
         # Получаем bot_id из токена через getMe API
@@ -1567,16 +1554,13 @@ def telegram_oauth_redirect(request):
         
         # Получаем текущий домен
         current_domain = request.get_host()
-        protocol = 'https' if request.is_secure() else 'http'
+        protocol = 'https' if request.is_secure() or 'localhost' not in current_domain else 'http'
+        if 'localhost' not in current_domain and '127.0.0.1' not in current_domain:
+            protocol = 'https'
         origin = f"{protocol}://{current_domain}"
         
-        # URL для возврата после авторизации
-        # ИСПРАВЛЕНИЕ: Используем отдельный callback endpoint, как для GitHub
-        # Это упрощает логику и делает её более надежной
-        public_url = getattr(settings, 'PUBLIC_URL', None)
-        if not public_url:
-            public_url = origin
-        public_url = public_url.rstrip('/')
+        # URL для возврата после авторизации (всегда на тот же домен)
+        public_url = origin
         return_to = f"{public_url}/api/social-auth/telegram/callback"
         
         logger.info(f"🔍 Параметры для Telegram OAuth:")
