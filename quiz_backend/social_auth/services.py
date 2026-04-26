@@ -206,10 +206,10 @@ class TelegramAuthService:
                     
                     # Также обновляем данные пользователя и аватарку
                     user_updated = False
-                    if data.get('first_name') and data.get('first_name') != user.first_name:
+                    if data.get('first_name') and not user.first_name:
                         user.first_name = data.get('first_name')
                         user_updated = True
-                    if data.get('last_name') and data.get('last_name') != user.last_name:
+                    if data.get('last_name') and not user.last_name:
                         user.last_name = data.get('last_name')
                         user_updated = True
                     
@@ -353,8 +353,13 @@ class TelegramAuthService:
                         logger.warning(f"Ошибка при инициализации/обновлении MiniAppUser: {mau_error}")
                 else:
                     # Создаем нового пользователя или связываем с существующим с учетом тенанта
-                    user = TelegramAuthService._get_or_create_user(data, tenant)
-                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    if getattr(request, 'user', None) and request.user.is_authenticated:
+                        user = request.user
+                        logger.info(f"Привязка Telegram аккаунта к текущему пользователю {user.username}")
+                        is_new_user = False
+                    else:
+                        user = TelegramAuthService._get_or_create_user(data, tenant)
+                        is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для telegram_id={telegram_id}, username: {user.username}, is_active={user.is_active}, is_new={is_new_user}")
                     
                     # Создаем или обновляем социальный аккаунт с учетом тенанта
@@ -741,10 +746,10 @@ class TelegramAuthService:
         if user:
             # Обновляем данные пользователя
             updated = False
-            if first_name and first_name != user.first_name:
+            if first_name and not user.first_name:
                 user.first_name = first_name
                 updated = True
-            if last_name and last_name != user.last_name:
+            if last_name and not user.last_name:
                 user.last_name = last_name
                 updated = True
             if not user.is_telegram_user:
@@ -779,9 +784,9 @@ class TelegramAuthService:
                 if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
                     logger.info(f"Связывание существующего пользователя {existing_user.username} с telegram_id={telegram_id}")
                     existing_user.telegram_id = telegram_id
-                    if first_name and first_name != existing_user.first_name:
+                    if first_name and not existing_user.first_name:
                         existing_user.first_name = first_name
-                    if last_name and last_name != existing_user.last_name:
+                    if last_name and not existing_user.last_name:
                         existing_user.last_name = last_name
                     if not existing_user.is_telegram_user:
                         existing_user.is_telegram_user = True
@@ -1160,10 +1165,10 @@ class GitHubAuthService:
                     
                     # Обновляем данные пользователя
                     user_updated = False
-                    if user_info.get('name') and user_info['name'][0] and user_info['name'][0] != user.first_name:
+                    if user_info.get('name') and user_info['name'][0] and not user.first_name:
                         user.first_name = user_info['name'][0]
                         user_updated = True
-                    if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1] and user_info['name'][1] != user.last_name:
+                    if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1] and not user.last_name:
                         user.last_name = user_info['name'][1]
                         user_updated = True
                     
@@ -1183,8 +1188,13 @@ class GitHubAuthService:
                 else:
                     # Создаем нового пользователя или связываем с существующим
                     tenant = getattr(request, 'tenant', None)
-                    user = GitHubAuthService._get_or_create_user(user_info, tenant)
-                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    if getattr(request, 'user', None) and request.user.is_authenticated:
+                        user = request.user
+                        logger.info(f"Привязка GitHub аккаунта к текущему пользователю {user.username}")
+                        is_new_user = False
+                    else:
+                        user = GitHubAuthService._get_or_create_user(user_info, tenant)
+                        is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для github_id={github_id}, username: {user.username}")
                     
                     # Создаем или обновляем социальный аккаунт
@@ -1315,10 +1325,10 @@ class GitHubAuthService:
             if user:
                 logger.info(f"Найден пользователь по email: {user.username}")
                 updated = False
-                if first_name and first_name != user.first_name:
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
                 if updated:
@@ -1336,13 +1346,13 @@ class GitHubAuthService:
             if user:
                 logger.info(f"Найден пользователь по username: {user.username}")
                 updated = False
-                if email and email != user.email:
+                if not user.email and email:
                     user.email = email
                     updated = True
-                if first_name and first_name != user.first_name:
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
                 if updated:
@@ -1669,13 +1679,13 @@ class GoogleAuthService:
                     
                     # Обновляем данные пользователя
                     user_updated = False
-                    if user_info.get('first_name') and user_info['first_name'] != user.first_name:
+                    if user_info.get('first_name') and not user.first_name:
                         user.first_name = user_info['first_name']
                         user_updated = True
-                    if user_info.get('last_name') and user_info['last_name'] != user.last_name:
+                    if user_info.get('last_name') and not user.last_name:
                         user.last_name = user_info['last_name']
                         user_updated = True
-                    if google_email and google_email != user.email:
+                    if google_email and not user.email:
                         user.email = google_email
                         user_updated = True
                     
@@ -1695,8 +1705,13 @@ class GoogleAuthService:
                 else:
                     # Создаем нового пользователя или связываем с существующим
                     tenant = getattr(request, 'tenant', None)
-                    user = GoogleAuthService._get_or_create_user(user_info, tenant)
-                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    if getattr(request, 'user', None) and request.user.is_authenticated:
+                        user = request.user
+                        logger.info(f"Привязка Google аккаунта к текущему пользователю {user.username}")
+                        is_new_user = False
+                    else:
+                        user = GoogleAuthService._get_or_create_user(user_info, tenant)
+                        is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для google_id={google_id}, username: {user.username}")
                     
                     # Создаем или обновляем социальный аккаунт
@@ -1817,10 +1832,10 @@ class GoogleAuthService:
             if user:
                 logger.info(f"Найден пользователь по email: {user.username}")
                 updated = False
-                if first_name and first_name != user.first_name:
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
                 if updated:
@@ -1838,14 +1853,14 @@ class GoogleAuthService:
             if social_account_with_email:
                 user = social_account_with_email.user
                 logger.info(f"Найден пользователь по email в SocialAccount: {user.username}")
-                if user.email != google_email:
+                if not user.email and google_email:
                     user.email = google_email
                     user.save()
                 updated = False
-                if first_name and first_name != user.first_name:
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
                 if updated:
@@ -1871,14 +1886,14 @@ class GoogleAuthService:
                 ).first()
                 if telegram_account:
                     logger.info(f"Найден пользователь по имени/фамилии + Telegram: {potential_user.username}")
-                    if google_email:
+                    if not potential_user.email and google_email:
                         potential_user.email = google_email
                         potential_user.save()
                     updated = False
-                    if first_name and first_name != potential_user.first_name:
+                    if first_name and not potential_user.first_name:
                         potential_user.first_name = first_name
                         updated = True
-                    if last_name and last_name != potential_user.last_name:
+                    if last_name and not potential_user.last_name:
                         potential_user.last_name = last_name
                         updated = True
                     if updated:
