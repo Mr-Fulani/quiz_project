@@ -48,6 +48,22 @@ class GlobalChatTests(TestCase):
         self.assertEqual(payload['status'], 'sent')
         self.assertIn('@user_two', payload['message']['content_html'])
 
+    def test_global_chat_reply_message(self):
+        original = GlobalChatMessage.objects.create(tenant=self.tenant, author=self.other_user, content='Оригинал')
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('blog:global_chat_send'),
+            {'content': 'Ответ', 'reply_to_id': original.id},
+            **self.tenant_header
+        )
+        self.assertEqual(response.status_code, 200)
+        reply = GlobalChatMessage.objects.order_by('-id').first()
+        self.assertEqual(reply.reply_to_id, original.id)
+        payload = response.json()
+        self.assertEqual(payload['status'], 'sent')
+        self.assertIsNotNone(payload['message']['reply_to'])
+        self.assertEqual(payload['message']['reply_to']['id'], original.id)
+
     def test_global_chat_messages_incremental_loading(self):
         GlobalChatMessage.objects.create(tenant=self.tenant, author=self.user, content='Первое')
         second = GlobalChatMessage.objects.create(tenant=self.tenant, author=self.other_user, content='Второе')

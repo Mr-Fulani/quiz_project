@@ -91,6 +91,55 @@
     resize: vertical;
 }
 
+.global-chat-reply {
+    border: 1px solid var(--jet);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.global-chat-reply .reply-meta {
+    font-size: 12px;
+    color: var(--light-gray-70);
+}
+
+.global-chat-reply .reply-preview {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--white-2);
+    opacity: 0.95;
+    word-break: break-word;
+}
+
+.global-chat-reply .reply-cancel {
+    border: 1px solid var(--jet);
+    background: transparent;
+    color: var(--light-gray);
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.global-chat-quote {
+    margin-top: 6px;
+    border-left: 3px solid var(--orange-yellow-crayola);
+    padding-left: 10px;
+    color: var(--light-gray);
+    font-size: 13px;
+    opacity: 0.95;
+}
+
+.global-chat-quote a {
+    color: var(--orange-yellow-crayola);
+    text-decoration: none;
+}
+
 .global-chat-actions {
     margin-top: 8px;
     display: flex;

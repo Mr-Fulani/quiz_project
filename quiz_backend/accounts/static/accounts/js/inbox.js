@@ -468,9 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const queryParams = new URLSearchParams(window.location.search);
     const initialUsername = queryParams.get('with');
     if (initialUsername) {
-        const dialog = document.querySelector(`.dialog-item[data-username="${initialUsername}"]`);
-        if (dialog) {
-            loadConversation(initialUsername);
-        }
+        // Открываем диалог даже если его ещё нет в списке (пустая переписка).
+        loadConversation(initialUsername);
     }
 });
