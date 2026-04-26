@@ -1,0 +1,67 @@
+{% extends "blog/base.html" %}
+{% load static i18n %}
+{% get_current_language as language %}
+
+{% block sidebar %}
+{% include "accounts/user_sidebar.html" %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/global_chat.css' %}">
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<article class="global-chat-page active" data-page="global-chat">
+    <header class="global-chat-header">
+        <h1 class="h2 article-title">{% if language == 'ru' %}Общий чат{% else %}Global chat{% endif %}</h1>
+        <p class="global-chat-subtitle">{% if language == 'ru' %}Общайтесь со всеми зарегистрированными пользователями в реальном времени{% else %}Chat with all registered users in real time{% endif %}</p>
+    </header>
+
+    <section class="global-chat-layout">
+        <div class="global-chat-feed" id="global-chat-feed"></div>
+        <form id="global-chat-form" class="global-chat-form" method="post" action="{% url 'blog:global_chat_send' %}">
+            <textarea id="global-chat-input" name="content" maxlength="2000" placeholder="{% if language == 'ru' %}Введите сообщение. Используйте @username для упоминания.{% else %}Type a message. Use @username to mention someone.{% endif %}" required></textarea>
+            <div class="global-chat-actions">
+                <button type="submit" class="form-btn">{% if language == 'ru' %}Отправить{% else %}Send{% endif %}</button>
+            </div>
+        </form>
+    </section>
+</article>
+
+<script>
+    window.globalChatConfig = {
+        messagesUrl: "{% url 'blog:global_chat_messages' %}",
+        sendUrl: "{% url 'blog:global_chat_send' %}",
+        deleteUrlTemplate: "{% url 'blog:global_chat_delete' message_id=0 %}",
+        banUrlTemplate: "{% url 'blog:global_chat_ban' user_id=0 %}",
+        unbanUrlTemplate: "{% url 'blog:global_chat_unban' user_id=0 %}",
+        isAdmin: {% if user.is_staff or user.is_superuser %}true{% else %}false{% endif %},
+        currentUserId: {{ user.id }},
+        defaultAvatar: "{% static 'blog/images/avatar/default_avatar.png' %}",
+        texts: {
+            loadError: "{% if language == 'ru' %}Не удалось загрузить сообщения чата{% else %}Failed to load chat messages{% endif %}",
+            sendError: "{% if language == 'ru' %}Не удалось отправить сообщение{% else %}Failed to send message{% endif %}",
+            banError: "{% if language == 'ru' %}Вы не можете отправлять сообщения: вы заблокированы{% else %}You are banned and cannot send messages{% endif %}",
+            banSuccess: "{% if language == 'ru' %}Пользователь заблокирован в чате{% else %}User has been banned in chat{% endif %}",
+            deleteSuccess: "{% if language == 'ru' %}Сообщение удалено{% else %}Message deleted{% endif %}",
+            confirmDelete: "{% if language == 'ru' %}Удалить сообщение?{% else %}Delete message?{% endif %}",
+            confirmBan: "{% if language == 'ru' %}Заблокировать пользователя?{% else %}Ban user?{% endif %}",
+            confirmUnban: "{% if language == 'ru' %}Разблокировать пользователя?{% else %}Unban user?{% endif %}",
+            empty: "{% if language == 'ru' %}Сообщений пока нет. Начните диалог первым.{% else %}No messages yet. Start the conversation first.{% endif %}",
+            actionDelete: "{% if language == 'ru' %}Удалить{% else %}Delete{% endif %}",
+            actionBan: "{% if language == 'ru' %}Бан{% else %}Ban{% endif %}",
+            actionUnban: "{% if language == 'ru' %}Разбан{% else %}Unban{% endif %}",
+            unbanSuccess: "{% if language == 'ru' %}Пользователь разблокирован{% else %}User unbanned{% endif %}",
+            promptBanReason: "{% if language == 'ru' %}Причина бана (необязательно):{% else %}Ban reason (optional):{% endif %}",
+            promptBanDuration: "{% if language == 'ru' %}Срок бана в часах (пусто = навсегда):{% else %}Ban duration in hours (empty = permanent):{% endif %}",
+            banTitle: "{% if language == 'ru' %}Вы заблокированы{% else %}You are banned{% endif %}",
+            bannedUntil: "{% if language == 'ru' %}Бан до:{% else %}Banned until:{% endif %}",
+            banReasonLabel: "{% if language == 'ru' %}Причина:{% else %}Reason:{% endif %}",
+            banOk: "{% if language == 'ru' %}Понятно{% else %}Got it{% endif %}",
+            banPermanent: "{% if language == 'ru' %}Навсегда{% else %}Permanently{% endif %}"
+        }
+    };
+</script>
+<script src="{% static 'blog/js/global_chat.js' %}"></script>
+{% endblock %}

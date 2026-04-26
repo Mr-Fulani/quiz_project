@@ -7,7 +7,9 @@ from .views import (
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, submit_task_answer,
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
-    quiz_difficulty, reset_subtopic_stats, check_auth, download_resume_pdf
+    quiz_difficulty, reset_subtopic_stats, check_auth, download_resume_pdf,
+    global_chat_page, global_chat_messages, global_chat_send_message,
+    global_chat_delete_message, global_chat_ban_user, global_chat_unban_user
 )
 from django.shortcuts import redirect, render
 
@@ -87,6 +89,13 @@ urlpatterns = [
 
     path('messages/conversation/<str:recipient_username>/', get_conversation, name='get_conversation'),
     #   -> Отображает переписку с конкретным пользователем
+
+    path('chat/', global_chat_page, name='global_chat'),
+    path('chat/messages/', global_chat_messages, name='global_chat_messages'),
+    path('chat/send/', global_chat_send_message, name='global_chat_send'),
+    path('chat/messages/<int:message_id>/delete/', global_chat_delete_message, name='global_chat_delete'),
+    path('chat/users/<int:user_id>/ban/', global_chat_ban_user, name='global_chat_ban'),
+    path('chat/users/<int:user_id>/unban/', global_chat_unban_user, name='global_chat_unban'),
 
     path('statistics/', statistics_view, name='statistics'),
     #   -> Отображает общую статистику (blog/statistics.html)

@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import random
+import re
 import uuid
 from datetime import datetime, timedelta
 
@@ -27,6 +28,7 @@ from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirec
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _, get_language, activate
@@ -44,7 +46,7 @@ from topics.models import Topic, Subtopic
 
 
 from .mixins import BreadcrumbsMixin
-from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText, Service
+from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText, Service, GlobalChatMessage, GlobalChatBan
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from accounts.serializers import ProfileSerializer, SocialLinksSerializer
 
@@ -2631,6 +2633,195 @@ def get_unread_messages_count(request):
     return JsonResponse({'count': count})
 
 
+def _render_mentions_html(content):
+    """Преобразует @username в кликабельные ссылки профиля."""
+    escaped = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    def replace_mention(match):
+        username = match.group(1)
+        profile_url = reverse('accounts:user_profile', kwargs={'username': username})
+        return f'<a class="chat-mention" href="{profile_url}">@{username}</a>'
+
+    return re.sub(r'@([A-Za-z0-9_.-]{2,150})', replace_mention, escaped)
+
+
+def _serialize_global_chat_message(message, current_user):
+    """Сериализация сообщения общего чата в формат для клиента."""
+    profile_url = reverse('accounts:user_profile', kwargs={'username': message.author.username})
+    inbox_url = reverse('blog:inbox')
+    return {
+        'id': message.id,
+        'content': message.content,
+        'content_html': _render_mentions_html(message.content),
+        'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'author': {
+            'id': message.author.id,
+            'username': message.author.username,
+            'display_name': message.author.get_display_name(),
+            'avatar_url': message.author.get_avatar_url,
+            'profile_url': profile_url,
+            'dm_url': f'{inbox_url}?with={message.author.username}',
+        },
+        'can_delete': current_user.is_staff or current_user.is_superuser,
+    }
+
+
+def _get_active_global_ban(user, tenant):
+    ban = GlobalChatBan.objects.filter(user=user, tenant=tenant).first()
+    if not ban:
+        return None
+    if ban.is_active():
+        return ban
+    ban.delete()
+    return None
+
+
+@login_required
+def global_chat_page(request):
+    """Страница общего чата."""
+    return render(request, 'blog/global_chat.html')
+
+
+@login_required
+@require_http_methods(["GET"])
+def global_chat_messages(request):
+    """Возвращает события общего чата для polling (сообщения + удаления)."""
+    tenant = getattr(request, 'tenant', None)
+    if tenant is None:
+        return JsonResponse({'events': [], 'since': timezone.now().isoformat()})
+
+    since_raw = request.GET.get('since')
+    now_iso = timezone.now().isoformat()
+
+    # Первичная загрузка: последние 200 сообщений, без удалённых
+    if not since_raw:
+        messages = list(
+            GlobalChatMessage.objects.filter(tenant=tenant, is_deleted=False)
+            .select_related('author')
+            .order_by('-id')[:200]
+        )
+        messages.reverse()
+        events = [{'type': 'message', 'message': _serialize_global_chat_message(message, request.user)} for message in messages]
+        return JsonResponse({'events': events, 'since': now_iso})
+
+    since_dt = parse_datetime(since_raw)
+    if since_dt is None:
+        return JsonResponse({'status': 'error', 'message': 'Некорректный since'}, status=400)
+    if timezone.is_naive(since_dt):
+        since_dt = timezone.make_aware(since_dt, timezone.get_current_timezone())
+
+    # Инкрементальная загрузка: всё, что менялось после since (включая soft-delete)
+    changed = list(
+        GlobalChatMessage.objects.filter(tenant=tenant, updated_at__gt=since_dt)
+        .select_related('author')
+        .order_by('id')[:400]
+    )
+
+    events = []
+    for message in changed:
+        if message.is_deleted:
+            events.append({'type': 'deleted', 'message_id': message.id})
+        else:
+            events.append({'type': 'message', 'message': _serialize_global_chat_message(message, request.user)})
+
+    return JsonResponse({'events': events, 'since': now_iso})
+
+
+@login_required
+@require_POST
+def global_chat_send_message(request):
+    """Отправка сообщения в общий чат."""
+    tenant = getattr(request, 'tenant', None)
+    if tenant is None:
+        return JsonResponse({'status': 'error', 'message': 'Тенант не определен'}, status=400)
+
+    active_ban = _get_active_global_ban(request.user, tenant)
+    if active_ban:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Вы заблокированы в чате',
+            'ban_reason': active_ban.reason,
+            'banned_until': active_ban.banned_until.strftime('%Y-%m-%d %H:%M:%S') if active_ban.banned_until else None
+        }, status=403)
+
+    content = request.POST.get('content', '').strip()
+    if not content:
+        return JsonResponse({'status': 'error', 'message': 'Введите текст сообщения'}, status=400)
+
+    message = GlobalChatMessage.objects.create(
+        tenant=tenant,
+        author=request.user,
+        content=content,
+    )
+    return JsonResponse({'status': 'sent', 'message': _serialize_global_chat_message(message, request.user)})
+
+
+@login_required
+@require_POST
+def global_chat_delete_message(request, message_id):
+    """Удаление сообщения общего чата администратором."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': 'Недостаточно прав'}, status=403)
+
+    tenant = getattr(request, 'tenant', None)
+    message = get_object_or_404(GlobalChatMessage, id=message_id, tenant=tenant, is_deleted=False)
+    message.is_deleted = True
+    message.deleted_at = timezone.now()
+    message.deleted_by = request.user
+    message.save(update_fields=['is_deleted', 'deleted_at', 'deleted_by', 'updated_at'])
+    return JsonResponse({'status': 'deleted', 'message_id': message.id})
+
+
+@login_required
+@require_POST
+def global_chat_ban_user(request, user_id):
+    """Бан/обновление бана пользователя общего чата администратором."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': 'Недостаточно прав'}, status=403)
+
+    tenant = getattr(request, 'tenant', None)
+    target_user = get_object_or_404(CustomUser, id=user_id, tenant=tenant)
+    if target_user.id == request.user.id:
+        return JsonResponse({'status': 'error', 'message': 'Нельзя заблокировать самого себя'}, status=400)
+
+    reason = request.POST.get('reason', '').strip()
+    duration_hours = request.POST.get('duration_hours')
+    banned_until = None
+    if duration_hours:
+        try:
+            banned_until = timezone.now() + timezone.timedelta(hours=int(duration_hours))
+        except (TypeError, ValueError):
+            return JsonResponse({'status': 'error', 'message': 'Некорректная длительность бана'}, status=400)
+
+    ban, _ = GlobalChatBan.objects.update_or_create(
+        tenant=tenant,
+        user=target_user,
+        defaults={
+            'reason': reason,
+            'banned_until': banned_until,
+            'banned_by': request.user
+        }
+    )
+    return JsonResponse({
+        'status': 'banned',
+        'user_id': target_user.id,
+        'username': target_user.username,
+        'reason': ban.reason,
+        'banned_until': ban.banned_until.strftime('%Y-%m-%d %H:%M:%S') if ban.banned_until else None
+    })
+
+
+@login_required
+@require_POST
+def global_chat_unban_user(request, user_id):
+    """Разбан пользователя общего чата администратором."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': 'Недостаточно прав'}, status=403)
+
+    tenant = getattr(request, 'tenant', None)
+    target_user = get_object_or_404(CustomUser, id=user_id, tenant=tenant)
+    GlobalChatBan.objects.filter(tenant=tenant, user=target_user).delete()
+    return JsonResponse({'status': 'unbanned', 'user_id': target_user.id})
 
 
 def custom_404(request, exception=None):

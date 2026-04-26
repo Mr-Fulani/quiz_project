@@ -16,6 +16,7 @@ from tinymce.models import HTMLField
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
 from django.conf import settings
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -699,6 +700,71 @@ class Message(models.Model):
         """Проверяет, полностью ли удалено сообщение (обоими сторонами)."""
         return self.is_deleted_by_sender and self.is_deleted_by_recipient
 
+
+class GlobalChatBan(models.Model):
+    """Бан пользователя в общем чате."""
+
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, related_name='global_chat_bans')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='global_chat_bans')
+    banned_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='issued_global_chat_bans',
+        verbose_name='Кем выдан бан'
+    )
+    reason = models.TextField(blank=True, default='', verbose_name='Причина бана')
+    banned_until = models.DateTimeField(null=True, blank=True, verbose_name='Бан до')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Бан в общем чате'
+        verbose_name_plural = 'Баны в общем чате'
+        constraints = [
+            models.UniqueConstraint(fields=['tenant', 'user'], name='unique_global_chat_ban_per_tenant_user')
+        ]
+
+    def __str__(self):
+        return f"Бан {self.user.username} ({self.tenant.name})"
+
+    def is_active(self):
+        if self.banned_until is None:
+            return True
+        return self.banned_until > timezone.now()
+
+
+class GlobalChatMessage(models.Model):
+    """Сообщение в общем чате для всех пользователей тенанта."""
+
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, related_name='global_chat_messages')
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='global_chat_messages')
+    content = models.TextField(verbose_name='Текст сообщения')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False, verbose_name='Удалено')
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата удаления')
+    deleted_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_global_chat_messages',
+        verbose_name='Кем удалено'
+    )
+
+    class Meta:
+        verbose_name = 'Сообщение общего чата'
+        verbose_name_plural = 'Сообщения общего чата'
+        ordering = ['id']
+        indexes = [
+            models.Index(fields=['tenant', 'id'], name='global_chat_tenant_id_idx'),
+            models.Index(fields=['tenant', 'created_at'], name='global_chat_tenant_created_idx'),
+        ]
+
+    def __str__(self):
+        return f"#{self.id} {self.author.username}: {self.content[:30]}"
 
 class PageVideo(models.Model):
     """
