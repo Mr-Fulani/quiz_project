@@ -741,7 +741,6 @@ if (window.TaskManagerAlreadyLoaded) {
             // Выделяем сырые ссылки, перед которыми нет кавычек (не находятся внутри готовых HTML-тегов)
             // Исключаем ссылки, которые уже являются частью <a> тега (простая проверка на префикс)
             processed = processed.replace(/(^|[^="'])(https?:\/\/[^\s<)\]"']+)/g, (match, prefix, url) => {
-                const unescapedUrl = url.replace(/&amp;/g, '&');
                 // Если ссылка кончается на точку или запятую, исключаем её из url
                 let cleanUrl = url;
                 let suffix = '';
@@ -749,10 +748,53 @@ if (window.TaskManagerAlreadyLoaded) {
                     suffix = url.slice(-1);
                     cleanUrl = url.slice(0, -1);
                 }
-                return `${prefix}<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
+                const cleanHref = cleanUrl.replace(/&amp;/g, '&');
+                return `${prefix}<a href="${cleanHref}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
             });
             
             return processed;
+        }
+
+        /**
+         * Формирует HTML источников с поддержкой нескольких ссылок в source_link.
+         * source_link и source_name могут содержать несколько значений, разделенных ";".
+         */
+        buildSourceHtml(sourceName, sourceLink) {
+            const normalizedName = (sourceName || '').trim();
+            const normalizedLink = (sourceLink || '').trim();
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+
+            if (!normalizedName && !normalizedLink) {
+                return '';
+            }
+
+            if (!normalizedLink) {
+                return `<span class="source-text">${this.formatInlineLinks(normalizedName, false)}</span>`;
+            }
+
+            const links = normalizedLink
+                .split(';')
+                .map(link => link.trim())
+                .filter(Boolean);
+
+            const names = normalizedName
+                .split(';')
+                .map(name => name.trim());
+
+            if (!links.length) {
+                return `<span class="source-text">${this.formatInlineLinks(normalizedName, false)}</span>`;
+            }
+
+            const anchors = links.map((link, index) => {
+                const title = escapeHtml(names[index] || link);
+                return `<a href="${link}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`;
+            });
+
+            return anchors.join('; ');
         }
 
         /**
@@ -931,15 +973,7 @@ if (window.TaskManagerAlreadyLoaded) {
                                 const sourceLink = taskItem.dataset.sourceLink || '';
                                 
                                 if (sourceName || sourceLink) {
-                                    let sourceHtml = '';
-                                    if (sourceLink) {
-                                        // Экранируем название источника, если оно есть
-                                        const displayName = sourceName ? sourceName : sourceLink;
-                                        sourceHtml = `<a href="${sourceLink}" class="source-link" target="_blank" rel="noopener noreferrer">${displayName}</a>`;
-                                    } else {
-                                        // Если указано только имя, форматируем возможные ссылки в нем
-                                        sourceHtml = `<span class="source-text">${this.formatInlineLinks(sourceName, false)}</span>`;
-                                    }
+                                    const sourceHtml = this.buildSourceHtml(sourceName, sourceLink);
                                     formatted += `<div class="explanation-source">${sourceHtml}</div>`;
                                 }
                                 

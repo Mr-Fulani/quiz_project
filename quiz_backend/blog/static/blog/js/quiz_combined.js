@@ -406,7 +406,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Выделяем сырые ссылки, перед которыми нет кавычек (не находятся внутри готовых HTML-тегов)
         processed = processed.replace(/(^|[^="'])(https?:\/\/[^\s<)\]"']+)/g, (match, prefix, url) => {
-            const unescapedUrl = url.replace(/&amp;/g, '&');
             // Если ссылка кончается на точку или запятую, исключаем её из url
             let cleanUrl = url;
             let suffix = '';
@@ -414,7 +413,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 suffix = url.slice(-1);
                 cleanUrl = url.slice(0, -1);
             }
-            return `${prefix}<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
+            const cleanHref = cleanUrl.replace(/&amp;/g, '&');
+            return `${prefix}<a href="${cleanHref}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
         });
         
         return processed;
@@ -508,6 +508,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * Формирует HTML источников с поддержкой нескольких ссылок в source_link.
+     * source_link и source_name могут содержать несколько значений, разделенных ";".
+     */
+    function buildSourceHtml(sourceName, sourceLink) {
+        const normalizedName = (sourceName || '').trim();
+        const normalizedLink = (sourceLink || '').trim();
+
+        if (!normalizedName && !normalizedLink) return '';
+
+        if (!normalizedLink) {
+            return `<span class="source-text">${formatInlineLinks(normalizedName, false)}</span>`;
+        }
+
+        const links = normalizedLink
+            .split(';')
+            .map(link => link.trim())
+            .filter(Boolean);
+
+        const names = normalizedName
+            .split(';')
+            .map(name => name.trim());
+
+        if (!links.length) {
+            return `<span class="source-text">${formatInlineLinks(normalizedName, false)}</span>`;
+        }
+
+        const anchors = links.map((link, index) => {
+            const title = escapeHtml(names[index] || link);
+            return `<a href="${link}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`;
+        });
+
+        return anchors.join('; ');
+    }
+
+    /**
      * Показывает модальное окно с объяснением и предотвращает прокрутку страницы.
      * @param {string} explanation - Текст объяснения.
      * @param {string} sourceName - Название источника.
@@ -524,13 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Добавляем источник, если он есть
         if (sourceName || sourceLink) {
-            let sourceHtml = '';
-            if (sourceLink) {
-                sourceHtml = `<a href="${sourceLink}" class="source-link" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceName || sourceLink)}</a>`;
-            } else {
-                // Если указано только имя, парсим его на предмет Markdown-ссылок или обычных ссылок
-                sourceHtml = `<span class="source-text">${formatInlineLinks(sourceName, false)}</span>`;
-            }
+            const sourceHtml = buildSourceHtml(sourceName, sourceLink);
             formattedExplanation += `<div class="explanation-source">${sourceHtml}</div>`;
         }
 
