@@ -6,7 +6,7 @@ import json
 import logging
 import random
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
 from django.conf import settings
@@ -19,6 +19,57 @@ from .image_generation_service import generate_image_for_task
 from .telegram_service import publish_task_to_telegram
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_source_value(value: Any) -> Optional[str]:
+    """
+    Нормализует строковые значения источника.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _extract_source_fields_from_translation_data(translation_data: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    """
+    Извлекает поля source_name/source_link из translation_data["source"].
+
+    Поддерживаемые форматы:
+    - source: {"text": "...", "url": "..."}
+    - source: {"items": [{"text": "...", "url": "..."}, ...]}
+    """
+    source_data = translation_data.get('source')
+    if not isinstance(source_data, dict):
+        return {'source_name': None, 'source_link': None}
+
+    source_names: List[str] = []
+    source_links: List[str] = []
+
+    items = source_data.get('items')
+
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = _normalize_source_value(item.get('text'))
+            link = _normalize_source_value(item.get('url'))
+            if name:
+                source_names.append(name)
+            if link:
+                source_links.append(link)
+    else:
+        name = _normalize_source_value(source_data.get('text'))
+        link = _normalize_source_value(source_data.get('url'))
+        if name:
+            source_names.append(name)
+        if link:
+            source_links.append(link)
+
+    return {
+        'source_name': '; '.join(source_names) if source_names else None,
+        'source_link': '; '.join(source_links) if source_links else None,
+    }
 
 
 def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, image_theme: str = 'code', image_logo_path: Optional[str] = None) -> Dict:
@@ -126,6 +177,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                     long_explanation = translation_data.get('long_explanation')
                     external_link = translation_data.get('external_link')
                     difficulty = task_data.get('difficulty', 'medium')
+                    source_fields = _extract_source_fields_from_translation_data(translation_data)
                     
                     # Валидация данных
                     if not all([question, answers, correct_answer]):
@@ -213,7 +265,9 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                                 answers=serialized_answers,
                                 correct_answer=correct_answer,
                                 explanation=explanation,
-                                long_explanation=long_explanation
+                                long_explanation=long_explanation,
+                                source_name=source_fields['source_name'],
+                                source_link=source_fields['source_link'],
                             )
                             
                             logger.info(f"✅ Создан перевод для задачи {task.id} на языке {language}")
