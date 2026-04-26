@@ -275,11 +275,10 @@ class TaskTranslation(models.Model):
         blank=True,
         help_text='Название источника объяснения (например, Wikipedia)'
     )
-    source_link = models.URLField(
-        max_length=500,
+    source_link = models.TextField(
         null=True,
         blank=True,
-        help_text='Ссылка на источник объяснения'
+        help_text='Ссылка(и) на источник объяснения. Для нескольких ссылок используйте разделитель ";"'
     )
     publish_date = models.DateTimeField(
         null=True, blank=True)
