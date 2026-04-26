@@ -83,18 +83,29 @@ class PersonalInfoForm(forms.ModelForm):
 
     def clean_telegram(self):
         """
-        Валидация поля Telegram (@username или URL).
+        Валидация поля Telegram (@username, username без @, или URL).
         """
         telegram = self.cleaned_data.get('telegram', '').strip()
         if not telegram:
             return telegram
+            
+        # Если это полная ссылка
+        if telegram.startswith('http://') or telegram.startswith('https://'):
+            if not re.match(r'^https?://(t\.me|telegram\.me)/[A-Za-z0-9_]{5,}$', telegram):
+                raise ValidationError('Введите корректный URL Telegram или имя пользователя.')
+            return telegram
+            
+        # Если начинается с @
         if telegram.startswith('@'):
-            if not re.match(r'^@[A-Za-z0-9_]{5,}$', telegram):
-                raise ValidationError('Имя пользователя Telegram должно начинаться с @ и содержать минимум 5 символов.')
-            return f'https://t.me/{telegram[1:]}'
-        if not re.match(r'^https?://(t\.me|telegram\.me)/[A-Za-z0-9_]{5,}$', telegram):
-            raise ValidationError('Введите корректный URL Telegram или имя пользователя.')
-        return telegram
+            username = telegram[1:]
+        else:
+            username = telegram
+            
+        # Проверяем username (может содержать буквы, цифры, подчеркивания)
+        if not re.match(r'^[A-Za-z0-9_]{5,}$', username):
+            raise ValidationError('Имя пользователя Telegram должно содержать минимум 5 символов (буквы, цифры, подчеркивания).')
+            
+        return f'https://t.me/{username}'
 
     def clean_website(self):
         """
