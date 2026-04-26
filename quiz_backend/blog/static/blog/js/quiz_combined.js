@@ -522,24 +522,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const links = normalizedLink
-            .split(';')
+            .split(/[;\n]+/)
             .map(link => link.trim())
+            .map(link => link.replace(/^[;,\s]+|[;,\s]+$/g, ''))
             .filter(Boolean);
 
         const names = normalizedName
-            .split(';')
+            .split(/[;\n]+/)
             .map(name => name.trim());
 
         if (!links.length) {
             return `<span class="source-text">${formatInlineLinks(normalizedName, false)}</span>`;
         }
 
-        const anchors = links.map((link, index) => {
+        const parts = [];
+
+        links.forEach((link, index) => {
             const title = escapeHtml(names[index] || link);
-            return `<a href="${link}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`;
+            parts.push(`<a href="${link}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`);
         });
 
-        return anchors.join('; ');
+        // Если имен больше, чем ссылок, показываем хвост имен как обычный текст.
+        names.slice(links.length).forEach(name => {
+            if (name) {
+                parts.push(`<span class="source-text">${escapeHtml(name)}</span>`);
+            }
+        });
+
+        return parts.join(' • ');
     }
 
     /**
