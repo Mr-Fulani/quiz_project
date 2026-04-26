@@ -1391,19 +1391,27 @@ class GoogleAuthService:
     GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
     
     @staticmethod
-    def get_google_settings() -> Optional[SocialAuthSettings]:
+    def get_google_settings(tenant=None) -> Optional[SocialAuthSettings]:
         """
         Получает настройки Google из базы данных или переменных окружения.
+        Сначала ищет настройки для конкретного тенанта, затем глобальные.
         
+        Args:
+            tenant: Текущий тенант (опционально)
+            
         Returns:
             SocialAuthSettings: Настройки Google или None
         """
         try:
             # Сначала пытаемся получить из базы данных
-            settings = SocialAuthSettings.objects.filter(
-                provider='google',
-                is_enabled=True
-            ).first()
+            qs = SocialAuthSettings.objects.filter(provider='google', is_enabled=True)
+            
+            settings = None
+            if tenant:
+                settings = qs.filter(tenant=tenant).first()
+                
+            if not settings:
+                settings = qs.filter(tenant__isnull=True).first()
             
             if settings:
                 return settings
@@ -1429,19 +1437,20 @@ class GoogleAuthService:
             return None
     
     @staticmethod
-    def get_auth_url(redirect_uri: str, state: str = None) -> Optional[str]:
+    def get_auth_url(redirect_uri: str, state: str = None, tenant=None) -> Optional[str]:
         """
         Генерирует URL для авторизации через Google.
         
         Args:
             redirect_uri: URI для перенаправления после авторизации
             state: Опциональный параметр состояния для защиты от CSRF
+            tenant: Текущий тенант (опционально)
             
         Returns:
             str: URL для авторизации или None
         """
         try:
-            settings = GoogleAuthService.get_google_settings()
+            settings = GoogleAuthService.get_google_settings(tenant)
             if not settings:
                 logger.error("Настройки Google не найдены")
                 return None
@@ -1467,19 +1476,20 @@ class GoogleAuthService:
             return None
     
     @staticmethod
-    def exchange_code_for_token(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
+    def exchange_code_for_token(code: str, redirect_uri: str, tenant=None) -> Optional[Dict[str, Any]]:
         """
         Обменивает код авторизации на access token и id_token.
         
         Args:
             code: Код авторизации от Google
             redirect_uri: URI для перенаправления (должен совпадать с тем, что был при авторизации)
+            tenant: Текущий тенант (опционально)
             
         Returns:
             Dict с токенами или None при ошибке
         """
         try:
-            settings = GoogleAuthService.get_google_settings()
+            settings = GoogleAuthService.get_google_settings(tenant)
             if not settings:
                 logger.error("Настройки Google не найдены для обмена кода на токен")
                 return None
@@ -1594,8 +1604,10 @@ class GoogleAuthService:
             Dict с результатом авторизации или None при ошибке
         """
         try:
+            tenant = getattr(request, 'tenant', None)
+            
             # Обмениваем код на токен
-            token_data = GoogleAuthService.exchange_code_for_token(code, redirect_uri)
+            token_data = GoogleAuthService.exchange_code_for_token(code, redirect_uri, tenant)
             if not token_data:
                 return {
                     'success': False,

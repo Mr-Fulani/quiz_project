@@ -1163,7 +1163,8 @@ def google_auth_redirect(request):
         logger.info(f"⚠️ ВАЖНО: Убедитесь, что этот redirect_uri настроен в Google OAuth App!")
         
         # Генерируем URL для Google OAuth
-        google_oauth_url = GoogleAuthService.get_auth_url(redirect_uri, state)
+        tenant = getattr(request, 'tenant', None)
+        google_oauth_url = GoogleAuthService.get_auth_url(redirect_uri, state, tenant)
         
         if not google_oauth_url:
             logger.error("Не удалось сгенерировать URL для Google OAuth")
