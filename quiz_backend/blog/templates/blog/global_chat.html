@@ -20,11 +20,21 @@
 
     <section class="global-chat-layout">
         <div class="global-chat-feed" id="global-chat-feed"></div>
-        <form id="global-chat-form" class="global-chat-form" method="post" action="{% url 'blog:global_chat_send' %}">
+        <form id="global-chat-form" class="global-chat-form {% if not user.is_authenticated %}open-login-modal{% endif %}" 
+              {% if not user.is_authenticated %}data-return-url="{{ request.path }}"{% endif %}
+              method="post" action="{% url 'blog:global_chat_send' %}">
             <div id="global-chat-reply" class="global-chat-reply" style="display:none;"></div>
-            <textarea id="global-chat-input" name="content" maxlength="2000" placeholder="{% if language == 'ru' %}Введите сообщение. Используйте @username для упоминания.{% else %}Type a message. Use @username to mention someone.{% endif %}" required></textarea>
+            <textarea id="global-chat-input" name="content" maxlength="2000" 
+                      placeholder="{% if language == 'ru' %}Введите сообщение. Используйте @username для упоминания.{% else %}Type a message. Use @username to mention someone.{% endif %}" 
+                      class="{% if not user.is_authenticated %}open-login-modal{% endif %}"
+                      {% if not user.is_authenticated %}data-return-url="{{ request.path }}" readonly{% endif %}
+                      required></textarea>
             <div class="global-chat-actions">
-                <button type="submit" class="form-btn">{% if language == 'ru' %}Отправить{% else %}Send{% endif %}</button>
+                <button type="{% if user.is_authenticated %}submit{% else %}button{% endif %}" 
+                        class="form-btn {% if not user.is_authenticated %}open-login-modal{% endif %}"
+                        {% if not user.is_authenticated %}data-return-url="{{ request.path }}"{% endif %}>
+                    {% if language == 'ru' %}Отправить{% else %}Send{% endif %}
+                </button>
             </div>
         </form>
     </section>
@@ -38,7 +48,7 @@
         banUrlTemplate: "{% url 'blog:global_chat_ban' user_id=0 %}",
         unbanUrlTemplate: "{% url 'blog:global_chat_unban' user_id=0 %}",
         isAdmin: {% if user.is_staff or user.is_superuser %}true{% else %}false{% endif %},
-        currentUserId: {{ user.id }},
+        currentUserId: {{ user.id|default:0 }},
         defaultAvatar: "{% static 'blog/images/avatar/default_avatar.png' %}",
         texts: {
             loadError: "{% if language == 'ru' %}Не удалось загрузить сообщения чата{% else %}Failed to load chat messages{% endif %}",

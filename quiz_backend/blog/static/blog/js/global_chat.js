@@ -279,52 +279,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const content = input.value.trim();
-        if (!content) {
-            return;
-        }
-        const body = new URLSearchParams({ content });
-        if (replyToMessage?.id) {
-            body.set('reply_to_id', String(replyToMessage.id));
-        }
-        const response = await apiFetch(config.sendUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString(),
-        });
+    if (form) {
+        form.addEventListener('submit', async (event) => {
+            if (config.currentUserId === 0) {
+                return; // Let auth_modal.js handle the click/submit
+            }
+            event.preventDefault();
+            const content = input.value.trim();
+            if (!content) {
+                return;
+            }
+            const body = new URLSearchParams({ content });
+            if (replyToMessage?.id) {
+                body.set('reply_to_id', String(replyToMessage.id));
+            }
+            const response = await apiFetch(config.sendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            });
 
-        if (response.status === 403) {
-            let banPayload = null;
-            try {
-                banPayload = await response.json();
-            } catch (e) {
-                banPayload = null;
+            if (response.status === 403) {
+                let banPayload = null;
+                try {
+                    banPayload = await response.json();
+                } catch (e) {
+                    banPayload = null;
+                }
+                if (banPayload && (banPayload.ban_reason !== undefined || banPayload.banned_until !== undefined)) {
+                    showBanOverlay(banPayload);
+                } else {
+                    showNotice(config.texts.banError, 'error');
+                }
+                return;
             }
-            if (banPayload && (banPayload.ban_reason !== undefined || banPayload.banned_until !== undefined)) {
-                showBanOverlay(banPayload);
-            } else {
-                showNotice(config.texts.banError, 'error');
+            if (!response.ok) {
+                showNotice(config.texts.sendError, 'error');
+                return;
             }
-            return;
-        }
-        if (!response.ok) {
-            showNotice(config.texts.sendError, 'error');
-            return;
-        }
-        const data = await response.json();
-        if (data.status === 'sent' && data.message) {
-            appendMessage(data.message);
-            input.value = '';
-            feed.scrollTop = feed.scrollHeight;
-            replyToMessage = null;
-            if (replyBox) {
-                replyBox.style.display = 'none';
-                replyBox.innerHTML = '';
+            const data = await response.json();
+            if (data.status === 'sent' && data.message) {
+                appendMessage(data.message);
+                input.value = '';
+                feed.scrollTop = feed.scrollHeight;
+                replyToMessage = null;
+                if (replyBox) {
+                    replyBox.style.display = 'none';
+                    replyBox.innerHTML = '';
+                }
             }
-        }
-    });
+        });
+    }
 
     fetchMessages();
     setInterval(fetchMessages, 2500);
