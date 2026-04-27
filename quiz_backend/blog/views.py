@@ -2686,13 +2686,11 @@ def _get_active_global_ban(user, tenant):
     return None
 
 
-@login_required
 def global_chat_page(request):
     """Страница общего чата."""
     return render(request, 'blog/global_chat.html')
 
 
-@login_required
 @require_http_methods(["GET"])
 def global_chat_messages(request):
     """Возвращает события общего чата для polling (сообщения + удаления)."""
@@ -2737,10 +2735,18 @@ def global_chat_messages(request):
     return JsonResponse({'events': events, 'since': now_iso})
 
 
-@login_required
 @require_POST
 def global_chat_send_message(request):
     """Отправка сообщения в общий чат."""
+    if not request.user.is_authenticated:
+        # Определяем язык для сообщения об ошибке
+        language = get_language()
+        if language == 'ru':
+            error_message = 'Чтобы писать в чате, пожалуйста, авторизуйтесь.'
+        else:
+            error_message = 'Please log in to participate in the chat.'
+        return JsonResponse({'status': 'error', 'message': error_message}, status=401)
+
     tenant = getattr(request, 'tenant', None)
     if tenant is None:
         return JsonResponse({'status': 'error', 'message': 'Тенант не определен'}, status=400)
