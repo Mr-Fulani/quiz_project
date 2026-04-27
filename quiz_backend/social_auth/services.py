@@ -279,10 +279,10 @@ class TelegramAuthService:
                         mini_app_updated = False
                         changed_social_fields = []  # Инициализируем список измененных полей
                         
-                        if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                        if data.get('first_name') and not mini_app_user.first_name:
                             mini_app_user.first_name = data.get('first_name')
                             mini_app_updated = True
-                        if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                        if data.get('last_name') and not mini_app_user.last_name:
                             mini_app_user.last_name = data.get('last_name')
                             mini_app_updated = True
                         
@@ -461,10 +461,10 @@ class TelegramAuthService:
                         mini_app_updated = False
                         changed_social_fields = []
                         
-                        if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                        if data.get('first_name') and not mini_app_user.first_name:
                             mini_app_user.first_name = data.get('first_name')
                             mini_app_updated = True
-                        if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                        if data.get('last_name') and not mini_app_user.last_name:
                             mini_app_user.last_name = data.get('last_name')
                             mini_app_updated = True
                         
