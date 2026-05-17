@@ -126,6 +126,39 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_translation(self, language_code=None):
+        """
+        Возвращает наиболее подходящий перевод темы с fallback:
+        1. запрошенный язык
+        2. английский
+        3. любой доступный перевод
+        """
+        translations = list(self.translations.all())
+        if not translations:
+            return None
+
+        requested = (language_code or '').strip().lower()
+        if requested:
+            for translation in translations:
+                if translation.language_code == requested:
+                    return translation
+
+        for translation in translations:
+            if translation.language_code == 'en':
+                return translation
+
+        return translations[0]
+
+    def get_localized_name(self, language_code=None):
+        translation = self.get_translation(language_code)
+        return translation.name if translation and translation.name else self.name
+
+    def get_localized_description(self, language_code=None):
+        translation = self.get_translation(language_code)
+        if translation and translation.description:
+            return translation.description
+        return self.description
     
     def clean(self):
         """
@@ -188,6 +221,39 @@ class Subtopic(models.Model):
     def __str__(self):
         return f"{self.topic.name} - {self.name}"
 
+    def get_translation(self, language_code=None):
+        """
+        Возвращает наиболее подходящий перевод подтемы с fallback:
+        1. запрошенный язык
+        2. английский
+        3. любой доступный перевод
+        """
+        translations = list(self.translations.all())
+        if not translations:
+            return None
+
+        requested = (language_code or '').strip().lower()
+        if requested:
+            for translation in translations:
+                if translation.language_code == requested:
+                    return translation
+
+        for translation in translations:
+            if translation.language_code == 'en':
+                return translation
+
+        return translations[0]
+
+    def get_localized_name(self, language_code=None):
+        translation = self.get_translation(language_code)
+        return translation.name if translation and translation.name else self.name
+
+    def get_localized_description(self, language_code=None):
+        translation = self.get_translation(language_code)
+        if translation and translation.description:
+            return translation.description
+        return None
+
     def clean(self):
         self.name = normalize_subtopic_name(self.name)
         if Subtopic.objects.filter(
@@ -203,4 +269,91 @@ class Subtopic(models.Model):
         self.name = normalize_subtopic_name(self.name)
         super().save(*args, **kwargs)
 
+class TopicTranslation(models.Model):
+    class Meta:
+        db_table = 'topic_translations'
+        verbose_name = 'Перевод темы'
+        verbose_name_plural = 'Переводы тем'
+        indexes = [
+            models.Index(fields=['language_code']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['topic', 'language_code'],
+                name='unique_topic_translation_per_language'
+            )
+        ]
+
+    id = models.AutoField(primary_key=True)
+    topic = models.ForeignKey(
+        Topic,
+        on_delete=models.CASCADE,
+        related_name='translations',
+        help_text='Связанная тема'
+    )
+    language_code = models.CharField(
+        max_length=10,
+        help_text='Код языка перевода'
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text='Локализованное название темы'
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Локализованное описание темы'
+    )
+
+    def save(self, *args, **kwargs):
+        self.language_code = (self.language_code or '').strip().lower()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.topic_id} [{self.language_code}] {self.name}"
+
+
+class SubtopicTranslation(models.Model):
+    class Meta:
+        db_table = 'subtopic_translations'
+        verbose_name = 'Перевод подтемы'
+        verbose_name_plural = 'Переводы подтем'
+        indexes = [
+            models.Index(fields=['language_code']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subtopic', 'language_code'],
+                name='unique_subtopic_translation_per_language'
+            )
+        ]
+
+    id = models.AutoField(primary_key=True)
+    subtopic = models.ForeignKey(
+        Subtopic,
+        on_delete=models.CASCADE,
+        related_name='translations',
+        help_text='Связанная подтема'
+    )
+    language_code = models.CharField(
+        max_length=10,
+        help_text='Код языка перевода'
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text='Локализованное название подтемы'
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Локализованное описание подтемы'
+    )
+
+    def save(self, *args, **kwargs):
+        self.language_code = (self.language_code or '').strip().lower()
+        self.name = normalize_subtopic_name(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.subtopic_id} [{self.language_code}] {self.name}"
 

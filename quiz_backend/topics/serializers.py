@@ -1,20 +1,43 @@
 from rest_framework import serializers
 from .models import Topic, Subtopic
 from .utils import normalize_subtopic_name
-from tasks.models import MiniAppTaskStatistics, Task
+from tasks.models import Task
 import random
+
+
+def get_request_language(context, default='en'):
+    request = context.get('request')
+    if not request:
+        return default
+    return request.query_params.get('language', default)
+
+
+def get_subtopic_description(obj, language):
+    description = obj.get_localized_description(language)
+    if description:
+        return description
+    prefix = 'Подтема' if language == 'ru' else 'Subtopic'
+    return f'{prefix}: {obj.get_localized_name(language)}'
+
 
 class SubtopicSerializer(serializers.ModelSerializer):
     """
     Сериализатор для подтем.
     """
+
     class Meta:
         model = Subtopic
         fields = [
-            'id', 
+            'id',
             'name',
             'topic'
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        language = get_request_language(self.context)
+        data['name'] = instance.get_localized_name(language)
+        return data
 
     def validate_name(self, value):
         """
@@ -22,10 +45,12 @@ class SubtopicSerializer(serializers.ModelSerializer):
         """
         return normalize_subtopic_name(value)
 
+
 class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     """
     Сериализатор для подтем с количеством задач (для мини-приложения).
     """
+    name = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
     topic_id = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
@@ -36,7 +61,7 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subtopic
         fields = [
-            'id', 
+            'id',
             'name',
             'description',
             'questions_count',
@@ -46,33 +71,28 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
             'is_completed'
         ]
 
+    def get_name(self, obj):
+        language = get_request_language(self.context)
+        return obj.get_localized_name(language)
+
     def get_questions_count(self, obj):
-        # Получаем язык из контекста запроса
-        request = self.context.get('request')
-        language = 'en'  # По умолчанию английский
-        
-        if request:
-            language = request.query_params.get('language', 'en')
-        
+        language = get_request_language(self.context)
         from django.db.models import Q
         return obj.tasks.filter(
             Q(published=True) | Q(published_mini_app=True),
             translations__language=language
         ).distinct().count()
-    
+
     def get_topic_id(self, obj):
         return obj.topic.id
-    
+
     def get_description(self, obj):
-        return f'Подтема: {obj.name}'
+        language = get_request_language(self.context)
+        return get_subtopic_description(obj, language)
 
     def get_difficulty_counts(self, obj):
         """Возвращает количество задач по уровням сложности на активном языке."""
-        request = self.context.get('request')
-        language = 'en'
-        if request:
-            language = request.query_params.get('language', 'en')
-            
+        language = get_request_language(self.context)
         from django.db.models import Q
         qs = obj.tasks.filter(Q(published=True) | Q(published_mini_app=True), translations__language=language)
         return {
@@ -86,15 +106,13 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         Группирует по translation_group_id, чтобы учитывать задачи на всех языках как одну.
         """
         request = self.context.get('request')
-        language = 'en'
+        language = get_request_language(self.context)
         telegram_id = None
         if request:
-            language = request.query_params.get('language', 'en')
             telegram_id = request.query_params.get('telegram_id')
         if not telegram_id:
             return {'easy': 0, 'medium': 0, 'hard': 0}
 
-        # Получаем успешно решенные задачи, группируя по translation_group_id
         from django.db.models import Q
         base_qs = Task.objects.filter(
             subtopic=obj,
@@ -103,10 +121,9 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
             Q(published=True) | Q(published_mini_app=True)
         ).filter(
             mini_app_statistics__mini_app_user__telegram_id=telegram_id,
-            mini_app_statistics__successful=True  # Подсчитываем ТОЛЬКО успешные решения
+            mini_app_statistics__successful=True
         ).values('translation_group_id', 'difficulty').distinct()
 
-        # Подсчёт по уровням (уникальные translation_group_id)
         easy = base_qs.filter(difficulty='easy').count()
         medium = base_qs.filter(difficulty='medium').count()
         hard = base_qs.filter(difficulty='hard').count()
@@ -116,16 +133,15 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         """Определяет, пройдена ли подтема (все задачи решены)."""
         difficulty_counts = self.get_difficulty_counts(obj)
         solved_counts = self.get_solved_counts(obj)
-        
-        # Подтема считается пройденной, если все задачи решены
+
         total_tasks = difficulty_counts['easy'] + difficulty_counts['medium'] + difficulty_counts['hard']
         total_solved = solved_counts['easy'] + solved_counts['medium'] + solved_counts['hard']
-        
-        # Если нет задач, считаем непройденной
+
         if total_tasks == 0:
             return False
-        
+
         return total_solved >= total_tasks
+
 
 class TopicSerializer(serializers.ModelSerializer):
     """
@@ -146,13 +162,23 @@ class TopicSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        language = get_request_language(self.context)
+        data['name'] = instance.get_localized_name(language)
+        data['description'] = instance.get_localized_description(language)
+        return data
+
     def get_subtopics_count(self, obj):
         return obj.subtopics.count()
+
 
 class TopicMiniAppSerializer(serializers.ModelSerializer):
     """
     Сериализатор для тем в мини-приложении с дополнительными полями для UI.
     """
+    name = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     subtopics_count = serializers.SerializerMethodField()
     difficulty = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
@@ -175,31 +201,31 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
             'media_type'
         ]
 
+    def get_name(self, obj):
+        language = get_request_language(self.context)
+        return obj.get_localized_name(language)
+
+    def get_description(self, obj):
+        language = get_request_language(self.context)
+        description = obj.get_localized_description(language)
+        return description or obj.description
+
     def get_subtopics_count(self, obj):
         return obj.subtopics.count()
-    
+
     def get_difficulty(self, obj):
-        # Временно генерируем случайную сложность
-        # TODO: добавить поле difficulty в модель Topic
         difficulties = ['Легкий', 'Средний', 'Сложный']
-        random.seed(obj.id)  # Фиксированная сложность для каждой темы
+        random.seed(obj.id)
         return random.choice(difficulties)
-    
+
     def get_questions_count(self, obj):
-        # Получаем язык из контекста запроса
-        request = self.context.get('request')
-        language = 'en'  # По умолчанию английский
-        
-        if request:
-            language = request.query_params.get('language', 'en')
-        
-        # Подсчитываем реальное количество задач с переводами на указанном языке
+        language = get_request_language(self.context)
         from django.db.models import Q
         return obj.tasks.filter(
             Q(published=True) | Q(published_mini_app=True),
             translations__language=language
         ).distinct().count()
-    
+
     def get_image_url(self, obj):
         """
         Возвращает URL медиа для карточки темы с учетом приоритета:
@@ -209,29 +235,25 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         4. Fallback на picsum.photos
         """
         from django.conf import settings
-        
-        # Для типа "По умолчанию" всегда используем picsum.photos
+
         if obj.media_type == 'default':
             return f"https://picsum.photos/800/800?{obj.id}"
-        
-        # Приоритет 1: Загруженное изображение
+
         if obj.media_type == 'image' and obj.card_image:
             return f"{settings.MEDIA_URL}{obj.card_image.name}"
-        
-        # Приоритет 2: Загруженное видео
+
         if obj.media_type == 'video' and obj.card_video:
             return f"{settings.MEDIA_URL}{obj.card_video.name}"
-        
-        # Fallback на красивые изображения (увеличено для Retina-дисплеев)
+
         return f"https://picsum.photos/800/800?{obj.id}"
-    
+
     def get_video_poster_url(self, obj):
         """
         Возвращает URL постера для видео (если есть)
         """
         from django.conf import settings
-        
+
         if obj.media_type == 'video' and obj.video_poster:
             return f"{settings.MEDIA_URL}{obj.video_poster.name}"
-        
-        return None 
+
+        return None

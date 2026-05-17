@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Topic, Subtopic
 from .serializers import TopicSerializer, SubtopicSerializer, TopicMiniAppSerializer, SubtopicWithTasksSerializer
@@ -7,12 +7,32 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Q
 from tasks.models import TaskTranslation, MiniAppTaskStatistics
 from tenants.mixins import TenantFilteredViewMixin
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def get_language_from_request(request, default='en'):
+    return request.GET.get('language', default) or default
+
+
+def get_topic_description(topic, language):
+    description = topic.get_localized_description(language)
+    if description:
+        return description
+    prefix = 'Изучение' if language == 'ru' else 'Learn'
+    return f'{prefix} {topic.get_localized_name(language)}'
+
+
+def get_subtopic_description(subtopic, language):
+    description = subtopic.get_localized_description(language)
+    if description:
+        return description
+    prefix = 'Подтема' if language == 'ru' else 'Subtopic'
+    return f'{prefix}: {subtopic.get_localized_name(language)}'
 
 # Create your views here.
 
@@ -21,7 +41,7 @@ class TopicListView(TenantFilteredViewMixin, generics.ListAPIView):
     """
     Список всех тем.
     """
-    queryset = Topic.objects.all()
+    queryset = Topic.objects.prefetch_related('translations').all()
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -29,7 +49,7 @@ class TopicDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     """
     Детальная информация о теме.
     """
-    queryset = Topic.objects.all()
+    queryset = Topic.objects.prefetch_related('translations').all()
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -44,7 +64,7 @@ class TopicUpdateView(TenantFilteredViewMixin, generics.UpdateAPIView):
     """
     Обновление темы.
     """
-    queryset = Topic.objects.all()
+    queryset = Topic.objects.prefetch_related('translations').all()
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
@@ -67,12 +87,12 @@ class TopicMiniAppListView(TenantFilteredViewMixin, generics.ListAPIView):
     permission_classes = []  # Открытый доступ для мини-приложения
     
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().prefetch_related('translations')
         
         # Поддержка поиска
         search = self.request.query_params.get('search', None)
         if search:
-            queryset = queryset.filter(name__icontains=search)
+            queryset = queryset.filter(Q(name__icontains=search) | Q(translations__name__icontains=search)).distinct()
         
         # Поддержка фильтрации по сложности (если добавим это поле)
         # difficulty = self.request.query_params.get('difficulty', None)
@@ -90,13 +110,13 @@ class SubtopicListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
+        return Subtopic.objects.filter(topic_id=self.kwargs['topic_id']).prefetch_related('translations')
 
 class SubtopicDetailView(generics.RetrieveAPIView):
     """
     Детальная информация о подтеме.
     """
-    queryset = Subtopic.objects.all()
+    queryset = Subtopic.objects.prefetch_related('translations').all()
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -114,7 +134,7 @@ class SubtopicUpdateView(generics.UpdateAPIView):
     """
     Обновление подтемы.
     """
-    queryset = Subtopic.objects.all()
+    queryset = Subtopic.objects.prefetch_related('translations').all()
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
@@ -122,7 +142,7 @@ class SubtopicDeleteView(generics.DestroyAPIView):
     """
     Удаление подтемы.
     """
-    queryset = Subtopic.objects.all()
+    queryset = Subtopic.objects.prefetch_related('translations').all()
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
@@ -136,7 +156,7 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
         # Получаем язык из query параметров, по умолчанию английский
         language = self.request.query_params.get('language', 'en')
         telegram_id = self.request.query_params.get('telegram_id', None)
-        queryset = super().get_queryset().filter(topic_id=self.kwargs['topic_id'])
+        queryset = super().get_queryset().filter(topic_id=self.kwargs['topic_id']).prefetch_related('translations', 'topic__translations')
         
         # Аннотируем количество задач (distinct по задачам) на активном языке
         queryset = queryset.annotate(
@@ -195,15 +215,15 @@ def topics_simple(request):
         logger.warning(f"[topics_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем пустой список.")
         return Response([])
         
-    topics = Topic.objects.filter(tenant=tenant)
+    topics = Topic.objects.filter(tenant=tenant).prefetch_related('translations')
     
     # Добавляем поддержку поиска
     search = request.GET.get('search', None)
     if search:
-        topics = topics.filter(name__icontains=search)
+        topics = topics.filter(Q(name__icontains=search) | Q(translations__name__icontains=search)).distinct()
     
     # Получаем язык из query параметров
-    language = request.GET.get('language', 'en')
+    language = get_language_from_request(request)
     telegram_id = request.GET.get('telegram_id', None)
     
     # Аннотируем количество задач (distinct по задачам) на активном языке и оставляем только темы, где >0
@@ -263,8 +283,8 @@ def topics_simple(request):
         
         topic_data = {
             'id': topic.id,
-            'name': topic.name,
-            'description': topic.description or f'Изучение {topic.name}',
+            'name': topic.get_localized_name(language),
+            'description': get_topic_description(topic, language),
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': topic.tasks_count, # Используем аннотированное количество
@@ -297,10 +317,10 @@ def topic_detail_simple(request, topic_id):
             logger.warning(f"[topic_detail_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
             return Response({"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
             
-        topic = get_object_or_404(Topic, id=topic_id, tenant=tenant)
+        topic = get_object_or_404(Topic.objects.prefetch_related('translations'), id=topic_id, tenant=tenant)
         
         # Получаем язык из query параметров
-        language = request.GET.get('language', 'en')
+        language = get_language_from_request(request)
         telegram_id = request.GET.get('telegram_id', None)
         
         # Подсчитываем количество задач на активном языке (distinct по задачам)
@@ -339,8 +359,8 @@ def topic_detail_simple(request, topic_id):
         
         data = {
             'id': topic.id,
-            'name': topic.name,
-            'description': topic.description or f'Изучение {topic.name}',
+            'name': topic.get_localized_name(language),
+            'description': get_topic_description(topic, language),
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': tasks_count,
@@ -368,10 +388,10 @@ def subtopic_detail_simple(request, subtopic_id):
             logger.warning(f"[subtopic_detail_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
             return Response({"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
             
-        subtopic = get_object_or_404(Subtopic, id=subtopic_id, topic__tenant=tenant)
+        subtopic = get_object_or_404(Subtopic.objects.select_related('topic').prefetch_related('translations', 'topic__translations'), id=subtopic_id, topic__tenant=tenant)
         
         # Получаем язык из query параметров
-        language = request.GET.get('language', 'en')
+        language = get_language_from_request(request)
         telegram_id = request.GET.get('telegram_id', None)
         level = request.GET.get('level', None) # Получаем параметр уровня сложности
         
@@ -479,13 +499,13 @@ def subtopic_detail_simple(request, subtopic_id):
         
         data = {
             'id': subtopic.id,
-            'name': subtopic.name,
-            'description': f'Подтема: {subtopic.name}',
+            'name': subtopic.get_localized_name(language),
+            'description': get_subtopic_description(subtopic, language),
             'topic': subtopic.topic_id,
             'questions_count': len(tasks_data),
             'results': tasks_data,  # Добавляем задачи в поле results
-            'subtopic_name': subtopic.name,
-            'topic_name': subtopic.topic.name,
+            'subtopic_name': subtopic.get_localized_name(language),
+            'topic_name': subtopic.topic.get_localized_name(language),
             'completed_tasks_count': completed_tasks_count # Добавляем для подтемы
         }
         return Response(data)
