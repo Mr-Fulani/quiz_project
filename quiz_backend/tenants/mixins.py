@@ -13,6 +13,7 @@ TenantFilteredAdminMixin — примесь для всех ModelAdmin в сис
 """
 
 import logging
+from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.forms import HiddenInput
 from django.core.exceptions import ImproperlyConfigured
@@ -35,13 +36,26 @@ class TenantFilteredAdminMixin:
 
     tenant_lookup: str = 'tenant'  # переопределить в подклассе если нет прямого FK
 
+    tenant_hidden_field_names = {'tenant', 'tenant_display', 'get_tenant'}
+
+    def _get_current_tenant(self, request):
+        return getattr(request.user, 'tenant', None) or getattr(request, 'tenant', None)
+
+    def _is_restricted_tenant_admin(self, request) -> bool:
+        return bool(request.user and request.user.is_staff and not request.user.is_superuser)
+
+    def _strip_tenant_field_names(self, field_names):
+        if not field_names:
+            return field_names
+        return [field for field in field_names if field not in self.tenant_hidden_field_names]
+
     # ── Фильтрация queryset ────────────────────────────────────────────────────
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        tenant = getattr(request.user, 'tenant', None)
+        tenant = self._get_current_tenant(request)
         if tenant:
             return qs.filter(**{self.tenant_lookup: tenant})
         logger.warning(
@@ -63,7 +77,7 @@ class TenantFilteredAdminMixin:
             # 2. Если не задан, пробуем из разных источников
             if not current_tenant:
                 # А) Из middleware (по домену)
-                current_tenant = getattr(request, 'tenant', None)
+                current_tenant = self._get_current_tenant(request)
                 
             if not current_tenant:
                 # Б) Из профиля пользователя
@@ -84,16 +98,18 @@ class TenantFilteredAdminMixin:
     # ── Ограничение FK-выборок по тенанту ────────────────────────────────────
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        tenant = getattr(request.user, 'tenant', None) if not request.user.is_superuser else None
+        tenant = self._get_current_tenant(request) if not request.user.is_superuser else None
 
         if tenant:
             related_model = db_field.related_model
-            if hasattr(related_model, 'tenant'):
+            if related_model._meta.model_name == 'tenant':
+                kwargs['queryset'] = related_model.objects.filter(id=tenant.id)
+            elif hasattr(related_model, 'tenant'):
                 kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        tenant = getattr(request.user, 'tenant', None) if not request.user.is_superuser else None
+        tenant = self._get_current_tenant(request) if not request.user.is_superuser else None
 
         if tenant:
             related_model = db_field.related_model
@@ -105,10 +121,36 @@ class TenantFilteredAdminMixin:
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        if not request.user.is_superuser and 'tenant' in form.base_fields:
-            form.base_fields['tenant'].widget = HiddenInput()
-            form.base_fields['tenant'].required = False
+        if self._is_restricted_tenant_admin(request):
+            tenant = self._get_current_tenant(request)
+            for field_name in self.tenant_hidden_field_names:
+                if field_name in form.base_fields:
+                    form.base_fields[field_name].widget = HiddenInput()
+                    form.base_fields[field_name].required = False
+
+            if tenant:
+                for field in form.base_fields.values():
+                    queryset = getattr(field, 'queryset', None)
+                    if queryset is None:
+                        continue
+                    related_model = queryset.model
+                    if related_model._meta.model_name == 'tenant':
+                        field.queryset = queryset.filter(id=tenant.id)
+                    elif hasattr(related_model, 'tenant'):
+                        field.queryset = queryset.filter(tenant=tenant)
         return form
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if self._is_restricted_tenant_admin(request):
+            return tuple(self._strip_tenant_field_names(readonly_fields))
+        return tuple(readonly_fields)
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if self._is_restricted_tenant_admin(request):
+            return tuple(self._strip_tenant_field_names(list(fields)))
+        return fields
 
     # ── Добавляем tenant в fieldsets для superuser ────────────────────────────
 
@@ -118,6 +160,26 @@ class TenantFilteredAdminMixin:
         явно исключено в fieldsets у конкретной модели.
         """
         fieldsets = list(super().get_fieldsets(request, obj))
+        if self._is_restricted_tenant_admin(request):
+            cleaned_fieldsets = []
+            for name, opts in fieldsets:
+                opts_copy = dict(opts)
+                fields = opts_copy.get('fields', ())
+                if isinstance(fields, (list, tuple)):
+                    cleaned_fields = []
+                    for item in fields:
+                        if isinstance(item, (list, tuple)):
+                            nested = tuple(self._strip_tenant_field_names(list(item)))
+                            if nested:
+                                cleaned_fields.append(nested)
+                        elif item not in self.tenant_hidden_field_names:
+                            cleaned_fields.append(item)
+                    if not cleaned_fields:
+                        continue
+                    opts_copy['fields'] = tuple(cleaned_fields)
+                cleaned_fieldsets.append((name, opts_copy))
+            return tuple(cleaned_fieldsets)
+
         # Проверяем наличие поля 'tenant' в модели
         has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
         
@@ -144,6 +206,8 @@ class TenantFilteredAdminMixin:
 
     def get_list_display(self, request):
         list_display = list(super().get_list_display(request))
+        if self._is_restricted_tenant_admin(request):
+            return tuple(self._strip_tenant_field_names(list_display))
         # Проверяем наличие поля 'tenant' в модели
         has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
         if request.user.is_superuser and has_tenant_field and 'tenant' not in list_display:
@@ -154,6 +218,35 @@ class TenantFilteredAdminMixin:
 
     def get_list_filter(self, request):
         list_filter = list(super().get_list_filter(request))
+        if self._is_restricted_tenant_admin(request):
+            cleaned_filters = []
+            for item in list_filter:
+                field_name = item[0] if isinstance(item, tuple) else item
+                if (
+                    field_name in self.tenant_hidden_field_names
+                    or field_name == self.tenant_lookup
+                    or field_name == 'tenant'
+                    or field_name.endswith('__tenant')
+                    or '__tenant__' in field_name
+                ):
+                    continue
+
+                if isinstance(item, tuple):
+                    cleaned_filters.append(item)
+                    continue
+
+                try:
+                    model_field = self.model._meta.get_field(field_name)
+                except Exception:
+                    cleaned_filters.append(item)
+                    continue
+
+                if model_field.is_relation:
+                    cleaned_filters.append((field_name, admin.RelatedOnlyFieldListFilter))
+                else:
+                    cleaned_filters.append(item)
+            return tuple(cleaned_filters)
+
         # Проверяем наличие поля 'tenant' в модели
         has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
         if request.user.is_superuser and has_tenant_field and 'tenant' not in list_filter:
