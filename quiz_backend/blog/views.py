@@ -1915,24 +1915,26 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         'medium': str(_('Medium')),
         'hard': str(_('Hard')),
     }
+    difficulty_display_name = difficulty_names.get(difficulty.lower(), difficulty.title())
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'page_obj': page_obj,
         'paginator': paginator,
         'difficulty': difficulty,
+        'difficulty_name': difficulty_display_name,
         'breadcrumbs': [
             {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
             {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
             {'name': topic.localized_name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.url_key})},
             {'name': subtopic_obj.localized_name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug})},
-            {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug, 'difficulty': difficulty})},
+            {'name': difficulty_display_name, 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug, 'difficulty': difficulty})},
         ],
-        'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty.title()},
-        'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty.title()},
+        'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty_display_name},
+        'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty_display_name},
         'meta_keywords': _('%(subtopic_name)s, quizzes, %(difficulty)s, programming') % {
             'subtopic_name': subtopic_obj.localized_name,
-            'difficulty': difficulty.title(),
+            'difficulty': difficulty_display_name,
             'topic_name': topic.localized_name,  # некоторые локали содержат %(topic_name)s в переводе
         },
     }
