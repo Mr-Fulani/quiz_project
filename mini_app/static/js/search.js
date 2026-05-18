@@ -46,7 +46,7 @@ async function handleSearch(event) {
 async function searchTopics(query) {
     try {
         console.log('🔍 Поиск тем с запросом:', query);
-        const language = window.currentLanguage || 'ru';
+        const language = window.currentLanguage || document.documentElement.lang || 'en';
         const response = await fetch(`/api/topics?search=${encodeURIComponent(query)}&language=${language}`);
         const data = await response.json();
         
@@ -66,7 +66,8 @@ async function searchTopics(query) {
 async function loadTopics() {
     try {
         console.log('📡 Загружаем все темы...');
-        const response = await fetch('/api/topics');
+        const language = window.currentLanguage || document.documentElement.lang || 'en';
+        const response = await fetch(`/api/topics?language=${encodeURIComponent(language)}`);
         const data = await response.json();
         
         console.log('📡 Ответ от API загрузки тем:', data);
@@ -84,6 +85,12 @@ async function loadTopics() {
 
 function updateGallery(topics) {
     console.log('🎨 Обновляем галерею с темами:', topics);
+    const language = window.currentLanguage || document.documentElement.lang || 'en';
+    const translations = window.translations || {};
+    const noResultsText = translations.no_results || (language === 'ru' ? 'Темы не найдены' : 'No topics found');
+    const questionsText = translations.questions_count || (language === 'ru' ? 'вопросов' : 'questions');
+    const startText = translations.start_button || (language === 'ru' ? 'Начать' : 'Start');
+    const backText = translations.back_button || (language === 'ru' ? 'Назад' : 'Back');
     
     // Сохраняем состояние поля поиска
     // Используем window.searchInput или получаем элемент заново
@@ -100,7 +107,7 @@ function updateGallery(topics) {
     
     if (!topics || topics.length === 0) {
         console.log('📭 Нет тем для отображения, показываем сообщение');
-        container.innerHTML = '<div class="no-results">Темы не найдены</div>';
+        container.innerHTML = `<div class="no-results">${noResultsText}</div>`;
     } else {
         console.log('🎨 Создаем HTML для', topics.length, 'тем');
         container.innerHTML = topics.map((topic, index) => {
@@ -126,10 +133,10 @@ function updateGallery(topics) {
                     <div class="card-overlay always-visible">
                         <h3>${topic.name}</h3>
                         <p class="difficulty">${topic.difficulty}</p>
-                        <p class="questions">${topic.questions_count} вопросов</p>
+                        <p class="questions">${topic.questions_count} ${questionsText}</p>
                         <div class="card-actions">
-                            <button class="btn-start" onclick="startTopic(event, ${topic.id})">Начать</button>
-                            <button class="btn-back" onclick="goBack(event)">Назад</button>
+                            <button class="btn-start" onclick="startTopic(event, ${topic.id})">${startText}</button>
+                            <button class="btn-back" onclick="goBack(event)">${backText}</button>
                         </div>
                     </div>
                 </span>
