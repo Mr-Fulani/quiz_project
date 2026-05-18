@@ -20,7 +20,21 @@
   "tasks": [
     {
       "topic": "Islam",
+      "topic_translations": {
+        "ru": {
+          "name": "Ислам",
+          "description": "Темы и задачи по основам ислама"
+        },
+        "en": {
+          "name": "Islam",
+          "description": "Topics and tasks about the basics of Islam"
+        }
+      },
       "subtopic": "Namaz",
+      "subtopic_translations": {
+        "ru": "Намаз",
+        "en": "Prayer"
+      },
       "description": "Описание задачи",
       "difficulty": "easy",
       "translations": [
@@ -101,6 +115,11 @@
 ---
 
 ## Важные правила для контент-команды
+- Если нужно сохранить локализованные названия темы и подтемы в БД, используйте `topic_translations` и `subtopic_translations` на уровне задачи.
+- `topic_translations` поддерживает форматы `{ "ru": "..." }` и `{ "ru": { "name": "...", "description": "..." } }`.
+- `subtopic_translations` поддерживает форматы `{ "ru": "..." }` и `{ "ru": { "name": "...", "description": "..." } }`.
+- Также поддерживается сокращённый формат, где `topic` или `subtopic` сами являются словарями переводов, например: `"subtopic": { "ru": "Базовая арабская лексика", "en": "Basic Arabic Vocabulary" }`.
+- Если переводы темы/подтемы не переданы, импорт продолжит работать по старому формату, используя только `topic` и `subtopic`.
 - Не используйте строки вида `Источник: ...` внутри `long_explanation` как источник данных для импорта.
 - Если нужно передать несколько источников, используйте только `source.items`.
 - Формат одинаковый для всех языков (`ru`, `en` и т.д.).
