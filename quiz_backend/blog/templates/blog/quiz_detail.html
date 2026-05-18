@@ -15,7 +15,7 @@ Includes the user sidebar for authenticated users.
 {% block content %}
 <article class="quiz-detail active" data-page="quiz-detail">
     <header>
-        <h1 class="h2 article-title">{{ topic.name }}</h1>
+        <h1 class="h2 article-title">{{ topic.localized_name }}</h1>
     </header>
 
     <section class="service">
@@ -25,18 +25,18 @@ Includes the user sidebar for authenticated users.
             {% if subtopics %}
                 {% for subtopic in subtopics %}
                   <li class="service-item">
-                    <a href="{% url 'blog:quiz_difficulty' quiz_type=topic.name|lower subtopic=subtopic.name|slugify %}">
+                    <a href="{% url 'blog:quiz_difficulty' quiz_type=topic.url_key subtopic=subtopic.url_slug %}">
                       <div class="service-icon-box">
                         {% if topic.icon_svg %}
                           {{ topic.icon_svg|safe }}
                         {% elif topic.icon_image %}
-                          <img src="{{ topic.icon_image.url }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
+                          <img src="{{ topic.icon_image.url }}" alt="{% blocktrans with subtopic_name=subtopic.localized_name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
                         {% else %}
-                          <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
+                          <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.localized_name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
                         {% endif %}
                       </div>
                       <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
+                        <h4 class="h4 service-item-title">{{ subtopic.localized_name }}</h4>
                         
                         {% if user.is_authenticated %}
                           {% if subtopic.questions_count and subtopic.questions_count > 0 %}
@@ -104,7 +104,7 @@ Includes the user sidebar for authenticated users.
                     </div>
                     <div class="service-content-box">
                         <h4 class="h4 service-item-title">{% trans "No Subtopics Available" %}</h4>
-                        <p class="service-item-text">{% blocktrans with topic_name=topic.name %}No subtopics available for {{ topic_name }}.{% endblocktrans %}</p>
+                        <p class="service-item-text">{% blocktrans with topic_name=topic.localized_name %}No subtopics available for {{ topic_name }}.{% endblocktrans %}</p>
                     </div>
                 </li>
             {% endif %}

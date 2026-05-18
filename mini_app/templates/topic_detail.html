@@ -59,7 +59,7 @@ div.topic-detail-container div.subtopics-grid {
                 {% set th = subtopic.difficulty_counts.hard if subtopic.difficulty_counts.hard > 0 else 1 %}
 
                 <div class="diff-row">
-                    <span class="diff-label">Easy</span>
+                    <span class="diff-label" data-translate="difficulty_easy">{{ translations.get('difficulty_easy', 'Easy') }}</span>
                     <div class="diff-bar{% if subtopic.difficulty_counts.easy == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'easy', {{ subtopic.difficulty_counts.easy }})">
                         <div class="diff-fill"></div>
                         <div class="diff-solved easy" style="width: {{ (se / te * 100) | int }}%"></div>
@@ -67,7 +67,7 @@ div.topic-detail-container div.subtopics-grid {
                     </div>
                 </div>
                 <div class="diff-row">
-                    <span class="diff-label">Medium</span>
+                    <span class="diff-label" data-translate="difficulty_medium">{{ translations.get('difficulty_medium', 'Medium') }}</span>
                     <div class="diff-bar{% if subtopic.difficulty_counts.medium == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'medium', {{ subtopic.difficulty_counts.medium }})">
                         <div class="diff-fill"></div>
                         <div class="diff-solved medium" style="width: {{ (sm / tm * 100) | int }}%"></div>
@@ -75,7 +75,7 @@ div.topic-detail-container div.subtopics-grid {
                     </div>
                 </div>
                 <div class="diff-row">
-                    <span class="diff-label">Hard</span>
+                    <span class="diff-label" data-translate="difficulty_hard">{{ translations.get('difficulty_hard', 'Hard') }}</span>
                     <div class="diff-bar{% if subtopic.difficulty_counts.hard == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'hard', {{ subtopic.difficulty_counts.hard }})">
                         <div class="diff-fill"></div>
                         <div class="diff-solved hard" style="width: {{ (sh / th * 100) | int }}%"></div>
@@ -83,7 +83,7 @@ div.topic-detail-container div.subtopics-grid {
                     </div>
                 </div>
                 <div class="diff-row">
-                    <span class="diff-label">All</span>
+                    <span class="diff-label" data-translate="all">{{ translations.get('all', 'All') }}</span>
                     <div class="diff-bar" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'all', {{ subtopic.questions_count }})">
                         <div class="diff-fill"></div>
                         <div class="diff-solved all" style="width: 100%"></div>

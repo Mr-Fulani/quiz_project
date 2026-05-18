@@ -57,6 +57,68 @@ from .forms import (ContactForm, PostForm, ProjectForm, TestimonialForm,
 logger = logging.getLogger(__name__)
 
 
+def get_site_language_code() -> str:
+    language = (get_language() or settings.LANGUAGE_CODE or 'en').split('-')[0].lower()
+    return language or 'en'
+
+
+def apply_topic_localization(topic, language: str):
+    topic.localized_name = topic.get_localized_name(language)
+    topic.localized_description = topic.get_localized_description(language)
+    topic.url_key = topic.name.lower()
+    return topic
+
+
+def apply_subtopic_localization(subtopic, language: str):
+    subtopic.localized_name = subtopic.get_localized_name(language)
+    subtopic.localized_description = subtopic.get_localized_description(language)
+    subtopic.url_slug = slugify(subtopic.name)
+    return subtopic
+
+
+def get_topic_by_identifier(identifier: str, tenant=None):
+    queryset = Topic.objects.prefetch_related('translations')
+    if tenant is not None:
+        queryset = queryset.filter(tenant=tenant)
+
+    topic = queryset.filter(Q(name__iexact=identifier) | Q(translations__name__iexact=identifier)).distinct().first()
+    if topic:
+        return topic
+
+    normalized = (identifier or '').strip().lower()
+    for candidate in queryset.distinct():
+        if candidate.name.lower() == normalized:
+            return candidate
+        for translation in candidate.translations.all():
+            if (translation.name or '').strip().lower() == normalized:
+                return candidate
+    raise Http404(f"Topic {identifier} not found")
+
+
+def get_subtopic_by_identifier(topic, identifier: str):
+    queryset = Subtopic.objects.filter(topic=topic).prefetch_related('translations')
+    subtopic = queryset.filter(Q(name__iexact=identifier) | Q(translations__name__iexact=identifier)).distinct().first()
+    if subtopic:
+        return subtopic
+
+    normalized = (identifier or '').strip().lower()
+    slug_normalized = slugify(identifier)
+    for candidate in queryset.distinct():
+        if candidate.name.lower() == normalized or slugify(candidate.name) == slug_normalized:
+            return candidate
+        for translation in candidate.translations.all():
+            translated_name = (translation.name or '').strip().lower()
+            if translated_name == normalized or slugify(translation.name or '') == slug_normalized:
+                return candidate
+
+    fuzzy_identifier = identifier.replace('-', '.*')
+    fuzzy_match = queryset.filter(Q(name__iregex=fuzzy_identifier) | Q(translations__name__iregex=fuzzy_identifier)).distinct().order_by('id').first()
+    if fuzzy_match:
+        return fuzzy_match
+
+    raise Http404(f"Subtopic {identifier} not found for topic {topic.name}")
+
+
 def custom_set_language(request):
     """
     Кастомный view для переключения языка через URL-параметры.
@@ -1223,14 +1285,14 @@ class QuizesView(BreadcrumbsMixin, ListView):
             return Topic.objects.none()
         
         # Получаем текущий язык (первые 2 символа: 'ru', 'en')
-        preferred_language = get_language()[:2]
+        preferred_language = get_site_language_code()
         lang_filter = Q(tasks__translations__language=preferred_language)
         
         # Задача доступна на сайте если (published=True ИЛИ published_website=True) И есть перевод
         site_published = (Q(tasks__published=True) | Q(tasks__published_website=True)) & lang_filter
         
         # Фильтруем данные конкретно этого тенанта
-        queryset = Topic.objects.filter(tenant=tenant).filter(site_published).distinct()
+        queryset = Topic.objects.filter(tenant=tenant).prefetch_related('translations').filter(site_published).distinct()
         
         # Аннотируем общее количество опубликованных (на текущем языке) задач в теме
         queryset = queryset.annotate(
@@ -1260,18 +1322,22 @@ class QuizesView(BreadcrumbsMixin, ListView):
         context['meta_description'] = _('Test your knowledge with our interactive quizzes.')
         context['meta_keywords'] = _('quizzes, tests, programming')
         
+        preferred_language = get_site_language_code()
+
         # Вычисляем количество оставшихся задач для каждой темы
-        if self.request.user.is_authenticated:
-            for topic in context['topics']:
+        for topic in context['topics']:
+            apply_topic_localization(topic, preferred_language)
+            if self.request.user.is_authenticated:
                 if hasattr(topic, 'questions_count') and topic.questions_count:
                     if hasattr(topic, 'completed_tasks_count') and topic.completed_tasks_count is not None:
                         topic.remaining_tasks_count = topic.questions_count - topic.completed_tasks_count
                     else:
-                        # Если пользователь еще не начал, все задачи остались
                         topic.remaining_tasks_count = topic.questions_count
                 else:
                     topic.remaining_tasks_count = 0
-        
+            else:
+                topic.remaining_tasks_count = getattr(topic, 'questions_count', 0) or 0
+
         return context
 
 
@@ -1313,8 +1379,8 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
             Queryset: Список подтем.
         """
         topic_name = self.kwargs['quiz_type'].lower()
-        topic = get_object_or_404(Topic, name__iexact=topic_name)
-        preferred_language = get_language()[:2]
+        topic = get_topic_by_identifier(topic_name, tenant=getattr(self.request, 'tenant', None))
+        preferred_language = get_site_language_code()
         
         # Задача видна на сайте если published=True (опубликована в TG) ИЛИ published_website=True
         site_published = Q(published=True) | Q(published_website=True)
@@ -1323,7 +1389,7 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         subtopics = Subtopic.objects.filter(
             topic=topic,
             tasks__translations__language=preferred_language
-        ).filter(site_published_tasks).select_related('topic').prefetch_related(
+        ).filter(site_published_tasks).select_related('topic').prefetch_related('translations', 'topic__translations',
             Prefetch(
                 'tasks',
                 queryset=Task.objects.filter(
@@ -1374,11 +1440,12 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         Returns:
             list: Список словарей с названиями и URL.
         """
-        topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
+        topic = get_topic_by_identifier(self.kwargs['quiz_type'].lower(), tenant=getattr(self.request, 'tenant', None))
+        apply_topic_localization(topic, get_site_language_code())
         return [
             {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
             {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
-            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+            {'name': topic.localized_name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.url_key})},
         ]
 
     def get_context_data(self, **kwargs):
@@ -1389,11 +1456,15 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
             dict: Контекст с темой и метаданными.
         """
         context = super().get_context_data(**kwargs)
-        topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
+        preferred_language = get_site_language_code()
+        topic = get_topic_by_identifier(self.kwargs['quiz_type'].lower(), tenant=getattr(self.request, 'tenant', None))
+        apply_topic_localization(topic, preferred_language)
         context['topic'] = topic
-        context['meta_title'] = _('%(topic_name)s Quizzes') % {'topic_name': topic.name}
-        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': topic.name}
-        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': topic.name}
+        for subtopic in context['subtopics']:
+            apply_subtopic_localization(subtopic, preferred_language)
+        context['meta_title'] = _('%(topic_name)s Quizzes') % {'topic_name': topic.localized_name}
+        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': topic.localized_name}
+        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': topic.localized_name}
         
         # Кэширование для авторизованных пользователей (10 минут)
         if self.request.user.is_authenticated:
@@ -1429,7 +1500,7 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         if not context['subtopics']:
             context['no_subtopics_message'] = _(
                 'No subtopics with tasks available in your language for %(topic_name)s.'
-            ) % {'topic_name': topic.name}
+            ) % {'topic_name': topic.localized_name}
         return context
 
 
@@ -1474,51 +1545,13 @@ def quiz_difficulty(request, quiz_type, subtopic):
         Http404: Если тема или подтема не найдены.
     """
     logger.info(f"quiz_difficulty: {quiz_type}/{subtopic}")
-    topic = get_object_or_404(Topic, name__iexact=quiz_type)
+    topic = get_topic_by_identifier(quiz_type, tenant=getattr(request, 'tenant', None))
     
-    # Улучшенная логика поиска подтемы
-    subtopic_queryset = Subtopic.objects.filter(topic=topic)
+    subtopic_obj = get_subtopic_by_identifier(topic, subtopic)
 
-    # 1. Пробуем точное совпадение (игнорируя регистр)
-    subtopic_obj = subtopic_queryset.filter(name__iexact=subtopic).first()
-
-    # 2. Пробуем совпадение по slug (так же, как в шаблонах используется slugify)
-    if not subtopic_obj:
-        subtopics_list = list(subtopic_queryset)
-        slug_matches = [item for item in subtopics_list if slugify(item.name) == subtopic]
-        if slug_matches:
-            if len(slug_matches) > 1:
-                logger.warning(
-                    "Multiple subtopics matched slug '%s' for topic '%s'. Using the first match (ID=%s)",
-                    subtopic,
-                    quiz_type,
-                    slug_matches[0].id,
-                )
-            subtopic_obj = slug_matches[0]
-
-    # 3. Пробуем более гибкий regex (например, generators-coroutines -> generators.*coroutines)
-    if not subtopic_obj:
-        normalized_subtopic = subtopic.replace('-', '.*')
-        subtopic_query = Q(name__iregex=normalized_subtopic)
-        logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
-        fuzzy_matches = subtopic_queryset.filter(subtopic_query).order_by('id')
-        match_count = fuzzy_matches.count()
-        if match_count == 1:
-            subtopic_obj = fuzzy_matches.first()
-        elif match_count > 1:
-            logger.warning(
-                "Multiple subtopics matched regex '%s' for topic '%s'. Using the first match (ID=%s)",
-                normalized_subtopic,
-                quiz_type,
-                fuzzy_matches.first().id if fuzzy_matches else 'unknown',
-            )
-            subtopic_obj = fuzzy_matches.first()
-
-    if not subtopic_obj:
-        logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
-        raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
-
-    preferred_language = get_language()  # Изменено: используем get_language()
+    preferred_language = get_site_language_code()
+    apply_topic_localization(topic, preferred_language)
+    apply_subtopic_localization(subtopic_obj, preferred_language)
 
     # Определяем доступные уровни сложности с подсчетом задач
     difficulty_names = {
@@ -1586,7 +1619,7 @@ def quiz_difficulty(request, quiz_type, subtopic):
     if request.user.is_authenticated and cache_key and cached_data is None and difficulty_cache_to_save:
         cache.set(cache_key, difficulty_cache_to_save, 600)  # 10 минут
 
-    logger.info(f"Found {len(difficulties)} difficulties for subtopic '{subtopic_obj.name}' on language '{preferred_language}'")  # Изменено: добавлено логирование
+    logger.info(f"Found {len(difficulties)} difficulties for subtopic '{subtopic_obj.localized_name}' on language '{preferred_language}'")  # Изменено: добавлено логирование
 
     # Используем исходный параметр subtopic из URL для breadcrumbs, чтобы сохранить обратную совместимость
     # Параметр subtopic уже является валидным slug, который используется в URL
@@ -1598,8 +1631,8 @@ def quiz_difficulty(request, quiz_type, subtopic):
         breadcrumbs_list = [
             {'name': str(_('Home')), 'url': reverse('blog:home')},
             {'name': str(_('Quizzes')), 'url': reverse('blog:quizes')},
-            {'name': topic.name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic_slug_for_url})},
+            {'name': topic.localized_name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.url_key})},
+            {'name': subtopic_obj.localized_name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug})},
         ]
     except Exception as e:
         logger.error(f"Error building breadcrumbs for subtopic '{subtopic_obj.name}': {e}", exc_info=True)
@@ -1607,8 +1640,8 @@ def quiz_difficulty(request, quiz_type, subtopic):
         breadcrumbs_list = [
             {'name': str(_('Home')), 'url': reverse('blog:home')},
             {'name': str(_('Quizzes')), 'url': reverse('blog:quizes')},
-            {'name': topic.name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+            {'name': topic.localized_name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.url_key})},
+            {'name': subtopic_obj.localized_name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug})},
         ]
 
     context = {
@@ -1630,9 +1663,9 @@ def quiz_difficulty(request, quiz_type, subtopic):
                 if crumb.get('url')  # Пропускаем элементы без URL
             ]
         },
-        'meta_title': _('%(subtopic_name)s Difficulty Levels — Quiz Project') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
-        'meta_description': _('Choose difficulty levels for %(subtopic_name)s quizzes.') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
-        'meta_keywords': _('%(subtopic_name)s, difficulty levels, quizzes, programming') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_title': _('%(subtopic_name)s Difficulty Levels — Quiz Project') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_description': _('Choose difficulty levels for %(subtopic_name)s quizzes.') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_keywords': _('%(subtopic_name)s, difficulty levels, quizzes, programming') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
     }
 
     response = render(request, 'blog/quiz_difficulty.html', context)
@@ -1669,51 +1702,13 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         HttpResponse: Рендеринг шаблона 'blog/quiz_subtopic.html'.
     """
     logger.info(f"Starting quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
-    topic = get_object_or_404(Topic, name__iexact=quiz_type)
+    topic = get_topic_by_identifier(quiz_type, tenant=getattr(request, 'tenant', None))
     
-    # Улучшенная логика поиска подтемы (аналогично quiz_difficulty)
-    subtopic_queryset = Subtopic.objects.filter(topic=topic)
-
-    # 1. Пробуем точное совпадение (игнорируя регистр)
-    subtopic_obj = subtopic_queryset.filter(name__iexact=subtopic).first()
-
-    # 2. Пробуем совпадение по slug (так же, как в шаблонах используется slugify)
-    if not subtopic_obj:
-        subtopics_list = list(subtopic_queryset)
-        slug_matches = [item for item in subtopics_list if slugify(item.name) == subtopic]
-        if slug_matches:
-            if len(slug_matches) > 1:
-                logger.warning(
-                    "Multiple subtopics matched slug '%s' for topic '%s'. Using the first match (ID=%s)",
-                    subtopic,
-                    quiz_type,
-                    slug_matches[0].id,
-                )
-            subtopic_obj = slug_matches[0]
-
-    # 3. Пробуем более гибкий regex (например, generators-coroutines -> generators.*coroutines)
-    if not subtopic_obj:
-        normalized_subtopic = subtopic.replace('-', '.*')
-        subtopic_query = Q(name__iregex=normalized_subtopic)
-        logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
-        fuzzy_matches = subtopic_queryset.filter(subtopic_query).order_by('id')
-        match_count = fuzzy_matches.count()
-        if match_count == 1:
-            subtopic_obj = fuzzy_matches.first()
-        elif match_count > 1:
-            logger.warning(
-                "Multiple subtopics matched regex '%s' for topic '%s'. Using the first match (ID=%s)",
-                normalized_subtopic,
-                quiz_type,
-                fuzzy_matches.first().id if fuzzy_matches else 'unknown',
-            )
-            subtopic_obj = fuzzy_matches.first()
-
-    if not subtopic_obj:
-        logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
-        raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
+    subtopic_obj = get_subtopic_by_identifier(topic, subtopic)
     
-    preferred_language = get_language()
+    preferred_language = get_site_language_code()
+    apply_topic_localization(topic, preferred_language)
+    apply_subtopic_localization(subtopic_obj, preferred_language)
 
     # Оптимизированный запрос задач
     tasks = (
@@ -1929,16 +1924,16 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         'breadcrumbs': [
             {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
             {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
-            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
-            {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
+            {'name': topic.localized_name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.url_key})},
+            {'name': subtopic_obj.localized_name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug})},
+            {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.url_key, 'subtopic': subtopic_obj.url_slug, 'difficulty': difficulty})},
         ],
-        'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
-        'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
+        'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty.title()},
+        'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.localized_name, 'difficulty': difficulty.title()},
         'meta_keywords': _('%(subtopic_name)s, quizzes, %(difficulty)s, programming') % {
-            'subtopic_name': subtopic_obj.name,
+            'subtopic_name': subtopic_obj.localized_name,
             'difficulty': difficulty.title(),
-            'topic_name': topic.name,  # некоторые локали содержат %(topic_name)s в переводе
+            'topic_name': topic.localized_name,  # некоторые локали содержат %(topic_name)s в переводе
         },
     }
 
@@ -1967,49 +1962,9 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     try:
-        topic = get_object_or_404(Topic, name__iexact=quiz_type)
+        topic = get_topic_by_identifier(quiz_type, tenant=getattr(request, 'tenant', None))
         
-        # Улучшенная логика поиска подтемы (аналогично quiz_subtopic)
-        subtopic_queryset = Subtopic.objects.filter(topic=topic)
-
-        # 1. Пробуем точное совпадение (игнорируя регистр)
-        subtopic_obj = subtopic_queryset.filter(name__iexact=subtopic).first()
-
-        # 2. Пробуем совпадение по slug (так же, как в шаблонах используется slugify)
-        if not subtopic_obj:
-            subtopics_list = list(subtopic_queryset)
-            slug_matches = [item for item in subtopics_list if slugify(item.name) == subtopic]
-            if slug_matches:
-                if len(slug_matches) > 1:
-                    logger.warning(
-                        "Multiple subtopics matched slug '%s' for topic '%s'. Using the first match (ID=%s)",
-                        subtopic,
-                        quiz_type,
-                        slug_matches[0].id,
-                    )
-                subtopic_obj = slug_matches[0]
-
-        # 3. Пробуем более гибкий regex (например, generators-coroutines -> generators.*coroutines)
-        if not subtopic_obj:
-            normalized_subtopic = subtopic.replace('-', '.*')
-            subtopic_query = Q(name__iregex=normalized_subtopic)
-            logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
-            fuzzy_matches = subtopic_queryset.filter(subtopic_query).order_by('id')
-            match_count = fuzzy_matches.count()
-            if match_count == 1:
-                subtopic_obj = fuzzy_matches.first()
-            elif match_count > 1:
-                logger.warning(
-                    "Multiple subtopics matched regex '%s' for topic '%s'. Using the first match (ID=%s)",
-                    normalized_subtopic,
-                    quiz_type,
-                    fuzzy_matches.first().id if fuzzy_matches else 'unknown',
-                )
-                subtopic_obj = fuzzy_matches.first()
-
-        if not subtopic_obj:
-            logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
-            return JsonResponse({'error': f'Subtopic {subtopic} not found for topic {quiz_type}'}, status=404)
+        subtopic_obj = get_subtopic_by_identifier(topic, subtopic)
         
         task = Task.objects.filter(
             Q(published=True) | Q(published_website=True),
@@ -2273,18 +2228,20 @@ def reset_subtopic_stats(request, subtopic_id):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     subtopic = get_object_or_404(Subtopic, id=subtopic_id)
-    logger.info(f"Resetting stats for user={request.user}, subtopic={subtopic.name} (id={subtopic_id})")
+    language = get_site_language_code()
+    localized_subtopic_name = subtopic.get_localized_name(language)
+    logger.info(f"Resetting stats for user={request.user}, subtopic={localized_subtopic_name} (id={subtopic_id})")
 
     try:
         deleted_count = TaskStatistics.objects.filter(
             user=request.user,
             task__subtopic=subtopic
         ).delete()[0]
-        logger.info(f"Deleted {deleted_count} stats records for user={request.user}, subtopic={subtopic.name}")
+        logger.info(f"Deleted {deleted_count} stats records for user={request.user}, subtopic={localized_subtopic_name}")
 
         return JsonResponse({
             'status': 'success',
-            'message': f'Статистика для подтемы "{subtopic.name}" сброшена.',
+            'message': f'Статистика для подтемы "{localized_subtopic_name}" сброшена.',
             'deleted_count': deleted_count
         })
     except Exception as e:

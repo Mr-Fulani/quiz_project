@@ -1572,7 +1572,7 @@
         
         // Обработка кнопки "Назад" браузера
         window.addEventListener('popstate', function(e) {
-            loadPage(window.location.pathname);
+            loadPage(window.location.pathname + window.location.search);
         });
         
         // Добавляем обработчики событий только к ссылкам навигации
@@ -1664,30 +1664,17 @@
                     if (success) {
                         console.log('✅ Language changed successfully via service');
                         
-                        // Добавляем небольшую задержку для стабилизации
                         setTimeout(() => {
-                            // Принудительно обновляем интерфейс еще раз
-                            if (window.localizationService) {
-                                window.localizationService.updateInterface();
-                            }
-                            
-                            // Обновляем профессиональную информацию если мы на странице профиля
-                            if (window.updateProfessionalInfoOnLanguageChange) {
-                                window.updateProfessionalInfoOnLanguageChange();
-                            }
-                            
-                            // Обновляем страницу через AJAX с новым языком
                             const currentUrl = new URL(window.location.href);
                             currentUrl.searchParams.set('lang', lang);
-                            loadPage(currentUrl.pathname + currentUrl.search);
+                            window.location.href = currentUrl.pathname + currentUrl.search;
                         }, 100);
                         
                     } else {
                         console.error('❌ Failed to change language via service');
-                        // Fallback: обновляем через loadPage
                         const currentUrl = new URL(window.location.href);
                         currentUrl.searchParams.set('lang', lang);
-                        loadPage(currentUrl.pathname + currentUrl.search);
+                        window.location.href = currentUrl.pathname + currentUrl.search;
                     }
                 } catch (error) {
                     console.error('❌ Error in changeLanguage:', error);
@@ -1696,14 +1683,12 @@
                 }
             } else {
                 console.log('⚠️ Localization service not available, using fallback');
-                // Fallback для старых версий
                 localStorage.setItem('selectedLanguage', lang);
                 window.currentLanguage = lang;
-                
-                // Обновляем через loadPage вместо reload
+
                 const currentUrl = new URL(window.location.href);
                 currentUrl.searchParams.set('lang', lang);
-                loadPage(currentUrl.pathname + currentUrl.search);
+                window.location.href = currentUrl.pathname + currentUrl.search;
             }
         }
         
