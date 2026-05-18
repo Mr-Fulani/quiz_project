@@ -21,14 +21,14 @@ All static text is localized using {% trans %} for English msgid and translation
 {% endcomment %}
 <article class="quiz-difficulty active" data-page="quiz-difficulty">
     <header>
-        <h1 class="h2 article-title">{{ subtopic.name }}</h1>
+        <h1 class="h2 article-title">{{ subtopic.localized_name }}</h1>
     </header>
     <section class="service">
         <ul class="service-list">
             {% if difficulties %}
                 {% for difficulty in difficulties %}
                     <li class="service-item">
-                        <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|slugify difficulty=difficulty.value|lower %}" class="service-link">
+                        <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.url_key subtopic=subtopic.url_slug difficulty=difficulty.value|lower %}" class="service-link">
                             <div class="service-icon-box">
                                 {% if topic.icon_svg %}
                                     {{ topic.icon_svg|safe }}

@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
+
+def get_request_language(request: Request, explicit_lang: str | None = None) -> str:
+    """Возвращает язык текущего запроса без опоры на глобальное mutable-состояние."""
+    return explicit_lang or getattr(request.state, 'language', None) or request.cookies.get('selected_language') or localization_service.default_language
+
 @router.get("/", response_class=HTMLResponse)
 async def index(
     request: Request, 
@@ -65,13 +70,8 @@ async def index(
                     topic_id = comment_data.get('topic_id')
                     language = comment_data.get('language', 'en')
                     
-                    # Устанавливаем язык
-                    if lang:
-                        localization_service.set_language(lang)
-                    elif language:
-                        localization_service.set_language(language)
-                    
-                    current_language = localization_service.get_language()
+                    current_language = get_request_language(request, lang or language)
+                    localization_service.set_language(current_language)
                     
                     # Редиректим на страницу задач подтемы с параметрами для прокрутки к комментарию
                     if subtopic_id:
@@ -95,19 +95,14 @@ async def index(
     if start_param and start_param.startswith("topic_"):
         try:
             topic_id = int(start_param.split("_")[1])
-            # Устанавливаем язык перед редиректом
-            if lang:
-                localization_service.set_language(lang)
-            current_language = localization_service.get_language()
+            current_language = get_request_language(request, lang)
+            localization_service.set_language(current_language)
             return RedirectResponse(url=f"/topic/{topic_id}?lang={current_language}")
         except (ValueError, IndexError):
             logger.warning(f"Некорректный параметр deep link: {start_param}")
 
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering index page with language: {current_language}")
     
     # Получаем telegram_id из заголовков/куки, если доступен
@@ -158,11 +153,8 @@ async def profile(
     request: Request,
     lang: str = Query(default=None, description="Language code")
 ):
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering profile page with language: {current_language}")
     
     # Получаем переводы для текущего языка
@@ -196,11 +188,8 @@ async def user_profile(
     
     Отображает публичный или приватный профиль в зависимости от настроек пользователя.
     """
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering user profile page for telegram_id={telegram_id} with language: {current_language}")
     
     # Получаем переводы для текущего языка
@@ -234,11 +223,8 @@ async def top_users(
     language_pref: str = Query(default=None, description="Programming language filter"),
     online_only: str = Query(default=None, description="Online users only filter")
 ):
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     try:
         logger.info(f"Rendering top_users page with language: {current_language}")
         
@@ -321,11 +307,8 @@ async def statistics(
     request: Request,
     lang: str = Query(default=None, description="Language code")
 ):
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering statistics page with language: {current_language}")
     
     # Получаем telegram_id из заголовков/куки, если доступен
@@ -375,10 +358,8 @@ async def admin_analytics(
     lang: str = Query(default=None, description="Language code")
 ):
     """Страница админ-панели с аналитикой (только для админов)"""
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering admin analytics page with language: {current_language}")
     
     # Получаем переводы для текущего языка
@@ -410,11 +391,8 @@ async def settings(
     request: Request,
     lang: str = Query(default=None, description="Language code")
 ):
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering settings page with language: {current_language}")
     logger.info(f"📧 ADMIN_TELEGRAM_ID value: [{app_settings.ADMIN_TELEGRAM_ID}]")
     
@@ -447,11 +425,8 @@ async def topic_detail(
     topic_id: int,
     lang: str = Query(default=None, description="Language code")
 ):
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering topic detail page for topic_id: {topic_id} with language: {current_language}")
     
     # Получаем хост и схему для тенанта
@@ -519,11 +494,8 @@ async def subtopic_tasks(
     logger.info(f"subtopic_tasks: request.query_params = {request.query_params}")
     logger.info(f"subtopic_tasks: request.cookies = {dict(request.cookies)}")
     
-    # Язык уже установлен middleware, но можно переопределить через query параметр
-    if lang:
-        localization_service.set_language(lang)
-    
-    current_language = localization_service.get_language()
+    current_language = get_request_language(request, lang)
+    localization_service.set_language(current_language)
     logger.info(f"Rendering subtopic tasks page for subtopic_id: {subtopic_id} with language: {current_language}")
     
     # Получаем telegram_id из заголовков/куки, если доступен
