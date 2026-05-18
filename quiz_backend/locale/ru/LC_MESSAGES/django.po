@@ -1634,15 +1634,15 @@ msgstr ""
 
 #: blog/views.py:1098 blog/views.py:1286
 msgid "Easy"
-msgstr ""
+msgstr "Легкий"
 
 #: blog/views.py:1099 blog/views.py:1287
 msgid "Medium"
-msgstr ""
+msgstr "Средний"
 
 #: blog/views.py:1100 blog/views.py:1288
 msgid "Hard"
-msgstr ""
+msgstr "Сложный"
 
 #: blog/views.py:1149
 #, python-format

@@ -10,7 +10,7 @@
 {% block content %}
 <article class="quiz-subtopic active" data-page="quiz-subtopic">
     <header>
-        <h1 class="h2 article-title">{{ subtopic.name }} - {{ difficulty|title }}</h1>
+        <h1 class="h2 article-title">{{ subtopic.localized_name }} - {{ difficulty|title }}</h1>
     </header>
 
     <section class="tasks">
@@ -20,7 +20,7 @@
                  data-explanation="{% if task.translation.long_explanation %}{{ task.translation.long_explanation|escape }}{% else %}{{ task.translation.explanation|escape }}{% endif %}"
                  data-source-name="{{ task.translation.source_name|default:''|escape }}"
                  data-source-link="{{ task.translation.source_link|default:''|escape }}"
-                 data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify task_id=task.id %}"
+                 data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.url_key subtopic=subtopic.url_slug task_id=task.id %}"
                  {% if task.is_solved %}data-solved="true"{% endif %}>
                 {% if task.image_url %}
                     <div class="task-image">
@@ -61,7 +61,7 @@
             <div class="reset-buttons">
                 <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
                     {% csrf_token %}
-                    <button type="submit" class="reset-button" data-subtopic-name="{{ subtopic.name|escapejs }}">
+                    <button type="submit" class="reset-button" data-subtopic-name="{{ subtopic.localized_name|escapejs }}">
                         {% trans "Retake Test" %}
                     </button>
                 </form>

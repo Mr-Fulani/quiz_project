@@ -543,11 +543,12 @@ async def change_language(request: LanguageChangeRequest, response: Response):
     }
 
 @router.get("/topics")
-async def get_topics(request: Request, search: str = None, language: str = 'ru', telegram_id: int | None = None):
+async def get_topics(request: Request, search: str = None, language: str | None = None, telegram_id: int | None = None):
     """Получение списка тем с поиском и прогрессом пользователя (telegram_id)"""
     from services.django_api_service import django_api_service
     
     try:
+        language = language or getattr(request.state, 'language', None) or request.cookies.get('selected_language') or 'en'
         logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
         
         params = {'language': language}

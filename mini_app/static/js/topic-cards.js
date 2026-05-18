@@ -431,7 +431,7 @@ function initTopicCards() {
         // Используем AJAX навигацию вместо полной перезагрузки страницы
         setTimeout(async () => {
             try {
-                const url = `/topic/${topicId}`;
+                const url = `/topic/${topicId}?lang=${encodeURIComponent(currentLang)}`;
                 console.log('Loading topic page via AJAX:', url);
                 
                 // Сначала сбрасываем состояние галереи
@@ -491,7 +491,7 @@ function initTopicCards() {
             } catch (error) {
                 console.error('Error during AJAX navigation:', error);
                 // Fallback к обычному переходу
-                window.location.href = `/topic/${topicId}`;
+                window.location.href = `/topic/${topicId}?lang=${encodeURIComponent(window.currentLanguage || document.documentElement.lang || 'en')}`;
             }
         }, 300);
     }
