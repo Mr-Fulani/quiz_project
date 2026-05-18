@@ -7,23 +7,32 @@ from .utils import normalize_subtopic_name
 from tenants.mixins import TenantFilteredAdminMixin
 
 
-def get_admin_tenant_scope(request):
+class TenantAccessibleTranslationInline(admin.TabularInline):
     """
-    На tenant-домене ограничиваем админку текущим тенантом даже для superuser.
-    На центральном домене scope отсутствует, и superuser видит все.
+    Даем доступ к inline-переводам всем staff-пользователям, у которых уже есть
+    доступ к родительской модели. Иначе Django скрывает inline из-за отсутствия
+    отдельных прав на новые translation-модели.
     """
-    return getattr(request, 'tenant', None) or getattr(request.user, 'tenant', None)
 
-
-class TopicTranslationInline(admin.TabularInline):
-    model = TopicTranslation
     extra = 1
+
+    def has_view_or_change_permission(self, request, obj=None):
+        return bool(request.user and request.user.is_staff)
+
+    def has_add_permission(self, request, obj=None):
+        return bool(request.user and request.user.is_staff)
+
+    def has_delete_permission(self, request, obj=None):
+        return bool(request.user and request.user.is_staff)
+
+
+class TopicTranslationInline(TenantAccessibleTranslationInline):
+    model = TopicTranslation
     fields = ('language_code', 'name', 'description')
 
 
-class SubtopicTranslationInline(admin.TabularInline):
+class SubtopicTranslationInline(TenantAccessibleTranslationInline):
     model = SubtopicTranslation
-    extra = 1
     fields = ('language_code', 'name', 'description')
 
 
@@ -58,16 +67,9 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления темами.
     Контент-менеджеры видят только темы своего тенанта.
+    Суперпользователь видит все темы всех тенантов.
     """
     form = TopicAdminForm
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        tenant = get_admin_tenant_scope(request)
-        if request.user.is_superuser and tenant:
-            return qs.filter(tenant=tenant)
-        return qs
-
     inlines = [TopicTranslationInline]
     list_display = ('id', 'name', 'icon_preview', 'media_type', 'media_preview', 'description', 'get_subtopics_count')
     search_fields = ('name', 'description', 'translations__name', 'translations__description')
@@ -118,30 +120,35 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 class SubtopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления подтемами.
-    Фильтрует через topic.tenant (не имеет прямого FK на tenant).
+    Контент-менеджеры видят только подтемы своего тенанта.
+    Суперпользователь видит все подтемы всех тенантов.
     """
     tenant_lookup = 'topic__tenant'
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request).select_related('topic', 'topic__tenant')
-        tenant = get_admin_tenant_scope(request)
-        if request.user.is_superuser and tenant:
-            return qs.filter(topic__tenant=tenant)
-        return qs
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'topic':
-            tenant = get_admin_tenant_scope(request)
-            if tenant:
-                kwargs['queryset'] = Topic.objects.filter(tenant=tenant)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
     inlines = [SubtopicTranslationInline]
     list_display = ('id', 'name', 'topic', 'get_tenant', 'get_tasks_count')
-    list_filter = ('topic__tenant', 'topic')
     search_fields = ('name', 'translations__name', 'topic__name', 'topic__translations__name')
     raw_id_fields = ('topic',)
     ordering = ('topic', 'name')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('topic', 'topic__tenant')
+
+    def get_list_filter(self, request):
+        """
+        У tenant-admin не показываем фильтр по tenant и ограничиваем список тем
+        только темами из его видимого queryset.
+        """
+        topic_filter = ('topic', admin.RelatedOnlyFieldListFilter)
+        if request.user.is_superuser:
+            return ('topic__tenant', topic_filter)
+        return (topic_filter,)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'topic' and not request.user.is_superuser:
+            tenant = getattr(request.user, 'tenant', None)
+            if tenant:
+                kwargs['queryset'] = Topic.objects.filter(tenant=tenant)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_tenant(self, obj):
         """Получить тенанта через тему"""
