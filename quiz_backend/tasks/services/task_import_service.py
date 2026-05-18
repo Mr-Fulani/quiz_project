@@ -6,11 +6,11 @@ import json
 import logging
 import random
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
 from django.conf import settings
-from topics.models import Topic, Subtopic
+from topics.models import Topic, Subtopic, TopicTranslation, SubtopicTranslation
 from topics.utils import normalize_subtopic_name
 from platforms.models import TelegramGroup
 from tasks.models import Task, TaskTranslation
@@ -28,6 +28,16 @@ def _normalize_source_value(value: Any) -> Optional[str]:
     if not isinstance(value, str):
         return None
     normalized = value.strip()
+    return normalized or None
+
+
+def _normalize_language_code(value: Any) -> Optional[str]:
+    """
+    Нормализует код языка.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
     return normalized or None
 
 
@@ -72,6 +82,204 @@ def _extract_source_fields_from_translation_data(translation_data: Dict[str, Any
     }
 
 
+def _parse_named_translations(raw_value: Any) -> Dict[str, Dict[str, Optional[str]]]:
+    """
+    Парсит словарь/список переводов для темы или подтемы.
+
+    Поддерживаемые форматы:
+    - {"ru": "Арабский язык", "en": "Arabic Language"}
+    - {"ru": {"name": "Арабский язык", "description": "..."}, "en": {...}}
+    - [{"language": "ru", "name": "...", "description": "..."}, ...]
+    """
+    parsed: Dict[str, Dict[str, Optional[str]]] = {}
+
+    if isinstance(raw_value, dict):
+        for language_code, value in raw_value.items():
+            normalized_language = _normalize_language_code(language_code)
+            if not normalized_language:
+                continue
+
+            if isinstance(value, str):
+                name = value.strip()
+                if name:
+                    parsed[normalized_language] = {
+                        'name': name,
+                        'description': None,
+                    }
+                continue
+
+            if isinstance(value, dict):
+                name = _normalize_source_value(value.get('name'))
+                description = _normalize_source_value(value.get('description'))
+                if name:
+                    parsed[normalized_language] = {
+                        'name': name,
+                        'description': description,
+                    }
+
+    elif isinstance(raw_value, list):
+        for item in raw_value:
+            if not isinstance(item, dict):
+                continue
+            normalized_language = _normalize_language_code(item.get('language'))
+            name = _normalize_source_value(item.get('name'))
+            description = _normalize_source_value(item.get('description'))
+            if normalized_language and name:
+                parsed[normalized_language] = {
+                    'name': name,
+                    'description': description,
+                }
+
+    return parsed
+
+
+def _resolve_base_name_and_translations(
+    raw_name_value: Any,
+    explicit_translations_value: Any,
+    preferred_base_language: str = 'en',
+) -> Tuple[Optional[str], Dict[str, Dict[str, Optional[str]]]]:
+    """
+    Возвращает базовое имя сущности и словарь её переводов.
+
+    Поддерживает два формата:
+    - старый: topic/subtopic = "Name", *_translations = {...}
+    - новый: topic/subtopic = {"ru": "...", "en": "..."} без отдельного *_translations
+    """
+    parsed_translations = _parse_named_translations(explicit_translations_value)
+
+    base_name: Optional[str] = None
+    if isinstance(raw_name_value, str):
+        base_name = raw_name_value.strip() or None
+    elif isinstance(raw_name_value, (dict, list)):
+        inline_translations = _parse_named_translations(raw_name_value)
+        if inline_translations:
+            parsed_translations = {**inline_translations, **parsed_translations}
+
+    preferred_language = _normalize_language_code(preferred_base_language) or 'en'
+    if not base_name and parsed_translations:
+        preferred_translation = parsed_translations.get(preferred_language)
+        if preferred_translation and preferred_translation.get('name'):
+            base_name = preferred_translation['name']
+        else:
+            first_translation = next(
+                (payload.get('name') for payload in parsed_translations.values() if payload.get('name')),
+                None
+            )
+            base_name = first_translation
+
+    return base_name, parsed_translations
+
+
+def _find_topic(tenant, topic_name: Optional[str], topic_translations: Dict[str, Dict[str, Optional[str]]]) -> Optional[Topic]:
+    """
+    Ищет тему по основному имени или по одному из локализованных названий.
+    """
+    if topic_name:
+        topic = Topic.objects.filter(name=topic_name, tenant=tenant).first()
+        if topic:
+            return topic
+
+    translation_names = [value['name'] for value in topic_translations.values() if value.get('name')]
+    if translation_names:
+        return (
+            Topic.objects.filter(tenant=tenant, translations__name__in=translation_names)
+            .distinct()
+            .first()
+        )
+
+    return None
+
+
+def _upsert_topic_translations(
+    topic: Topic,
+    topic_translations: Dict[str, Dict[str, Optional[str]]],
+    fallback_name: Optional[str],
+    fallback_description: Optional[str],
+    tenant_default_language: Optional[str],
+) -> None:
+    """
+    Создает или обновляет переводы темы.
+    """
+    translations_to_save = dict(topic_translations)
+    default_language = _normalize_language_code(tenant_default_language) or 'en'
+
+    if not translations_to_save and fallback_name and not topic.translations.exists():
+        translations_to_save[default_language] = {
+            'name': fallback_name,
+            'description': fallback_description,
+        }
+
+    for language_code, payload in translations_to_save.items():
+        name = payload.get('name')
+        if not name:
+            continue
+        TopicTranslation.objects.update_or_create(
+            topic=topic,
+            language_code=language_code,
+            defaults={
+                'name': name,
+                'description': payload.get('description'),
+            },
+        )
+
+
+def _find_subtopic(topic: Topic, subtopic_name: Optional[str], subtopic_translations: Dict[str, Dict[str, Optional[str]]]) -> Optional[Subtopic]:
+    """
+    Ищет подтему по основному имени или по одному из локализованных названий.
+    """
+    normalized_subtopic_name = normalize_subtopic_name(subtopic_name) if subtopic_name else None
+    if normalized_subtopic_name:
+        subtopic = Subtopic.objects.filter(name=normalized_subtopic_name, topic=topic).first()
+        if subtopic:
+            return subtopic
+
+    translation_names = [
+        normalize_subtopic_name(value['name'])
+        for value in subtopic_translations.values()
+        if value.get('name')
+    ]
+    if translation_names:
+        return (
+            Subtopic.objects.filter(topic=topic, translations__name__in=translation_names)
+            .distinct()
+            .first()
+        )
+
+    return None
+
+
+def _upsert_subtopic_translations(
+    subtopic: Subtopic,
+    subtopic_translations: Dict[str, Dict[str, Optional[str]]],
+    fallback_name: Optional[str],
+    tenant_default_language: Optional[str],
+) -> None:
+    """
+    Создает или обновляет переводы подтемы.
+    """
+    translations_to_save = dict(subtopic_translations)
+    default_language = _normalize_language_code(tenant_default_language) or 'en'
+
+    if not translations_to_save and fallback_name and not subtopic.translations.exists():
+        translations_to_save[default_language] = {
+            'name': fallback_name,
+            'description': None,
+        }
+
+    for language_code, payload in translations_to_save.items():
+        name = payload.get('name')
+        if not name:
+            continue
+        SubtopicTranslation.objects.update_or_create(
+            subtopic=subtopic,
+            language_code=language_code,
+            defaults={
+                'name': name,
+                'description': payload.get('description'),
+            },
+        )
+
+
 def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, image_theme: str = 'code', image_logo_path: Optional[str] = None) -> Dict:
     """
     Импорт задач из JSON файла в базу данных.
@@ -114,7 +322,10 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
         
         for task_data in tasks_data:
             try:
-                topic_name = task_data.get('topic')
+                topic_name, topic_translations = _resolve_base_name_and_translations(
+                    task_data.get('topic'),
+                    task_data.get('topic_translations'),
+                )
                 translations = task_data.get('translations', [])
                 
                 if not translations:
@@ -125,12 +336,19 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                     continue
                 
                 # Получаем или создаём тему (безопасно: берем первую если вдруг есть дубликаты)
-                topic = Topic.objects.filter(name=topic_name, tenant=tenant).first()
+                topic = _find_topic(tenant, topic_name, topic_translations)
                 if not topic:
                     topic = Topic.objects.create(
-                        name=topic_name,
+                        name=topic_name or next(
+                            (
+                                value['name']
+                                for value in topic_translations.values()
+                                if value.get('name')
+                            ),
+                            'Untitled Topic'
+                        ),
                         tenant=tenant,
-                        description=f'Topic for {topic_name}'
+                        description=task_data.get('description') or f"Topic for {topic_name or 'imported tasks'}"
                     )
                     logger.info(f"✅ Создана новая тема: {topic_name}")
                     detailed_logs.append(f"✅ Создана новая тема: {topic_name}")
@@ -138,24 +356,47 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                 else:
                     detailed_logs.append(f"📂 Используется существующая тема: {topic_name}")
                     created = False
+
+                _upsert_topic_translations(
+                    topic=topic,
+                    topic_translations=topic_translations,
+                    fallback_name=topic.name,
+                    fallback_description=topic.description,
+                    tenant_default_language=getattr(tenant, 'default_language', None),
+                )
                 
                 # Получаем или создаём подтему
-                subtopic_name = task_data.get('subtopic')
+                subtopic_name, subtopic_translations = _resolve_base_name_and_translations(
+                    task_data.get('subtopic'),
+                    task_data.get('subtopic_translations'),
+                )
                 subtopic = None
                 
-                if subtopic_name:
-                    # Нормализуем имя подтемы перед поиском/созданием
-                    normalized_subtopic_name = normalize_subtopic_name(subtopic_name)
-                    subtopic = Subtopic.objects.filter(name=normalized_subtopic_name, topic=topic).first()
+                if subtopic_name or subtopic_translations:
+                    subtopic = _find_subtopic(topic, subtopic_name, subtopic_translations)
                     if not subtopic:
                         subtopic = Subtopic.objects.create(
-                            name=normalized_subtopic_name,
+                            name=subtopic_name or next(
+                                (
+                                    value['name']
+                                    for value in subtopic_translations.values()
+                                    if value.get('name')
+                                ),
+                                'General'
+                            ),
                             topic=topic
                         )
                         logger.info(f"✅ Создана новая подтема: {subtopic_name}")
                         detailed_logs.append(f"✅ Создана новая подтема: {subtopic_name}")
                     else:
                         detailed_logs.append(f"📂 Используется существующая подтема: {subtopic_name}")
+
+                    _upsert_subtopic_translations(
+                        subtopic=subtopic,
+                        subtopic_translations=subtopic_translations,
+                        fallback_name=subtopic.name,
+                        tenant_default_language=getattr(tenant, 'default_language', None),
+                    )
                 
                 # Генерируем translation_group_id если его нет
                 translation_group_id = task_data.get('translation_group_id')
@@ -462,4 +703,3 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
             'publish_errors': [],
             'detailed_logs': [error_msg]
         }
-

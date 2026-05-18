@@ -81,7 +81,11 @@ def get_topic_by_identifier(identifier: str, tenant=None):
     if tenant is not None:
         queryset = queryset.filter(tenant=tenant)
 
-    topic = queryset.filter(Q(name__iexact=identifier) | Q(translations__name__iexact=identifier)).distinct().first()
+    topic = queryset.filter(
+        Q(name__iexact=identifier) |
+        Q(translations__name__iexact=identifier) |
+        Q(translations__language_code=get_site_language_code(), translations__name__iexact=identifier)
+    ).distinct().first()
     if topic:
         return topic
 
@@ -97,7 +101,11 @@ def get_topic_by_identifier(identifier: str, tenant=None):
 
 def get_subtopic_by_identifier(topic, identifier: str):
     queryset = Subtopic.objects.filter(topic=topic).prefetch_related('translations')
-    subtopic = queryset.filter(Q(name__iexact=identifier) | Q(translations__name__iexact=identifier)).distinct().first()
+    subtopic = queryset.filter(
+        Q(name__iexact=identifier) |
+        Q(translations__name__iexact=identifier) |
+        Q(translations__language_code=get_site_language_code(), translations__name__iexact=identifier)
+    ).distinct().first()
     if subtopic:
         return subtopic
 
