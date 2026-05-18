@@ -9,7 +9,7 @@ import re
 import subprocess
 import textwrap
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from PIL import Image, ImageDraw, ImageFont
 from PIL.Image import Resampling
@@ -20,6 +20,49 @@ from pygments.styles import get_style_by_name
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+ARABIC_CHAR_RE = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]')
+ARABIC_RUN_RE = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*')
+ARABIC_DIACRITICS_RE = re.compile(r'[\u064B-\u065F\u0670\u06D6-\u06ED]')
+
+ARABIC_PRESENTATION_FORMS = {
+    'ا': ('\uFE8D', '\uFE8E', None, None),
+    'أ': ('\uFE83', '\uFE84', None, None),
+    'إ': ('\uFE87', '\uFE88', None, None),
+    'آ': ('\uFE81', '\uFE82', None, None),
+    'ب': ('\uFE8F', '\uFE90', '\uFE91', '\uFE92'),
+    'ت': ('\uFE95', '\uFE96', '\uFE97', '\uFE98'),
+    'ث': ('\uFE99', '\uFE9A', '\uFE9B', '\uFE9C'),
+    'ج': ('\uFE9D', '\uFE9E', '\uFE9F', '\uFEA0'),
+    'ح': ('\uFEA1', '\uFEA2', '\uFEA3', '\uFEA4'),
+    'خ': ('\uFEA5', '\uFEA6', '\uFEA7', '\uFEA8'),
+    'د': ('\uFEA9', '\uFEAA', None, None),
+    'ذ': ('\uFEAB', '\uFEAC', None, None),
+    'ر': ('\uFEAD', '\uFEAE', None, None),
+    'ز': ('\uFEAF', '\uFEB0', None, None),
+    'س': ('\uFEB1', '\uFEB2', '\uFEB3', '\uFEB4'),
+    'ش': ('\uFEB5', '\uFEB6', '\uFEB7', '\uFEB8'),
+    'ص': ('\uFEB9', '\uFEBA', '\uFEBB', '\uFEBC'),
+    'ض': ('\uFEBD', '\uFEBE', '\uFEBF', '\uFEC0'),
+    'ط': ('\uFEC1', '\uFEC2', '\uFEC3', '\uFEC4'),
+    'ظ': ('\uFEC5', '\uFEC6', '\uFEC7', '\uFEC8'),
+    'ع': ('\uFEC9', '\uFECA', '\uFECB', '\uFECC'),
+    'غ': ('\uFECD', '\uFECE', '\uFECF', '\uFED0'),
+    'ف': ('\uFED1', '\uFED2', '\uFED3', '\uFED4'),
+    'ق': ('\uFED5', '\uFED6', '\uFED7', '\uFED8'),
+    'ك': ('\uFED9', '\uFEDA', '\uFEDB', '\uFEDC'),
+    'ل': ('\uFEDD', '\uFEDE', '\uFEDF', '\uFEE0'),
+    'م': ('\uFEE1', '\uFEE2', '\uFEE3', '\uFEE4'),
+    'ن': ('\uFEE5', '\uFEE6', '\uFEE7', '\uFEE8'),
+    'ه': ('\uFEE9', '\uFEEA', '\uFEEB', '\uFEEC'),
+    'و': ('\uFEED', '\uFEEE', None, None),
+    'ؤ': ('\uFE85', '\uFE86', None, None),
+    'ى': ('\uFEEF', '\uFEF0', None, None),
+    'ي': ('\uFEF1', '\uFEF2', '\uFEF3', '\uFEF4'),
+    'ئ': ('\uFE89', '\uFE8A', '\uFE8B', '\uFE8C'),
+    'ة': ('\uFE93', '\uFE94', None, None),
+}
 
 
 # ============================================================================
@@ -349,6 +392,125 @@ def get_lexer(language: str):
         return TextLexer()
 
 
+def contains_arabic(text: str) -> bool:
+    return bool(text and ARABIC_CHAR_RE.search(text))
+
+
+def _is_arabic_letter(char: str) -> bool:
+    return char in ARABIC_PRESENTATION_FORMS
+
+
+def _can_connect_before(char: str) -> bool:
+    forms = ARABIC_PRESENTATION_FORMS.get(char)
+    return bool(forms and forms[1])
+
+
+def _can_connect_after(char: str) -> bool:
+    forms = ARABIC_PRESENTATION_FORMS.get(char)
+    return bool(forms and forms[2])
+
+
+def _shape_arabic_run(text: str) -> str:
+    chars = list(text)
+    shaped = []
+
+    for idx, char in enumerate(chars):
+        if not _is_arabic_letter(char):
+            shaped.append(char)
+            continue
+
+        prev_char = chars[idx - 1] if idx > 0 else ''
+        next_char = chars[idx + 1] if idx < len(chars) - 1 else ''
+
+        connects_to_prev = (
+            _is_arabic_letter(prev_char) and
+            _can_connect_after(prev_char) and
+            _can_connect_before(char)
+        )
+        connects_to_next = (
+            _is_arabic_letter(next_char) and
+            _can_connect_after(char) and
+            _can_connect_before(next_char)
+        )
+
+        isolated, final, initial, medial = ARABIC_PRESENTATION_FORMS[char]
+
+        if connects_to_prev and connects_to_next and medial:
+            shaped.append(medial)
+        elif connects_to_prev and final:
+            shaped.append(final)
+        elif connects_to_next and initial:
+            shaped.append(initial)
+        else:
+            shaped.append(isolated)
+
+    return ''.join(shaped)[::-1]
+
+
+def prepare_text_for_rendering(text: str) -> str:
+    """
+    Подготавливает текст для рендера в PIL.
+    Для арабского делает простое shaping и визуальный RTL порядок без внешних зависимостей.
+    """
+    if not contains_arabic(text):
+        return text
+
+    def replace_run(match: re.Match) -> str:
+        return _shape_arabic_run(match.group(0))
+
+    normalized = ARABIC_DIACRITICS_RE.sub('', text)
+    return ARABIC_RUN_RE.sub(replace_run, normalized)
+
+
+def load_unicode_font(font_size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
+    """
+    Загружает шрифт с поддержкой Unicode/Arabic.
+    """
+    font_candidates = [
+        "/Users/user/quiz_project/bot/fonts/Arial Unicode.ttf",
+        str(settings.BASE_DIR.parent / 'bot' / 'fonts' / 'Arial Unicode.ttf'),
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    ]
+
+    for path in font_candidates:
+        if path and os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, font_size)
+            except Exception:
+                continue
+
+    return ImageFont.load_default()
+
+
+def wrap_text_by_width(text: str, font: ImageFont.ImageFont, draw: ImageDraw.ImageDraw, max_width: int) -> List[str]:
+    """
+    Разбивает текст на строки с учетом реальной ширины.
+    """
+    prepared_text = prepare_text_for_rendering(text)
+    lines: List[str] = []
+
+    for paragraph in prepared_text.split('\n'):
+        words = paragraph.split()
+        if not words:
+            lines.append('')
+            continue
+
+        current_line = words[0]
+        for word in words[1:]:
+            test_line = f"{current_line} {word}"
+            left, top, right, bottom = draw.textbbox((0, 0), test_line, font=font)
+            if right - left <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)
+
+    return lines
+
+
 def generate_console_image(task_text: str, language: str, logo_path: Optional[str] = None) -> Image.Image:
     """
     Генерация «консольного» изображения с подсветкой кода/текста и логотипом.
@@ -513,33 +675,10 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
     else:
         text_y_offset = HEIGHT // 3
 
-    # Подготовка текста
-    # Оборачиваем текст более плотно, чтобы он не выходил за рамки (32 символа - безопасно для кириллицы)
-    wrapped_text = wrap_text(text, max_line_length=32)
-    
-    # Попытка загрузить шрифт
-    font = None
-    try:
-        # Пытаемся найти элегантный шрифт на системе
-        font_paths = [
-            "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
-            "/System/Library/Fonts/Times.ttc",
-            "Arial.ttf"
-        ]
-        for path in font_paths:
-            if os.path.exists(path):
-                # Немного уменьшаем шрифт для лучшей вмещаемости
-                font = ImageFont.truetype(path, 55)
-                break
-    except Exception:
-        pass
-        
-    if not font:
-        font = ImageFont.load_default()
+    font = load_unicode_font(55, bold=True)
+    lines = wrap_text_by_width(text, font, draw, WIDTH - 260)
 
     # Рисуем текст (центрированный)
-    lines = wrapped_text.split('\n')
     current_y = text_y_offset
     
     for line in lines:
@@ -555,6 +694,59 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
         line_x = (WIDTH - line_width) // 2
         draw.text((line_x, current_y), line, font=font, fill=TEXT_COLOR)
         current_y += line_height + 25
+
+    return image
+
+
+def generate_text_card_image(text: str, logo_path: Optional[str] = None) -> Image.Image:
+    """
+    Генерация карточки с обычным текстом для вопросов, где консольный рендер не подходит.
+    """
+    WIDTH, HEIGHT = 1600, 1000
+    background_color = (173, 216, 230)
+    card_color = (40, 40, 40)
+    text_color = (255, 255, 255)
+    accent_color = (255, 204, 0)
+
+    image = Image.new("RGB", (WIDTH, HEIGHT), background_color)
+    draw = ImageDraw.Draw(image)
+
+    card_padding_x = 120
+    card_padding_y = 120
+    card_box = (
+        card_padding_x,
+        card_padding_y,
+        WIDTH - card_padding_x,
+        HEIGHT - card_padding_y,
+    )
+    draw.rounded_rectangle(card_box, radius=42, fill=card_color)
+    draw.rounded_rectangle(card_box, radius=42, outline=accent_color, width=4)
+
+    if logo_path and os.path.exists(logo_path):
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            logo = logo.resize((180, 180), Resampling.LANCZOS)
+            logo_x = WIDTH - logo.width - 40
+            logo_y = 30
+            image.paste(logo, (logo_x, logo_y), logo)
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке логотипа: {e}")
+
+    font = load_unicode_font(56, bold=True)
+    max_width = WIDTH - 2 * (card_padding_x + 80)
+    lines = wrap_text_by_width(text, font, draw, max_width)
+
+    sample_bbox = draw.textbbox((0, 0), "Ag", font=font)
+    line_height = sample_bbox[3] - sample_bbox[1]
+    total_height = len(lines) * line_height + max(0, len(lines) - 1) * 22
+    current_y = max(card_padding_y + 70, (HEIGHT - total_height) // 2)
+
+    for line in lines:
+        left, top, right, bottom = draw.textbbox((0, 0), line, font=font)
+        line_width = right - left
+        line_x = (WIDTH - line_width) // 2
+        draw.text((line_x, current_y), line, font=font, fill=text_color)
+        current_y += line_height + 22
 
     return image
 
@@ -631,9 +823,14 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
             logger.warning("⚠️ Путь к логотипу не установлен или файл не существует, изображение будет создано без логотипа")
             logo_path = None  # Убеждаемся, что None если файла нет
         
+        has_arabic_text = contains_arabic(task_question)
+
         if theme == 'islamic':
             logger.info(f"🕌 Используется исламская тематика (тема: {theme})")
             image = generate_islamic_image(task_question, logo_path)
+        elif has_arabic_text:
+            logger.info("📝 Обнаружен арабский текст, используется текстовая карточка с Unicode-шрифтом")
+            image = generate_text_card_image(task_question, logo_path)
         else:
             # По умолчанию используем 'code' (консоль)
             logger.info(f"💻 Используется консольная тематика (тема: {theme})")
@@ -644,4 +841,3 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
     except Exception as e:
         logger.error(f"Ошибка при генерации изображения: {e}")
         return None
-

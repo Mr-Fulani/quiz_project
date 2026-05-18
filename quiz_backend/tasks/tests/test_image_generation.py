@@ -4,10 +4,12 @@
 from django.test import TestCase
 from PIL import Image
 from tasks.services.image_generation_service import (
+    contains_arabic,
     extract_code_from_markdown,
     smart_format_code,
     generate_image_for_task,
-    get_lexer
+    get_lexer,
+    prepare_text_for_rendering,
 )
 
 
@@ -92,6 +94,16 @@ class ImageGenerationServiceTestCase(TestCase):
         self.assertIsNotNone(lexer)
         self.assertEqual(lexer.name, 'Python')
 
+    def test_contains_arabic(self):
+        self.assertTrue(contains_arabic("البيت كبير"))
+        self.assertTrue(contains_arabic('What is "البيت كبير"?'))
+        self.assertFalse(contains_arabic("Plain English text"))
+
+    def test_prepare_text_for_rendering_arabic(self):
+        prepared = prepare_text_for_rendering("البيت كبير")
+        self.assertIsNotNone(prepared)
+        self.assertNotEqual(prepared, "")
+
     def test_generate_image_for_task(self):
         """
         Тест генерации изображения для задачи.
@@ -108,6 +120,20 @@ class ImageGenerationServiceTestCase(TestCase):
         # Проверяем размеры (должны быть >= минимальных)
         self.assertGreaterEqual(image.width, 1600)
         self.assertGreaterEqual(image.height, 1000)
+
+    def test_generate_image_for_task_with_arabic_text(self):
+        """
+        Для текста с арабскими символами используется Unicode-friendly рендер.
+        """
+        question = 'What is the translation of the sentence "البيت كبير"?'
+        topic_name = "Arabic Language"
+
+        image = generate_image_for_task(question, topic_name)
+
+        self.assertIsNotNone(image)
+        self.assertIsInstance(image, Image.Image)
+        self.assertEqual(image.width, 1600)
+        self.assertEqual(image.height, 1000)
 
     def test_generate_image_with_invalid_code(self):
         """
@@ -141,4 +167,3 @@ class ImageGenerationServiceTestCase(TestCase):
         # Проверяем цвет фона (должен быть изумрудным (6, 78, 59))
         pixel = image.getpixel((WIDTH // 2, HEIGHT // 2)) if 'WIDTH' in locals() else image.getpixel((800, 500))
         self.assertEqual(pixel, (6, 78, 59))
-

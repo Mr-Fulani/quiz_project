@@ -8,7 +8,7 @@ from django.test import TestCase
 from unittest.mock import patch, MagicMock
 from tasks.services.task_import_service import import_tasks_from_json
 from tasks.models import Task, TaskTranslation
-from topics.models import Topic
+from topics.models import Topic, Subtopic, TopicTranslation, SubtopicTranslation
 
 
 class TaskImportServiceTestCase(TestCase):
@@ -273,6 +273,245 @@ class TaskImportServiceTestCase(TestCase):
         finally:
             os.unlink(json_file)
 
+    def test_import_topic_and_subtopic_translations(self):
+        """
+        Импорт сохраняет переводы темы и подтемы в отдельные таблицы.
+        """
+        tasks_data = [
+            {
+                'topic': 'Arabic Language',
+                'topic_translations': {
+                    'ru': {
+                        'name': 'Арабский язык',
+                        'description': 'Базовые задания по арабскому языку',
+                    },
+                    'en': {
+                        'name': 'Arabic Language',
+                        'description': 'Basic Arabic language exercises',
+                    },
+                },
+                'subtopic': 'Basic Arabic Vocabulary',
+                'subtopic_translations': {
+                    'ru': 'Базовая арабская лексика',
+                    'en': 'Basic Arabic Vocabulary',
+                },
+                'difficulty': 'easy',
+                'translations': [
+                    {
+                        'language': 'ru',
+                        'question': 'Какое арабское слово означает «книга»?',
+                        'answers': ['بيت', 'مسجد', 'كتاب'],
+                        'correct_answer': 'كتاب',
+                        'explanation': 'Слово «كتاب» означает «книга».',
+                    }
+                ],
+            }
+        ]
+
+        json_file = self.create_test_json_file(tasks_data)
+
+        try:
+            with patch('tasks.services.task_import_service.generate_image_for_task', return_value=None):
+                with patch('tasks.services.task_import_service.upload_image_to_s3', return_value=None):
+                    result = import_tasks_from_json(json_file, publish=False)
+
+            self.assertEqual(result['successfully_loaded'], 1)
+
+            topic = Topic.objects.get(name='Arabic Language')
+            subtopic = Subtopic.objects.get(topic=topic, name='Basic Arabic Vocabulary')
+
+            self.assertEqual(
+                TopicTranslation.objects.get(topic=topic, language_code='ru').name,
+                'Арабский язык'
+            )
+            self.assertEqual(
+                TopicTranslation.objects.get(topic=topic, language_code='en').description,
+                'Basic Arabic language exercises'
+            )
+            self.assertEqual(
+                SubtopicTranslation.objects.get(subtopic=subtopic, language_code='ru').name,
+                'Базовая арабская лексика'
+            )
+            self.assertEqual(
+                SubtopicTranslation.objects.get(subtopic=subtopic, language_code='en').name,
+                'Basic Arabic Vocabulary'
+            )
+
+        finally:
+            os.unlink(json_file)
+
+    def test_import_inline_subtopic_translations_from_subtopic_field(self):
+        """
+        Импорт понимает формат, где subtopic передан как словарь переводов.
+        """
+        tasks_data = [
+            {
+                'topic': 'Arabic Language',
+                'subtopic': {
+                    'ru': 'Базовая арабская лексика',
+                    'en': 'Basic Arabic Vocabulary',
+                },
+                'difficulty': 'easy',
+                'translations': [
+                    {
+                        'language': 'ru',
+                        'question': 'Какое слово означает «книга»?',
+                        'answers': ['بيت', 'مسجد', 'كتاب'],
+                        'correct_answer': 'كتاب',
+                        'explanation': 'Слово «كتاب» означает «книга».',
+                    }
+                ],
+            }
+        ]
+
+        json_file = self.create_test_json_file(tasks_data)
+
+        try:
+            with patch('tasks.services.task_import_service.generate_image_for_task', return_value=None):
+                with patch('tasks.services.task_import_service.upload_image_to_s3', return_value=None):
+                    result = import_tasks_from_json(json_file, publish=False)
+
+            self.assertEqual(result['successfully_loaded'], 1)
+
+            topic = Topic.objects.get(name='Arabic Language')
+            subtopic = Subtopic.objects.get(topic=topic, name='Basic Arabic Vocabulary')
+
+            self.assertEqual(
+                SubtopicTranslation.objects.get(subtopic=subtopic, language_code='ru').name,
+                'Базовая арабская лексика'
+            )
+            self.assertEqual(
+                SubtopicTranslation.objects.get(subtopic=subtopic, language_code='en').name,
+                'Basic Arabic Vocabulary'
+            )
+
+        finally:
+            os.unlink(json_file)
+
+    def test_import_reuses_topic_and_subtopic_found_by_translation(self):
+        """
+        Импорт не создает дубликаты, если тема/подтема уже найдены по переводу.
+        """
+        topic = Topic.objects.create(name='Arabic Language', description='Existing topic')
+        subtopic = Subtopic.objects.create(name='Basic Arabic Vocabulary', topic=topic)
+        TopicTranslation.objects.create(
+            topic=topic,
+            language_code='ru',
+            name='Арабский язык',
+            description='Существующий перевод темы',
+        )
+        SubtopicTranslation.objects.create(
+            subtopic=subtopic,
+            language_code='ru',
+            name='Базовая арабская лексика',
+        )
+
+        tasks_data = [
+            {
+                'topic': 'Arabic Language Imported Alias',
+                'topic_translations': {
+                    'ru': {
+                        'name': 'Арабский язык',
+                        'description': 'Обновленный перевод темы',
+                    },
+                },
+                'subtopic': 'Imported Alias',
+                'subtopic_translations': {
+                    'ru': 'Базовая арабская лексика',
+                },
+                'difficulty': 'easy',
+                'translations': [
+                    {
+                        'language': 'ru',
+                        'question': 'Тестовый вопрос?',
+                        'answers': ['A', 'B', 'C'],
+                        'correct_answer': 'D',
+                        'explanation': 'Тестовое объяснение',
+                    }
+                ],
+            }
+        ]
+
+        json_file = self.create_test_json_file(tasks_data)
+
+        try:
+            with patch('tasks.services.task_import_service.generate_image_for_task', return_value=None):
+                with patch('tasks.services.task_import_service.upload_image_to_s3', return_value=None):
+                    result = import_tasks_from_json(json_file, publish=False)
+
+            self.assertEqual(result['successfully_loaded'], 1)
+            self.assertEqual(Topic.objects.count(), 2)  # Python из setUp + существующая Arabic Language
+            self.assertEqual(Subtopic.objects.filter(topic=topic).count(), 1)
+            self.assertEqual(
+                TopicTranslation.objects.get(topic=topic, language_code='ru').description,
+                'Обновленный перевод темы'
+            )
+
+        finally:
+            os.unlink(json_file)
+
+    def test_import_does_not_overwrite_existing_manual_translations_with_fallback(self):
+        """
+        Импорт не должен затирать ручные переводы fallback-значениями.
+        """
+        topic = Topic.objects.create(
+            name='Arabic Language',
+            description='Existing topic'
+        )
+        subtopic = Subtopic.objects.create(
+            name='Basic Arabic Vocabulary',
+            topic=topic
+        )
+        TopicTranslation.objects.create(
+            topic=topic,
+            language_code='ru',
+            name='Арабский язык',
+            description='Ручной перевод темы'
+        )
+        SubtopicTranslation.objects.create(
+            subtopic=subtopic,
+            language_code='ru',
+            name='Базовая арабская лексика',
+            description='Ручной перевод подтемы'
+        )
+
+        tasks_data = [
+            {
+                'topic': 'Arabic Language',
+                'subtopic': 'Basic Arabic Vocabulary',
+                'difficulty': 'easy',
+                'translations': [
+                    {
+                        'language': 'en',
+                        'question': 'Which Arabic word means book?',
+                        'answers': ['بيت', 'مسجد', 'قلم'],
+                        'correct_answer': 'كتاب',
+                        'explanation': 'The word كتاب means book.',
+                    }
+                ]
+            }
+        ]
+
+        json_file = self.create_test_json_file(tasks_data)
+
+        try:
+            with patch('tasks.services.task_import_service.generate_image_for_task', return_value=None):
+                with patch('tasks.services.task_import_service.upload_image_to_s3', return_value=None):
+                    result = import_tasks_from_json(json_file, publish=False)
+
+            self.assertEqual(result['successfully_loaded'], 1)
+            self.assertEqual(
+                TopicTranslation.objects.get(topic=topic, language_code='ru').name,
+                'Арабский язык'
+            )
+            self.assertEqual(
+                SubtopicTranslation.objects.get(subtopic=subtopic, language_code='ru').name,
+                'Базовая арабская лексика'
+            )
+
+        finally:
+            os.unlink(json_file)
+
     def test_import_source_fields_multiple_items(self):
         """
         Тест импорта нескольких источников через source.items.
@@ -365,4 +604,3 @@ class TaskImportServiceTestCase(TestCase):
 
         finally:
             os.unlink(json_file)
-
