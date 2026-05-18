@@ -1337,6 +1337,7 @@
                 const avatarFiles = elements.avatarInput.files;
                 if (avatarFiles && avatarFiles.length > 0) {
                     console.log(`📁 Выбрано аватарок: ${avatarFiles.length}`);
+                    let avatarUploadFailed = false;
                     
                     // Проверяем лимит
                     if (avatarFiles.length > 3) {
@@ -1348,6 +1349,10 @@
                     console.log('🗑️ Удаление старых аватарок...');
                     if (window.currentUser?.avatars && window.currentUser.avatars.length > 0) {
                         for (const avatar of window.currentUser.avatars) {
+                            if (avatar.id === 'main_avatar') {
+                                console.log('⏭️ Пропускаем виртуальный main_avatar при удалении');
+                                continue;
+                            }
                             try {
                                 const deleteResponse = await fetch(`/api/accounts/miniapp-users/${telegramId}/avatars/${avatar.id}/`, {
                                     method: 'DELETE'
@@ -1383,13 +1388,20 @@
                                 console.log(`✅ Аватарка ${i + 1} успешно загружена:`, avatarData);
                             } else {
                                 const errorData = await avatarResponse.json();
+                                avatarUploadFailed = true;
                                 console.error(`❌ Ошибка загрузки аватарки ${i + 1}:`, errorData);
                                 showNotification('error_avatar_upload', 'error', null, getTranslation('error_avatar_upload', `Ошибка загрузки аватарки: ${errorData.detail || 'Неизвестная ошибка'}`));
                             }
                         } catch (error) {
+                            avatarUploadFailed = true;
                             console.error(`❌ Ошибка при загрузке аватарки ${i + 1}:`, error);
                             showNotification('error_avatar_upload', 'error', null, getTranslation('error_avatar_upload', 'Ошибка при загрузке аватарки'));
                         }
+                    }
+
+                    if (avatarUploadFailed) {
+                        console.warn('⛔ Прерываем сохранение профиля: одна или несколько аватарок не загрузились');
+                        return;
                     }
                 } else {
                     console.log('📁 Аватарки не выбраны');

@@ -398,7 +398,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         """
         Возвращает абсолютный URL к аватару пользователя.
-        Приоритет: 1) загруженный avatar, 2) telegram_photo_url, 3) None
+        Приоритет: 1) загруженный avatar, 2) первая аватарка из галереи, 3) telegram_photo_url, 4) None
         """
         # Сначала проверяем загруженный аватар
         if obj.avatar and hasattr(obj.avatar, 'url'):
@@ -426,8 +426,35 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
                 scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{avatar_url}"
             return avatar_url
+
+        # Если главного аватара нет, но есть загруженные аватарки в галерее,
+        # используем первую из них как пользовательский аватар с более высоким
+        # приоритетом, чем telegram_photo_url.
+        first_gallery_avatar = obj.avatars.order_by('order').first()
+        if first_gallery_avatar and first_gallery_avatar.image and hasattr(first_gallery_avatar.image, 'url'):
+            image_url = first_gallery_avatar.image.url
+            decoded_url = unquote(image_url)
+
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+
+            request = self.context.get('request')
+            if request:
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+
+                if forwarded_host:
+                    host = forwarded_host
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                else:
+                    host = 'mini.quiz-code.com'
+
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                return f"{scheme}://{host}{image_url}"
+            return image_url
         
-        # Если загруженного аватара нет, используем URL из Telegram
+        # Если пользовательских загрузок нет, используем URL из Telegram
         if obj.telegram_photo_url:
             return obj.telegram_photo_url
             
@@ -670,13 +697,6 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
             if telegram_admin:
                 mini_app_user.link_to_telegram_admin(telegram_admin)
 
-            if mini_app_user.username:
-                django_admin = DjangoAdmin.objects.filter(
-                    username=mini_app_user.username
-                ).first()
-                if django_admin:
-                    mini_app_user.link_to_django_admin(django_admin)
-
             custom_user = CustomUser.objects.filter(
                 telegram_id=mini_app_user.telegram_id,
                 tenant=tenant
@@ -692,6 +712,15 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
                 if custom_user:
                     mini_app_user.linked_custom_user = custom_user
                     mini_app_user.save(update_fields=['linked_custom_user'])
+
+            if mini_app_user.linked_custom_user and (
+                mini_app_user.linked_custom_user.is_staff or mini_app_user.linked_custom_user.is_superuser
+            ):
+                django_admin = DjangoAdmin.objects.filter(
+                    username=mini_app_user.linked_custom_user.username
+                ).first()
+                if django_admin:
+                    mini_app_user.link_to_django_admin(django_admin)
 
         except Exception as e:
             _logger.warning(f"Ошибка при связывании MiniAppUser {mini_app_user.telegram_id}: {e}")

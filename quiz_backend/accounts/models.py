@@ -1306,9 +1306,17 @@ class MiniAppUser(models.Model):
         Args:
             django_admin (DjangoAdmin): Объект DjangoAdmin для связи
         """
-        # Для DjangoAdmin нет telegram_id, поэтому проверяем username
-        if django_admin.username != self.username:
-            raise ValueError("Username не совпадает")
+        linked_custom_user = getattr(self, 'linked_custom_user', None)
+        if not linked_custom_user:
+            raise ValueError("Нельзя связать с DjangoAdmin без tenant-safe связи через linked_custom_user")
+
+        if not (linked_custom_user.is_staff or linked_custom_user.is_superuser):
+            raise ValueError("Связанный CustomUser не имеет прав DjangoAdmin")
+
+        expected_username = (linked_custom_user.username or '').strip()
+        actual_username = (django_admin.username or '').strip()
+        if not expected_username or actual_username != expected_username:
+            raise ValueError("Username DjangoAdmin не совпадает со связанным CustomUser")
         
         self.django_admin = django_admin
         self.save(update_fields=['django_admin'])
@@ -1772,4 +1780,3 @@ def delete_user_avatar_file(sender, instance, **kwargs):
                 logger.info(f"Удален файл аватарки: {instance.image.path}")
         except (ValueError, OSError) as e:
             logger.warning(f"Не удалось удалить файл аватарки {instance.image.path}: {e}")
-

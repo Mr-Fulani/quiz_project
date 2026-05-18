@@ -2670,20 +2670,41 @@ class MiniAppUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         for mini_app_user in queryset:
             try:
                 # Пытаемся связать с TelegramUser
-                telegram_user = TelegramUser.objects.filter(telegram_id=mini_app_user.telegram_id).first()
+                telegram_user = TelegramUser.objects.filter(
+                    telegram_id=mini_app_user.telegram_id,
+                    tenant=mini_app_user.tenant
+                ).first()
                 if telegram_user and not mini_app_user.telegram_user:
                     mini_app_user.link_to_telegram_user(telegram_user)
                     linked_count += 1
                 
                 # Пытаемся связать с TelegramAdmin
-                telegram_admin = TelegramAdmin.objects.filter(telegram_id=mini_app_user.telegram_id).first()
+                telegram_admin = TelegramAdmin.objects.filter(
+                    telegram_id=mini_app_user.telegram_id,
+                    tenant=mini_app_user.tenant
+                ).first()
                 if telegram_admin and not mini_app_user.telegram_admin:
                     mini_app_user.link_to_telegram_admin(telegram_admin)
                     linked_count += 1
+
+                linked_custom_user = CustomUser.objects.filter(
+                    telegram_id=mini_app_user.telegram_id,
+                    tenant=mini_app_user.tenant
+                ).first()
+                if not linked_custom_user and mini_app_user.username:
+                    linked_custom_user = CustomUser.objects.filter(
+                        username=mini_app_user.username,
+                        tenant=mini_app_user.tenant
+                    ).first()
+                if linked_custom_user and mini_app_user.linked_custom_user_id != linked_custom_user.id:
+                    mini_app_user.linked_custom_user = linked_custom_user
+                    mini_app_user.save(update_fields=['linked_custom_user'])
+                    linked_count += 1
                 
-                # Пытаемся связать с DjangoAdmin (по username)
-                if mini_app_user.username:
-                    django_admin = DjangoAdmin.objects.filter(username=mini_app_user.username).first()
+                # Пытаемся связать с DjangoAdmin только через tenant-safe linked_custom_user
+                linked_custom_user = getattr(mini_app_user, 'linked_custom_user', None)
+                if linked_custom_user and (linked_custom_user.is_staff or linked_custom_user.is_superuser):
+                    django_admin = DjangoAdmin.objects.filter(username=linked_custom_user.username).first()
                     if django_admin and not mini_app_user.django_admin:
                         mini_app_user.link_to_django_admin(django_admin)
                         linked_count += 1
