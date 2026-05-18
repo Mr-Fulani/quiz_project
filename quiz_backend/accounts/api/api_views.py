@@ -725,10 +725,26 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             if telegram_admin and not user.telegram_admin:
                 user.link_to_telegram_admin(telegram_admin)
                 linked_count += 1
+
+            # Связываем с tenant-local CustomUser до любых глобальных сущностей.
+            linked_custom_user = CustomUser.objects.filter(
+                telegram_id=telegram_id,
+                tenant=tenant
+            ).first()
+            if not linked_custom_user and user.username:
+                linked_custom_user = CustomUser.objects.filter(
+                    username=user.username,
+                    tenant=tenant
+                ).first()
+            if linked_custom_user and user.linked_custom_user_id != linked_custom_user.id:
+                user.linked_custom_user = linked_custom_user
+                user.save(update_fields=['linked_custom_user'])
+                linked_count += 1
             
-            # Связываем с DjangoAdmin (по username)
-            if user.username:
-                django_admin = DjangoAdmin.objects.filter(username=user.username).first()
+            # Связываем с DjangoAdmin только через tenant-safe linked_custom_user
+            linked_custom_user = getattr(user, 'linked_custom_user', None)
+            if linked_custom_user and (linked_custom_user.is_staff or linked_custom_user.is_superuser):
+                django_admin = DjangoAdmin.objects.filter(username=linked_custom_user.username).first()
                 if django_admin and not user.django_admin:
                     user.link_to_django_admin(django_admin)
                     linked_count += 1
@@ -1679,6 +1695,13 @@ class UserAvatarUploadView(APIView):
                 image=image,
                 order=order
             )
+
+            # Первая загруженная аватарка становится главным аватаром профиля.
+            # Это гарантирует, что мини-апп и остальные сериализаторы будут
+            # показывать пользовательскую загрузку вместо фото из Telegram.
+            if order == 0:
+                user.avatar = avatar.image.name
+                user.save(update_fields=['avatar'])
             
             # Сериализуем и возвращаем
             serializer = UserAvatarSerializer(avatar, context={'request': request})
