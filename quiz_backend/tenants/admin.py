@@ -86,14 +86,14 @@ class TenantAdmin(admin.ModelAdmin):
         return self.prepopulated_fields
 
     def has_module_perms(self, request):
-        """Разрешаем доступ персоналу."""
-        return request.user.is_staff
+        """Раздел тенантов доступен только суперпользователю."""
+        return bool(request.user and request.user.is_superuser)
 
     def has_view_permission(self, request, obj=None):
-        return request.user.is_staff
+        return bool(request.user and request.user.is_superuser)
 
     def has_change_permission(self, request, obj=None):
-        return request.user.is_staff
+        return bool(request.user and request.user.is_superuser)
 
     def has_add_permission(self, request):
         """Добавлять тенанты может только суперпользователь."""
