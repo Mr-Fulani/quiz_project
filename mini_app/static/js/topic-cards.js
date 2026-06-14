@@ -43,6 +43,11 @@ function initTopicCards() {
         if (i !== null) {
             card.style.setProperty('--i', i);
         }
+
+        card.setAttribute('draggable', 'false');
+        card.querySelectorAll('img, video').forEach(media => {
+            media.setAttribute('draggable', 'false');
+        });
     });
     console.log('Found topic cards:', topicCards.length);
     
@@ -185,12 +190,18 @@ function initTopicCards() {
         gallery.addEventListener('pointermove', onPointerMove);
         gallery.addEventListener('pointerup', onPointerUp);
         gallery.addEventListener('pointercancel', onPointerCancel);
+        gallery.addEventListener('dragstart', preventNativeDrag);
+
+        function preventNativeDrag(event) {
+            event.preventDefault();
+        }
 
         gallery.swipeCleanup = function() {
             gallery.removeEventListener('pointerdown', onPointerDown);
             gallery.removeEventListener('pointermove', onPointerMove);
             gallery.removeEventListener('pointerup', onPointerUp);
             gallery.removeEventListener('pointercancel', onPointerCancel);
+            gallery.removeEventListener('dragstart', preventNativeDrag);
         };
 
         console.log('✅ Bidirectional gallery swipe initialized');
