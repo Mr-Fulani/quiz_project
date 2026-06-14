@@ -84,20 +84,130 @@ function initTopicCards() {
         const cardStep = animationDuration * (cardRotationDegrees / 360);
         const millisecondsPerPixel = cardStep / 90;
         const dragThreshold = 8;
+        const carouselPositions = Math.round(360 / cardRotationDegrees);
         let pointerId = null;
         let startX = 0;
         let startY = 0;
         let startTime = 0;
         let currentTime = 0;
+        let desiredTime = 0;
         let horizontalDrag = false;
+        let soundActive = false;
+        let lastSoundPosition = null;
+        let renderFrame = null;
+        let settleFrame = null;
+        let audioContext = null;
 
         function normalizeTime(time) {
             return ((time % animationDuration) + animationDuration) % animationDuration;
         }
 
+        function shortestTimeDelta(from, to) {
+            let delta = normalizeTime(to) - normalizeTime(from);
+            if (delta > animationDuration / 2) delta -= animationDuration;
+            if (delta < -animationDuration / 2) delta += animationDuration;
+            return delta;
+        }
+
+        function prepareClickSound() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(() => {});
+            }
+        }
+
+        function playClickSound() {
+            if (!audioContext || audioContext.state !== 'running') return;
+
+            const now = audioContext.currentTime;
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(720, now);
+            oscillator.frequency.exponentialRampToValueAtTime(360, now + 0.025);
+            gain.gain.setValueAtTime(0.018, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            oscillator.start(now);
+            oscillator.stop(now + 0.03);
+        }
+
+        function updateClickSound(time) {
+            if (!soundActive) return;
+
+            const position = Math.round(normalizeTime(time) / cardStep) % carouselPositions;
+            if (lastSoundPosition === null) {
+                lastSoundPosition = position;
+            } else if (position !== lastSoundPosition) {
+                lastSoundPosition = position;
+                playClickSound();
+            }
+        }
+
         function setAnimationTime(time) {
             currentTime = normalizeTime(time);
             animation.currentTime = currentTime;
+            updateClickSound(currentTime);
+        }
+
+        function renderTowardsDesiredTime() {
+            renderFrame = null;
+            const delta = shortestTimeDelta(currentTime, desiredTime);
+
+            if (Math.abs(delta) < 0.5) {
+                setAnimationTime(desiredTime);
+                return;
+            }
+
+            setAnimationTime(currentTime + delta * 0.38);
+            renderFrame = requestAnimationFrame(renderTowardsDesiredTime);
+        }
+
+        function setDesiredTime(time) {
+            desiredTime = normalizeTime(time);
+            if (renderFrame === null) {
+                renderFrame = requestAnimationFrame(renderTowardsDesiredTime);
+            }
+        }
+
+        function settleToTime(targetTime, onComplete) {
+            if (renderFrame !== null) {
+                cancelAnimationFrame(renderFrame);
+                renderFrame = null;
+            }
+            if (settleFrame !== null) {
+                cancelAnimationFrame(settleFrame);
+            }
+
+            const fromTime = currentTime;
+            const delta = shortestTimeDelta(fromTime, targetTime);
+            const duration = Math.min(280, Math.max(150, Math.abs(delta / cardStep) * 190));
+            const startedAt = performance.now();
+
+            function settle(now) {
+                const progress = Math.min(1, (now - startedAt) / duration);
+                const easedProgress = 1 - Math.pow(1 - progress, 3);
+                setAnimationTime(fromTime + delta * easedProgress);
+
+                if (progress < 1) {
+                    settleFrame = requestAnimationFrame(settle);
+                } else {
+                    settleFrame = null;
+                    setAnimationTime(targetTime);
+                    soundActive = false;
+                    onComplete();
+                }
+            }
+
+            settleFrame = requestAnimationFrame(settle);
         }
 
         function finishSwipe(event, cancelled = false) {
@@ -107,29 +217,29 @@ function initTopicCards() {
 
             const endX = event.clientX ?? startX;
             const deltaX = endX - startX;
+            let targetTime = startTime;
 
             if (horizontalDrag && !cancelled) {
                 const direction = deltaX === 0 ? 0 : Math.sign(deltaX);
-                let targetTime = Math.round(currentTime / cardStep) * cardStep;
+                targetTime = Math.round(desiredTime / cardStep) * cardStep;
 
                 // Даже короткий осознанный свайп должен переключить минимум одну карточку.
                 if (Math.abs(deltaX) >= 30 && Math.abs(targetTime - startTime) < cardStep * 0.5) {
                     targetTime = startTime - direction * cardStep;
                 }
 
-                setAnimationTime(targetTime);
                 gallery.dataset.swipeClickBlockedUntil = String(Date.now() + 350);
-            } else {
-                setAnimationTime(startTime);
             }
 
             gallery.classList.remove('dragging');
             pointerId = null;
             horizontalDrag = false;
 
-            if (!selectedCard) {
-                animation.play();
-            }
+            settleToTime(targetTime, () => {
+                if (!selectedCard) {
+                    animation.play();
+                }
+            });
         }
 
         function onPointerDown(event) {
@@ -137,13 +247,22 @@ function initTopicCards() {
                 return;
             }
 
+            if (settleFrame !== null) {
+                cancelAnimationFrame(settleFrame);
+                settleFrame = null;
+            }
+
             pointerId = event.pointerId;
             startX = event.clientX;
             startY = event.clientY;
             startTime = normalizeTime(Number(animation.currentTime) || 0);
             currentTime = startTime;
+            desiredTime = startTime;
             horizontalDrag = false;
+            soundActive = false;
+            lastSoundPosition = null;
             animation.pause();
+            prepareClickSound();
         }
 
         function onPointerMove(event) {
@@ -165,6 +284,8 @@ function initTopicCards() {
                 }
 
                 horizontalDrag = true;
+                soundActive = true;
+                lastSoundPosition = Math.round(currentTime / cardStep) % carouselPositions;
                 gallery.classList.add('dragging');
 
                 // Захватываем указатель только после распознавания свайпа.
@@ -175,7 +296,7 @@ function initTopicCards() {
             }
 
             event.preventDefault();
-            setAnimationTime(startTime - deltaX * millisecondsPerPixel);
+            setDesiredTime(startTime - deltaX * millisecondsPerPixel);
         }
 
         function onPointerUp(event) {
@@ -197,6 +318,8 @@ function initTopicCards() {
         }
 
         gallery.swipeCleanup = function() {
+            if (renderFrame !== null) cancelAnimationFrame(renderFrame);
+            if (settleFrame !== null) cancelAnimationFrame(settleFrame);
             gallery.removeEventListener('pointerdown', onPointerDown);
             gallery.removeEventListener('pointermove', onPointerMove);
             gallery.removeEventListener('pointerup', onPointerUp);
