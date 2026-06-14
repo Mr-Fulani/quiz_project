@@ -83,7 +83,7 @@ STATIC_VERSIONS = {
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.9',  # FIX: добавлена проверка и обновление перевода при инициализации страницы
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
-    'styles.css': '4.3',  # Исправлен active-эффект, вырывавший карточку из 3D-карусели
+    'styles.css': '4.4',  # Добавлены стили предпросмотра edge-swipe назад
     'animations.js': '1.2',  # FIX: Упрощена логика - убрана сложная синхронизация, используется простая логика как на десктопе
     'donation.css': '1.4',  # FIX: Отключены анимации для crypto/wallet, z-index селектора
     'profile.css': '12.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
@@ -113,7 +113,8 @@ STATIC_VERSIONS = {
     'admin_analytics.css': '1.4',  # FIX: Добавлены Safe Area Insets для единообразия с другими страницами
     'share-topic.js': '4.2',  # FIX: Исправлен синтаксис для линтера
     'share-topic.css': '1.8',  # FIX: Улучшены CSS правила для скрытия кнопок в неразвернутых карточках
-    'topic-cards.js': '3.4',  # Более ясный щелчок и haptic feedback при переключении карточки
+    'topic-cards.js': '3.5',  # Надёжная разблокировка звука и более заметный haptic feedback
+    'edge-back.js': '1.0',  # Свайп назад от левого края экрана
     'comments.js': '4.3',  # FIX: Добавлен ID для комментариев (comment-{id}) для прокрутки к конкретному комментарию из уведомлений
     'comments.css': '2.6',  # Добавлены стили для .comment-close-btn (крестик закрытия)
 }
