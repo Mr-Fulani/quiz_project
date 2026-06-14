@@ -172,6 +172,10 @@ body {
     transform: translateY(20px);
     /* Центрируем галерею */
     padding: 20px 40px;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .gallery__container {
@@ -181,6 +185,13 @@ body {
     transform-style: preserve-3d;
     animation: rotate 20s linear infinite;
     transition: transform 0.5s ease;
+}
+
+.gallery.dragging,
+.gallery.dragging .topic-card,
+.gallery.dragging .topic-card img,
+.gallery.dragging .topic-card video {
+    cursor: grabbing;
 }
 
 .gallery__container span {
@@ -1865,7 +1876,6 @@ body.fullscreen-active .gallery__container {
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
 }
-
 
 
 

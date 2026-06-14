@@ -54,6 +54,147 @@ function initTopicCards() {
     
     // Создаем overlay при инициализации
     createSelectedCardOverlay();
+
+    // Добавляем двустороннее управление основной 3D-каруселью свайпом.
+    setupGallerySwipe();
+
+    function setupGallerySwipe() {
+        if (gallery.swipeCleanup) {
+            gallery.swipeCleanup();
+        }
+
+        const cardCount = topicCards.length;
+        const animation = galleryContainer.getAnimations().find(item =>
+            item.animationName === 'rotate' ||
+            (item.effect && item.effect.getTiming().duration)
+        );
+
+        if (!animation || cardCount < 2) {
+            console.log('Gallery swipe skipped: rotation animation not found or too few cards');
+            return;
+        }
+
+        const animationDuration = Number(animation.effect.getTiming().duration) || 20000;
+        const cardRotationDegrees = 45;
+        const cardStep = animationDuration * (cardRotationDegrees / 360);
+        const millisecondsPerPixel = cardStep / 90;
+        const dragThreshold = 8;
+        let pointerId = null;
+        let startX = 0;
+        let startY = 0;
+        let startTime = 0;
+        let currentTime = 0;
+        let horizontalDrag = false;
+
+        function normalizeTime(time) {
+            return ((time % animationDuration) + animationDuration) % animationDuration;
+        }
+
+        function setAnimationTime(time) {
+            currentTime = normalizeTime(time);
+            animation.currentTime = currentTime;
+        }
+
+        function finishSwipe(event, cancelled = false) {
+            if (pointerId === null || (event.pointerId !== undefined && event.pointerId !== pointerId)) {
+                return;
+            }
+
+            const endX = event.clientX ?? startX;
+            const deltaX = endX - startX;
+
+            if (horizontalDrag && !cancelled) {
+                const direction = deltaX === 0 ? 0 : Math.sign(deltaX);
+                let targetTime = Math.round(currentTime / cardStep) * cardStep;
+
+                // Даже короткий осознанный свайп должен переключить минимум одну карточку.
+                if (Math.abs(deltaX) >= 30 && Math.abs(targetTime - startTime) < cardStep * 0.5) {
+                    targetTime = startTime - direction * cardStep;
+                }
+
+                setAnimationTime(targetTime);
+                gallery.dataset.swipeClickBlockedUntil = String(Date.now() + 350);
+            } else {
+                setAnimationTime(startTime);
+            }
+
+            gallery.classList.remove('dragging');
+            pointerId = null;
+            horizontalDrag = false;
+
+            if (!selectedCard) {
+                animation.play();
+            }
+        }
+
+        function onPointerDown(event) {
+            if (selectedCard || event.button > 0 || event.target.closest('button')) {
+                return;
+            }
+
+            pointerId = event.pointerId;
+            startX = event.clientX;
+            startY = event.clientY;
+            startTime = normalizeTime(Number(animation.currentTime) || 0);
+            currentTime = startTime;
+            horizontalDrag = false;
+            animation.pause();
+        }
+
+        function onPointerMove(event) {
+            if (event.pointerId !== pointerId) {
+                return;
+            }
+
+            const deltaX = event.clientX - startX;
+            const deltaY = event.clientY - startY;
+
+            if (!horizontalDrag) {
+                if (Math.abs(deltaX) < dragThreshold && Math.abs(deltaY) < dragThreshold) {
+                    return;
+                }
+
+                if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                    finishSwipe(event, true);
+                    return;
+                }
+
+                horizontalDrag = true;
+                gallery.classList.add('dragging');
+
+                // Захватываем указатель только после распознавания свайпа.
+                // При обычном тапе click должен остаться на самой карточке.
+                if (gallery.setPointerCapture) {
+                    gallery.setPointerCapture(pointerId);
+                }
+            }
+
+            event.preventDefault();
+            setAnimationTime(startTime - deltaX * millisecondsPerPixel);
+        }
+
+        function onPointerUp(event) {
+            finishSwipe(event);
+        }
+
+        function onPointerCancel(event) {
+            finishSwipe(event, true);
+        }
+
+        gallery.addEventListener('pointerdown', onPointerDown);
+        gallery.addEventListener('pointermove', onPointerMove);
+        gallery.addEventListener('pointerup', onPointerUp);
+        gallery.addEventListener('pointercancel', onPointerCancel);
+
+        gallery.swipeCleanup = function() {
+            gallery.removeEventListener('pointerdown', onPointerDown);
+            gallery.removeEventListener('pointermove', onPointerMove);
+            gallery.removeEventListener('pointerup', onPointerUp);
+            gallery.removeEventListener('pointercancel', onPointerCancel);
+        };
+
+        console.log('✅ Bidirectional gallery swipe initialized');
+    }
     
     // Создаем overlay для увеличенной карточки
     function createSelectedCardOverlay() {
@@ -103,6 +244,12 @@ function initTopicCards() {
     // Создаем новый обработчик
     gallery.clickHandler = function(e) {
         console.log('🔥 GALLERY CLICKED!', e.target);
+
+        if (Number(gallery.dataset.swipeClickBlockedUntil || 0) > Date.now()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
         
         // Скрываем клавиатуру при любом клике в галерее
         const searchInput = document.getElementById('search-input');
@@ -680,6 +827,13 @@ document.addEventListener('click', function(e) {
     
     const card = e.target.closest('.topic-card');
     if (card) {
+        const cardGallery = card.closest('.gallery');
+        if (cardGallery && Number(cardGallery.dataset.swipeClickBlockedUntil || 0) > Date.now()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
         console.log('🎯 CARD DETECTED GLOBALLY!', card.getAttribute('data-topic-id'));
         
         // Скрываем клавиатуру
