@@ -118,19 +118,54 @@ function initTopicCards() {
             if (!audioContext || audioContext.state !== 'running') return;
 
             const now = audioContext.currentTime;
-            const oscillator = audioContext.createOscillator();
-            const gain = audioContext.createGain();
+            const masterGain = audioContext.createGain();
+            const attack = audioContext.createOscillator();
+            const attackGain = audioContext.createGain();
+            const body = audioContext.createOscillator();
+            const bodyGain = audioContext.createGain();
 
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(720, now);
-            oscillator.frequency.exponentialRampToValueAtTime(360, now + 0.025);
-            gain.gain.setValueAtTime(0.018, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+            masterGain.gain.setValueAtTime(0.75, now);
+            masterGain.connect(audioContext.destination);
 
-            oscillator.connect(gain);
-            gain.connect(audioContext.destination);
-            oscillator.start(now);
-            oscillator.stop(now + 0.03);
+            // Короткая яркая атака делает щелчок хорошо различимым.
+            attack.type = 'square';
+            attack.frequency.setValueAtTime(1250, now);
+            attack.frequency.exponentialRampToValueAtTime(620, now + 0.018);
+            attackGain.gain.setValueAtTime(0.045, now);
+            attackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+            attack.connect(attackGain);
+            attackGain.connect(masterGain);
+
+            // Более низкий слой добавляет ощущение механического переключения.
+            body.type = 'triangle';
+            body.frequency.setValueAtTime(420, now);
+            body.frequency.exponentialRampToValueAtTime(230, now + 0.035);
+            bodyGain.gain.setValueAtTime(0.028, now);
+            bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+            body.connect(bodyGain);
+            bodyGain.connect(masterGain);
+
+            attack.start(now);
+            attack.stop(now + 0.025);
+            body.start(now);
+            body.stop(now + 0.045);
+        }
+
+        function playClickHaptic() {
+            const hapticFeedback = window.Telegram?.WebApp?.HapticFeedback;
+
+            if (hapticFeedback && typeof hapticFeedback.selectionChanged === 'function') {
+                try {
+                    hapticFeedback.selectionChanged();
+                    return;
+                } catch (error) {
+                    console.debug('Telegram haptic feedback unavailable:', error);
+                }
+            }
+
+            if (typeof navigator.vibrate === 'function') {
+                navigator.vibrate(12);
+            }
         }
 
         function updateClickSound(time) {
@@ -143,6 +178,7 @@ function initTopicCards() {
             } else if (position !== lastSoundPosition) {
                 lastSoundPosition = position;
                 playClickSound();
+                playClickHaptic();
             }
         }
 
