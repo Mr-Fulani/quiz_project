@@ -97,6 +97,7 @@ function initTopicCards() {
         let renderFrame = null;
         let settleFrame = null;
         let audioContext = null;
+        let audioResumePromise = null;
 
         function normalizeTime(time) {
             return ((time % animationDuration) + animationDuration) % animationDuration;
@@ -110,11 +111,15 @@ function initTopicCards() {
                 audioContext = new AudioContextClass();
             }
             if (audioContext.state === 'suspended') {
-                audioContext.resume().catch(() => {});
+                audioResumePromise = audioContext.resume()
+                    .catch(() => null)
+                    .finally(() => {
+                        audioResumePromise = null;
+                    });
             }
         }
 
-        function playClickSound() {
+        function emitClickSound() {
             if (!audioContext || audioContext.state !== 'running') return;
 
             const now = audioContext.currentTime;
@@ -151,12 +156,32 @@ function initTopicCards() {
             body.stop(now + 0.045);
         }
 
+        function playClickSound() {
+            if (!audioContext) {
+                prepareClickSound();
+            }
+
+            if (audioContext?.state === 'running') {
+                emitClickSound();
+                return;
+            }
+
+            const resumePromise = audioResumePromise || audioContext?.resume();
+            if (resumePromise && typeof resumePromise.then === 'function') {
+                resumePromise.then(() => {
+                    if (audioContext?.state === 'running') {
+                        emitClickSound();
+                    }
+                }).catch(() => {});
+            }
+        }
+
         function playClickHaptic() {
             const hapticFeedback = window.Telegram?.WebApp?.HapticFeedback;
 
-            if (hapticFeedback && typeof hapticFeedback.selectionChanged === 'function') {
+            if (hapticFeedback && typeof hapticFeedback.impactOccurred === 'function') {
                 try {
-                    hapticFeedback.selectionChanged();
+                    hapticFeedback.impactOccurred('light');
                     return;
                 } catch (error) {
                     console.debug('Telegram haptic feedback unavailable:', error);
@@ -164,7 +189,7 @@ function initTopicCards() {
             }
 
             if (typeof navigator.vibrate === 'function') {
-                navigator.vibrate(12);
+                navigator.vibrate(18);
             }
         }
 
