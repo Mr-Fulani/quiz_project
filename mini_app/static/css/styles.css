@@ -1851,7 +1851,11 @@ body.fullscreen-active .gallery__container {
 /* Стили для устройств без поддержки hover (тачскрины) */
 @media (hover: none) {
     .topic-card:active {
-        transform: scale(0.95);
+        filter: brightness(0.92);
+    }
+
+    .gallery.dragging .topic-card {
+        filter: none;
     }
 }
 
@@ -1882,7 +1886,6 @@ body.fullscreen-active .gallery__container {
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
 }
-
 
 
 
