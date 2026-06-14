@@ -102,13 +102,6 @@ function initTopicCards() {
             return ((time % animationDuration) + animationDuration) % animationDuration;
         }
 
-        function shortestTimeDelta(from, to) {
-            let delta = normalizeTime(to) - normalizeTime(from);
-            if (delta > animationDuration / 2) delta -= animationDuration;
-            if (delta < -animationDuration / 2) delta += animationDuration;
-            return delta;
-        }
-
         function prepareClickSound() {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
             if (!AudioContextClass) return;
@@ -143,7 +136,8 @@ function initTopicCards() {
         function updateClickSound(time) {
             if (!soundActive) return;
 
-            const position = Math.round(normalizeTime(time) / cardStep) % carouselPositions;
+            const rawPosition = Math.round(time / cardStep);
+            const position = ((rawPosition % carouselPositions) + carouselPositions) % carouselPositions;
             if (lastSoundPosition === null) {
                 lastSoundPosition = position;
             } else if (position !== lastSoundPosition) {
@@ -153,14 +147,14 @@ function initTopicCards() {
         }
 
         function setAnimationTime(time) {
-            currentTime = normalizeTime(time);
-            animation.currentTime = currentTime;
+            currentTime = time;
+            animation.currentTime = normalizeTime(time);
             updateClickSound(currentTime);
         }
 
         function renderTowardsDesiredTime() {
             renderFrame = null;
-            const delta = shortestTimeDelta(currentTime, desiredTime);
+            const delta = desiredTime - currentTime;
 
             if (Math.abs(delta) < 0.5) {
                 setAnimationTime(desiredTime);
@@ -172,7 +166,7 @@ function initTopicCards() {
         }
 
         function setDesiredTime(time) {
-            desiredTime = normalizeTime(time);
+            desiredTime = time;
             if (renderFrame === null) {
                 renderFrame = requestAnimationFrame(renderTowardsDesiredTime);
             }
@@ -188,7 +182,7 @@ function initTopicCards() {
             }
 
             const fromTime = currentTime;
-            const delta = shortestTimeDelta(fromTime, targetTime);
+            const delta = targetTime - fromTime;
             const duration = Math.min(280, Math.max(150, Math.abs(delta / cardStep) * 190));
             const startedAt = performance.now();
 
