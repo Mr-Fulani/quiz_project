@@ -181,28 +181,28 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении задач для подтемы {subtopic_id}: {e}")
             return []
     
-    def _prepare_user_data_for_post(self, user_data) -> dict:
-        # Конвертируем объект WebAppUser в словарь для отправки в Django
+    def _prepare_user_data_for_post(self, user_data: dict) -> dict:
+        # Данные проверенного пользователя Telegram (поле user из initData) для отправки в Django
         data = {
-            'telegram_id': user_data.id,
-            'username': user_data.username,
-            'first_name': user_data.first_name,
-            'last_name': user_data.last_name,
-            'language_code': user_data.language_code,
-            'photo_url': user_data.photo_url
+            'telegram_id': user_data['id'],
+            'username': user_data.get('username'),
+            'first_name': user_data.get('first_name'),
+            'last_name': user_data.get('last_name'),
+            'language_code': user_data.get('language_code'),
+            'photo_url': user_data.get('photo_url')
         }
-        logger.info(f"Подготовленные данные для отправки в Django: {data}")
         return data
 
     async def get_or_create_user_profile(
-        self, user_data, host: str = None, scheme: str = None, headers: Optional[dict] = None
+        self, user_data: dict, host: str = None, scheme: str = None, headers: Optional[dict] = None
     ) -> dict:
-        # user_data здесь - это объект WebAppUser, а не словарь
-        telegram_id = user_data.id
+        # user_data — проверенный пользователь Telegram (dict из initData);
+        # headers должны содержать X-Telegram-Init-Data — без него Django не создаст профиль
+        telegram_id = user_data['id']
         logger.info(f"Начинаем получение/создание профиля для telegram_id={telegram_id}")
 
         # Формируем заголовки для корректной генерации URL на бэкенде
-        headers = {}
+        headers = dict(headers or {})
         if host:
             headers['X-Forwarded-Host'] = host
             headers['Host'] = host

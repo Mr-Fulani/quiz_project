@@ -12,8 +12,8 @@ from routers import pages as pages_router
 from middleware.language_middleware import LanguageMiddleware
 from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
 
-# Создаём экземпляр FastAPI
-app = FastAPI(debug=True)
+# Создаём экземпляр FastAPI (debug=False: трейсбеки не отдаются клиенту)
+app = FastAPI(debug=False)
 
 # Настраиваем логирование
 logging.basicConfig(level=logging.INFO)
@@ -22,11 +22,17 @@ logger = logging.getLogger(__name__)
 # Добавляем middleware для языка (должен быть первым)
 app.add_middleware(LanguageMiddleware)
 
-# Включаем CORS (разрешаем доступ с любых доменов)
+# CORS: мини-апп работает на своём домене (same-origin), поэтому чужим сайтам доступ
+# не открываем. Дополнительные источники — через CORS_ALLOWED_ORIGINS (через запятую).
+cors_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

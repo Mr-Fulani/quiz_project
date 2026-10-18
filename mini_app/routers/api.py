@@ -2,20 +2,19 @@ import json
 import logging
 import httpx
 import os
-import urllib.parse
-import re
-import logging
-import json
-import hmac
-import hashlib
 
 from fastapi import APIRouter, Request, Response, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
-from telegram_webapp_auth.auth import TelegramAuthenticator
-from telegram_webapp_auth.errors import InvalidInitDataError, ExpiredInitDataError
 
 from core.config import settings
+from core.telegram_auth import (
+    INIT_DATA_HEADER,
+    ensure_same_user,
+    optional_telegram_user,
+    verified_telegram_user,
+    verify_init_data as verify_telegram_init_data,
+)
 from services.django_api_service import django_api_service
 from aiohttp import ClientResponseError
 
@@ -28,33 +27,25 @@ class InitDataModel(BaseModel):
 class UserProfileRequest(BaseModel):
     initData: str = Field(..., alias='initData')
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-if not TELEGRAM_BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
-
-authenticator = TelegramAuthenticator(
-    secret=TELEGRAM_BOT_TOKEN.encode(),
-    #ttl_seconds=3600 # Убрал для отладки
-)
 def get_proxy_headers(request: Request):
     """
-    Извлекает заголовки хоста и протокола из входящего запроса 
+    Извлекает заголовки хоста и протокола из входящего запроса
     для передачи их в Django API. Это критично для Multi-Tenant системы.
+    Также пересылает подписанный initData — по нему Django проверяет пользователя.
     """
     host = request.headers.get('x-forwarded-host') or request.headers.get('host')
     scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
-    tenant_slug = request.headers.get('x-tenant-slug')
-    
+
     headers = {
         'X-Forwarded-Host': host,
         'X-Forwarded-Proto': scheme,
         'Host': host
     }
-    
-    if tenant_slug:
-        headers['X-Tenant-Slug'] = tenant_slug
-    
+
+    init_data = request.headers.get(INIT_DATA_HEADER)
+    if init_data:
+        headers[INIT_DATA_HEADER] = init_data
+
     # Также передаем CSRF если он есть (хотя для API он не всегда нужен)
     csrf = request.headers.get('x-csrf-token')
     if csrf:
@@ -76,62 +67,25 @@ async def verify_init_data(request: Request):
         data = await request.json()
         init_data_str = data.get('initData')
 
-        # Добавляем логирование для отладки
-        logger.info(f"Получен initData (первые 100 символов): {init_data_str[:100] if init_data_str else 'None'}")
-        logger.info(f"Длина initData: {len(init_data_str) if init_data_str else 0}")
-
         if not init_data_str:
             logger.error("В запросе отсутствует initData")
             raise HTTPException(status_code=400, detail="initData is missing")
 
-        if not settings.TELEGRAM_BOT_TOKEN:
-            logger.error("TELEGRAM_BOT_TOKEN не настроен на сервере")
-            raise HTTPException(status_code=500, detail="Bot token is not configured on the server.")
-
-        # ПРАВИЛЬНАЯ ВАЛИДАЦИЯ:
-        # Сначала создаем секретный ключ по документации Telegram
-        secret_key = hmac.new(
-            key=b"WebAppData", 
-            msg=settings.TELEGRAM_BOT_TOKEN.encode(), 
-            digestmod=hashlib.sha256
-        ).digest()
-        
-        # Пытаемся использовать библиотеку для валидации
-        try:
-            auth = TelegramAuthenticator(secret=secret_key)
-            init_data = auth.validate(init_data_str)
-        except Exception as lib_error:
-            logger.warning(f"Ошибка библиотеки валидации: {lib_error}")
-            logger.info("Пробуем ручную валидацию...")
-            
-            # Ручная валидация как fallback
-            init_data = await manual_validate_init_data(init_data_str, secret_key)
-        
-        if not init_data.user or not init_data.user.id:
-            raise ValueError("User ID not found in parsed data")
-        
-        user_info = {
-            "telegram_id": init_data.user.id,
-            "first_name": init_data.user.first_name,
-            "last_name": init_data.user.last_name or "",
-            "username": init_data.user.username,
-        }
+        # Подпись проверяет Django токеном бота тенанта; без валидной подписи — 401
+        verified_user = await verify_telegram_init_data(init_data_str, request)
+        user_info = {"telegram_id": verified_user['id']}
         logger.info(f"Успешная валидация для telegram_id: {user_info['telegram_id']}")
 
         # Получаем хост и схему из оригинального запроса, чтобы
         # бэкенд мог строить правильные абсолютные URL
-        # Используем ту же логику что в top_users (которая работает!)
         host = request.headers.get('x-forwarded-host') or request.headers.get('host')
         scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
-        
-        logger.info(f"🔍 HOST from headers: {host}")
-        logger.info(f"🔍 SCHEME from headers: {scheme}")
-        logger.info(f"🔍 All headers: {dict(request.headers)}")
 
         profile_data = await django_api_service.get_or_create_user_profile(
-            user_data=init_data.user,
+            user_data=verified_user,
             host=host,
-            scheme=scheme
+            scheme=scheme,
+            headers={INIT_DATA_HEADER: init_data_str},
         )
         
         if not profile_data:
@@ -160,10 +114,8 @@ async def verify_init_data(request: Request):
             logger.warning(f"Failed to set telegram_id cookie: {cookie_err}")
         return resp
 
-    except (InvalidInitDataError, ExpiredInitDataError) as e:
-        logger.warning(f"Ошибка валидации initData: {e}")
-        logger.warning(f"Полный initData для отладки: {init_data_str}")
-        raise HTTPException(status_code=401, detail=f"Invalid initData: {e}")
+    except HTTPException:
+        raise
     except (ValueError, ValidationError) as e:
         logger.warning(f"Ошибка в данных initData: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -233,18 +185,16 @@ async def get_miniapp_user_by_telegram_id(telegram_id: int, request: Request):
 
 
 @router.post("/accounts/miniapp-users/update-last-seen/")
-async def update_last_seen(request: Request):
+async def update_last_seen(request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Проксирует запрос к Django API для обновления статуса онлайн пользователя (last_seen).
     """
     try:
         data = await request.json()
-        telegram_id = data.get('telegram_id')
-        
-        if not telegram_id:
-            logger.error("telegram_id is missing in update-last-seen request")
-            raise HTTPException(status_code=400, detail="telegram_id is required")
-        
+        # Обновляем только проверенного пользователя, telegram_id из тела не доверяем
+        data['telegram_id'] = user['id']
+        telegram_id = user['id']
+
         logger.info(f"Updating last_seen for telegram_id: {telegram_id}")
         
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update-last-seen/"
@@ -262,7 +212,9 @@ async def update_last_seen(request: Request):
         else:
             logger.error(f"Error from Django API [update_last_seen]: {response.status_code} - {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+
+    except HTTPException:
+        raise
     except httpx.RequestError as e:
         logger.error(f"Request error while contacting Django API: {e}")
         raise HTTPException(status_code=500, detail="Could not connect to backend service.")
@@ -311,14 +263,20 @@ async def get_subtopic_with_user(request: Request, subtopic_id: int, language: s
         raise HTTPException(status_code=502, detail="Failed to fetch subtopic from backend")
     
 @router.post("/profile/{telegram_id}/update/")
-async def update_profile(telegram_id: int, request: Request, avatar: UploadFile = File(...)):
+async def update_profile(
+    telegram_id: int,
+    request: Request,
+    avatar: UploadFile = File(...),
+    user: dict = Depends(verified_telegram_user),
+):
     """
     Принимает аватар от клиента и пересылает его в Django-бэкенд.
     """
+    ensure_same_user(user, telegram_id)
     logger.info(f"Updating profile for telegram_id: {telegram_id}")
-    
+
     django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/update/"
-    headers = {}  # Временно убираем токен для тестирования
+    headers = get_proxy_headers(request)
     file_content = await avatar.read()
     files = {'avatar': (avatar.filename, file_content, avatar.content_type)}
     
@@ -335,11 +293,12 @@ async def update_profile(telegram_id: int, request: Request, avatar: UploadFile 
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 @router.patch("/accounts/miniapp-users/update/{telegram_id}/")
-async def update_miniapp_user_profile(telegram_id: int, request: Request):
+async def update_miniapp_user_profile(telegram_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Обновляет профиль пользователя MiniApp, включая загрузку аватара.
     Проксирует запросы в Django API.
     """
+    ensure_same_user(user, telegram_id)
     logger.info(f"Updating MiniApp user profile for telegram_id: {telegram_id}")
     
     try:
@@ -421,13 +380,13 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 @router.patch("/profile/{telegram_id}/update/")
-async def update_profile_json(telegram_id: int, request: Request):
+async def update_profile_json(telegram_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     УСТАРЕВШИЙ ENDPOINT - оставлен для совместимости.
     Перенаправляет на новый endpoint.
     """
     logger.warning(f"Using deprecated endpoint /profile/{telegram_id}/update/ - redirecting to new endpoint")
-    return await update_miniapp_user_profile(telegram_id, request)
+    return await update_miniapp_user_profile(telegram_id, request, user)
 
 # Вспомогательные функции для работы с Django API
 async def fetch_topics_from_django(search: str = None):
@@ -453,51 +412,24 @@ async def fetch_subtopics_from_django(topic_id: int):
 
 async def get_user_profile(request: Request, request_data: UserProfileRequest):
     try:
-        logger.info(f"Получен запрос профиля. InitData: {request_data.initData[:150]}...")
-        
-        user_info = {}
-        try:
-            # Сначала пытаемся валидировать данные
-            validated_data = authenticator.validate(request_data.initData)
-            user = validated_data.user
-            user_info = {
-                "telegram_id": user.id,
-                "first_name": user.first_name,
-                "last_name": user.last_name or "",
-                "username": user.username
-            }
-            logger.info(f"Валидация успешна. Данные: {user_info}")
-        except Exception as e:
-            logger.warning(f"Ошибка валидации initData: {e}. Пробуем ручной парсинг.")
-            # Если валидация не удалась, парсим вручную как fallback
-            decoded_data = urllib.parse.unquote(request_data.initData)
-            try:
-                user_json_match = re.search(r'user=({.*?})(&|$)', decoded_data)
-                if user_json_match:
-                    user_data = json.loads(user_json_match.group(1))
-                    user_info = {
-                        "telegram_id": user_data.get("id"),
-                        "first_name": user_data.get("first_name"),
-                        "last_name": user_data.get("last_name", ""),
-                        "username": user_data.get("username")
-                    }
-                    logger.info(f"Ручной парсинг успешен. Данные: {user_info}")
-                if not user_info.get("telegram_id"):
-                    raise ValueError("Не удалось извлечь telegram_id")
-            except Exception as parse_error:
-                logger.error(f"Полная ошибка ручного парсинга: {parse_error}")
-                raise HTTPException(status_code=400, detail="Не удалось обработать initData.")
+        # Подпись initData проверяет Django; невалидные данные — 401, без «ручного парсинга»
+        verified_user = await verify_telegram_init_data(request_data.initData, request)
 
-        # 3. Запрос на получение или создание профиля в Django
+        # Запрос на получение или создание профиля в Django
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
         profile_data = await django_api_service.get_or_create_user_profile(
-            user_info,
-            headers=get_proxy_headers(request)
+            verified_user,
+            host=host,
+            scheme=scheme,
+            headers={INIT_DATA_HEADER: request_data.initData},
         )
-        logger.info(f"Ответ от Django: {profile_data}")
-        
-        # 4. Возвращаем данные профиля
+
+        # Возвращаем данные профиля
         return profile_data
 
+    except HTTPException:
+        raise
     except ValidationError as e:
         logger.error(f"Ошибка валидации Pydantic: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid Request Body: {e}")
@@ -650,113 +582,20 @@ Disallow: /admin/
     return robots_content
 
 
-async def manual_validate_init_data(init_data_str: str, secret_key: bytes):
-    """
-    Ручная валидация initData как fallback, если библиотека не работает.
-    """
-    import urllib.parse
-    import json
-    from dataclasses import dataclass
-    
-    @dataclass
-    class WebAppUser:
-        id: int
-        first_name: str
-        last_name: str = None
-        username: str = None
-        language_code: str = None
-        photo_url: str = None
-    
-    @dataclass
-    class WebAppInitData:
-        user: WebAppUser
-        query_id: str = None
-        auth_date: int = None
-    
-    try:
-        # Парсим initData
-        params = dict(urllib.parse.parse_qsl(init_data_str))
-        
-        # Проверяем наличие обязательных полей
-        if 'user' not in params:
-            raise ValueError("User data not found in initData")
-        
-        # Декодируем данные пользователя
-        user_data = json.loads(urllib.parse.unquote(params['user']))
-        
-        # Создаем объект пользователя
-        user = WebAppUser(
-            id=user_data['id'],
-            first_name=user_data.get('first_name', ''),
-            last_name=user_data.get('last_name'),
-            username=user_data.get('username'),
-            language_code=user_data.get('language_code'),
-            photo_url=user_data.get('photo_url')
-        )
-        
-        # Создаем объект initData
-        init_data = WebAppInitData(
-            user=user,
-            query_id=params.get('query_id'),
-            auth_date=int(params.get('auth_date', 0))
-        )
-        
-        logger.info(f"Ручная валидация успешна для пользователя {user.id}")
-        logger.info(f"Photo URL из Telegram: {user.photo_url}")
-        logger.info(f"Все данные пользователя из Telegram: {user_data}")
-        return init_data
-        
-    except Exception as e:
-        logger.error(f"Ошибка ручной валидации: {e}")
-        raise ValueError(f"Manual validation failed: {e}") 
-
 @router.post("/tasks/{task_id}/submit-mini-app")
-async def submit_task_answer(task_id: int, request: Request):
+async def submit_task_answer(task_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Отправляет ответ на задачу из мини-аппа в Django API.
+    Ответ засчитывается только проверенному пользователю (initData), а не telegram_id из тела.
     """
     logger.info(f"🎯 ПОЛУЧЕН ЗАПРОС НА ОТПРАВКУ ОТВЕТА для task_id: {task_id}")
-    logger.info(f"🎯 URL: {request.url}")
-    logger.info(f"🎯 Method: {request.method}")
-    logger.info(f"🎯 Headers: {dict(request.headers)}")
-    logger.info(f"🎯 User-Agent: {request.headers.get('user-agent', 'Unknown')}")
-    logger.info(f"🎯 X-Forwarded-For: {request.headers.get('x-forwarded-for', 'Unknown')}")
-    logger.info(f"🎯 Referer: {request.headers.get('referer', 'Unknown')}")
-    
+
     try:
         # Получаем данные из запроса
         data = await request.json()
-        logger.info(f"Received data: {data}")
-        telegram_id = data.get('telegram_id')
+        telegram_id = user['id']
         answer = data.get('answer')
-        
-        logger.info(f"Extracted telegram_id: {telegram_id}, answer: {answer}")
-        
-        # Проверяем, есть ли initData в теле запроса
-        init_data_from_body = data.get('initData')
-        if init_data_from_body:
-            logger.info(f"🔍 Найден initData в теле запроса: {init_data_from_body[:100]}...")
-        else:
-            logger.info(f"🔍 initData не найден в теле запроса")
-        
-        # Проверяем, что у нас есть правильный telegram_id
-        if not telegram_id:
-            # Попробуем получить telegram_id из initData в теле запроса
-            if init_data_from_body:
-                logger.info(f"🔍 Попытка получить telegram_id из initData в теле запроса")
-                try:
-                    # Валидируем initData и получаем правильный telegram_id
-                    validated_data = authenticator.validate(init_data_from_body)
-                    telegram_id = validated_data.user.id
-                    logger.info(f"✅ Получен telegram_id из initData: {telegram_id}")
-                except Exception as validation_error:
-                    logger.error(f"❌ Ошибка валидации initData: {validation_error}")
-            
-            # Если все еще нет telegram_id, возвращаем ошибку
-            if not telegram_id:
-                logger.error("telegram_id is missing")
-                raise HTTPException(status_code=400, detail="telegram_id is required")
-        
+
         if not answer:
             logger.error("answer is missing")
             raise HTTPException(status_code=400, detail="answer is required")
@@ -815,22 +654,23 @@ async def get_config():
 
 
 @router.post("/feedback/")
-async def submit_feedback(request: Request):
+async def submit_feedback(request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Отправка обратной связи из мини-аппа в Django API.
     Поддерживает multipart/form-data для загрузки изображений.
     """
     logger.info(f"📝 ПОЛУЧЕН ЗАПРОС НА ОТПРАВКУ ОБРАТНОЙ СВЯЗИ")
-    
+
     try:
         # Проверяем тип контента
         content_type = request.headers.get("content-type", "")
         logger.info(f"Content-Type: {content_type}")
-        
+
         # Получаем данные формы
         form_data = await request.form()
-        
-        telegram_id = form_data.get('telegram_id')
+
+        # Автор — только проверенный пользователь Telegram
+        telegram_id = user['id']
         username = form_data.get('username', '')
         message = form_data.get('message', '')
         category = form_data.get('category', 'other')
@@ -917,13 +757,15 @@ async def submit_feedback(request: Request):
 
 
 @router.get("/admin-analytics/overview")
-async def get_admin_analytics_overview(telegram_id: int, request: Request):
+async def get_admin_analytics_overview(request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Получение общей статистики для админ-панели.
     Проксирует запрос к Django API с проверкой прав доступа.
+    Права проверяются для проверенного пользователя, а не для telegram_id из query.
     """
+    telegram_id = user['id']
     logger.info(f"📊 Получение статистики для telegram_id: {telegram_id}")
-    
+
     try:
         # Правильный URL с /accounts/ в пути
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/mini-app-analytics/overview/"
@@ -1013,19 +855,20 @@ class CryptoDonationRequest(BaseModel):
 
 
 @router.post("/donation/telegram-stars/create-invoice/")
-async def create_telegram_stars_invoice(request: Request):
+async def create_telegram_stars_invoice(request: Request, user: dict | None = Depends(optional_telegram_user)):
     """
     Создание инвойса для оплаты через Telegram Stars
     """
     try:
         logger.info("Creating Telegram Stars invoice...")
-        
+
         # Получаем данные запроса
         body = await request.json()
         amount = body.get('amount')
         name = body.get('name', 'Anonymous')
         email = body.get('email', '')
-        telegram_id = body.get('telegram_id')
+        # Донат привязываем только к проверенному пользователю
+        telegram_id = user['id'] if user else None
         source = body.get('source', 'mini_app')
         
         logger.info(f"Stars invoice request: amount={amount}, name={name}, telegram_id={telegram_id}")
@@ -1074,20 +917,21 @@ async def create_telegram_stars_invoice(request: Request):
         )
 
 @router.post("/donation/wallet-pay/create-payment/")
-async def create_wallet_pay_donation(request: Request):
+async def create_wallet_pay_donation(request: Request, user: dict | None = Depends(optional_telegram_user)):
     """
     Создание платежа через Wallet Pay
     """
     try:
         logger.info("Creating Wallet Pay payment...")
-        
+
         # Получаем данные запроса
         body = await request.json()
         amount = body.get('amount')
         currency = body.get('currency', 'USDT')
         email = body.get('email', '')
         name = body.get('name', 'Anonymous')
-        telegram_id = body.get('telegram_id')
+        # Донат привязываем только к проверенному пользователю
+        telegram_id = user['id'] if user else None
         
         logger.info(f"Wallet Pay request: amount={amount}, currency={currency}, name={name}")
         
@@ -1224,11 +1068,13 @@ async def upload_user_avatar(
     telegram_id: int,
     request: Request,
     image: UploadFile = File(...),
-    order: int = Form(None)
+    order: int = Form(None),
+    user: dict = Depends(verified_telegram_user),
 ):
     """
     Загрузка новой аватарки для пользователя Mini App.
     """
+    ensure_same_user(user, telegram_id)
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/"
         
@@ -1262,10 +1108,11 @@ async def upload_user_avatar(
 
 
 @router.delete("/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/")
-async def delete_user_avatar(telegram_id: int, avatar_id: int, request: Request):
+async def delete_user_avatar(telegram_id: int, avatar_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Удаление аватарки пользователя Mini App.
     """
+    ensure_same_user(user, telegram_id)
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/"
         
@@ -1291,7 +1138,7 @@ async def delete_user_avatar(telegram_id: int, avatar_id: int, request: Request)
 
 
 @router.patch("/accounts/miniapp-users/{telegram_id}/avatars/reorder/")
-async def reorder_user_avatars(telegram_id: int, request: Request):
+async def reorder_user_avatars(telegram_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Изменение порядка аватарок пользователя Mini App.
     
@@ -1302,6 +1149,7 @@ async def reorder_user_avatars(telegram_id: int, request: Request):
     Returns:
         JSONResponse: Обновленные данные аватарок
     """
+    ensure_same_user(user, telegram_id)
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/reorder/"
         
@@ -1409,7 +1257,7 @@ async def get_comments_count(translation_id: int, request: Request):
 
 
 @router.post("/tasks/translations/{translation_id}/comments/")
-async def create_task_comment(translation_id: int, request: Request):
+async def create_task_comment(translation_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Создание нового комментария или ответа на комментарий.
     
@@ -1447,7 +1295,9 @@ async def create_task_comment(translation_id: int, request: Request):
                     # Если это обычное поле, добавляем в data
                     # Важно отправлять значения как строки для корректной работы httpx multipart
                     data[key] = str(value)
-            
+            # Автор — только проверенный пользователь Telegram
+            data['author_telegram_id'] = str(user['id'])
+
             logger.info(f"📤 Отправка multipart запроса в Django: {list(data.keys())}, файлов: {len(files)}")
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -1461,6 +1311,8 @@ async def create_task_comment(translation_id: int, request: Request):
         else:
             # JSON данные
             body = await request.json()
+            # Автор — только проверенный пользователь Telegram
+            body['author_telegram_id'] = user['id']
             logger.info(f"📤 Отправка JSON запроса в Django: {list(body.keys())}")
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -1495,22 +1347,28 @@ async def create_task_comment(translation_id: int, request: Request):
 
 
 @router.patch("/tasks/translations/{translation_id}/comments/{comment_id}/")
-async def update_task_comment(translation_id: int, comment_id: int, request: Request, telegram_id: int):
+async def update_task_comment(
+    translation_id: int,
+    comment_id: int,
+    request: Request,
+    telegram_id: int | None = None,
+    user: dict = Depends(verified_telegram_user),
+):
     """
     Обновление текста комментария.
-    
+
     Args:
         translation_id: ID перевода задачи
         comment_id: ID комментария
         request: Запрос с новым текстом
-        telegram_id: Telegram ID пользователя для проверки прав
-        
+        telegram_id: устарел — права проверяются по проверенному пользователю (initData)
+
     Returns:
         JSONResponse: Обновленный комментарий
     """
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/"
-        params = {'telegram_id': telegram_id}
+        params = {'telegram_id': user['id']}
         
         body = await request.json()
         
@@ -1538,22 +1396,28 @@ async def update_task_comment(translation_id: int, comment_id: int, request: Req
 
 
 @router.delete("/tasks/translations/{translation_id}/comments/{comment_id}/")
-async def delete_task_comment(translation_id: int, comment_id: int, request: Request, telegram_id: int):
+async def delete_task_comment(
+    translation_id: int,
+    comment_id: int,
+    request: Request,
+    telegram_id: int | None = None,
+    user: dict = Depends(verified_telegram_user),
+):
     """
     Удаление комментария (мягкое удаление).
-    
+
     Args:
         translation_id: ID перевода задачи
         comment_id: ID комментария
         request: FastAPI request
-        telegram_id: Telegram ID пользователя для проверки прав
-        
+        telegram_id: устарел — права проверяются по проверенному пользователю (initData)
+
     Returns:
         Response: Пустой ответ с кодом 204
     """
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/"
-        params = {'telegram_id': telegram_id}
+        params = {'telegram_id': user['id']}
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.delete(
@@ -1578,7 +1442,7 @@ async def delete_task_comment(translation_id: int, comment_id: int, request: Req
 
 
 @router.post("/tasks/translations/{translation_id}/comments/{comment_id}/report/")
-async def report_task_comment(translation_id: int, comment_id: int, request: Request):
+async def report_task_comment(translation_id: int, comment_id: int, request: Request, user: dict = Depends(verified_telegram_user)):
     """
     Отправка жалобы на комментарий.
     
@@ -1592,9 +1456,11 @@ async def report_task_comment(translation_id: int, comment_id: int, request: Req
     """
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/report/"
-        
+
         body = await request.json()
-        
+        # Жалобу подаёт только проверенный пользователь Telegram
+        body['reporter_telegram_id'] = user['id']
+
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.post(
                 django_url,

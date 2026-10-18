@@ -45,7 +45,34 @@
 
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+
+    <!-- Подписанный Telegram initData отправляется со всеми запросами на свой домен:
+         сервер определяет пользователя только по нему (telegram_id из параметров не доверяется) -->
+    <script>
+        (function () {
+            var originalFetch = window.fetch;
+            if (!originalFetch) return;
+            window.fetch = function (input, init) {
+                try {
+                    var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+                    var url = typeof input === 'string' ? input : (input && input.url) || String(input);
+                    var sameOrigin = new URL(url, window.location.href).origin === window.location.origin;
+                    if (initData && sameOrigin) {
+                        init = Object.assign({}, init);
+                        var headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+                        if (!headers.has('X-Telegram-Init-Data')) {
+                            headers.set('X-Telegram-Init-Data', initData);
+                        }
+                        init.headers = headers;
+                    }
+                } catch (e) {
+                    console.warn('initData header was not attached:', e);
+                }
+                return originalFetch.call(window, input, init);
+            };
+        })();
+    </script>
+
     <!-- КРИТИЧЕСКИ ВАЖНО: Обработка deep link ПЕРЕД загрузкой контента -->
     <script>
     // Этот код должен выполняться ДО загрузки любого контента
