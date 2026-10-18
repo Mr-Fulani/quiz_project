@@ -917,37 +917,6 @@ def social_auth_status(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
-def telegram_auth_debug(request):
-    """
-    Временный диагностический endpoint для проверки данных от Telegram.
-    """
-    import json
-    from django.http import JsonResponse
-    
-    debug_data = {
-        'method': request.method,
-        'path': request.path,
-        'full_path': request.get_full_path(),
-        'query_string': request.META.get('QUERY_STRING', ''),
-        'get_params': dict(request.GET),
-        'post_params': dict(request.POST),
-        'body': request._body.decode('utf-8', errors='ignore') if hasattr(request, '_body') and request._body else '',
-        'content_type': request.content_type,
-        'headers': {k: v for k, v in request.META.items() if k.startswith('HTTP_')},
-        'referer': request.META.get('HTTP_REFERER', ''),
-        'user_agent': request.META.get('HTTP_USER_AGENT', ''),
-    }
-    
-    logger.error("=" * 60)
-    logger.error("🔍 DEBUG ENDPOINT - ВСЕ ДАННЫЕ ЗАПРОСА:")
-    logger.error(json.dumps(debug_data, indent=2, ensure_ascii=False))
-    logger.error("=" * 60)
-    
-    return JsonResponse(debug_data, json_dumps_params={'ensure_ascii': False, 'indent': 2})
-
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def github_auth_redirect(request):

@@ -987,18 +987,12 @@ from django.conf import settings
 def telegram_settings(request):
     """
     Добавляет настройки Telegram и DEBUG в контекст всех шаблонов.
+    Токен бота в шаблоны не передаётся: он секретный и шаблонам не нужен.
     """
     username = getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
-    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
-    
-    # Отладочная информация в консоли Django
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Telegram settings: username='{username}', token='{token[:10] if token else 'None'}...'")
-    
+
     return {
         'TELEGRAM_BOT_USERNAME': username,
-        'TELEGRAM_BOT_TOKEN': token,
         'DEBUG': settings.DEBUG,  # Добавляем DEBUG для проверки в шаблонах
         'debug': settings.DEBUG,  # Маленькая буква для совместимости
     }

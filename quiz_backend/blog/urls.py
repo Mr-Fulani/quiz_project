@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.urls import path, include
 from .views import (
     HomePageView, PostDetailView, ProjectDetailView,
@@ -16,10 +15,6 @@ from django.shortcuts import redirect, render
 
 
 app_name = 'blog'
-
-
-def debug_view(request):
-    return HttpResponse("Debug view is working!")
 
 
 urlpatterns = [
@@ -57,7 +52,6 @@ urlpatterns = [
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
     #   -> Страница "Политика конфиденциальности"
 
-    path('debug/', debug_view, name='debug_view'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),

@@ -46,9 +46,13 @@ def debug_tenant(request):
     """
     Диагностический endpoint: показывает какой Host получает сервер
     и какой тенант ему сопоставляется.
-    GET /api/debug-tenant/
+    GET /api/debug-tenant/ — только для суперпользователя (или в DEBUG):
+    список всех тенантов и их доменов не должен быть публичным.
     """
+    from django.http import Http404
     from tenants.models import Tenant
+    if not (settings.DEBUG or (request.user.is_authenticated and request.user.is_superuser)):
+        raise Http404
     raw_host = request.META.get('HTTP_HOST', 'N/A')
     forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', 'N/A')
     forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', 'N/A')
