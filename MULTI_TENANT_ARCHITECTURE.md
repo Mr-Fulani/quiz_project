@@ -25,17 +25,33 @@
 ## 3. Middleware: Как определяется тенант запроса
 `TenantMiddleware` (`tenants/middleware.py`) перехватывает каждый запрос и определяет, к какому тенанту он относится.
 
-1.  Анализируется `request.get_host()`.
-2.  Выполняется поиск в таблице `Tenant` по совпадению с полем `domain` или `mini_app_domain`.
+1.  Анализируется **только** `request.get_host()`. При `USE_X_FORWARDED_HOST=True` это `X-Forwarded-Host`,
+    который nginx перезаписывает на `$host`, иначе `Host`. Префикс `www.` отбрасывается.
+2.  Выполняется поиск в таблице `Tenant` (только `is_active=True`) по совпадению с полем `domain` или `mini_app_domain`.
+    Результат кэшируется в памяти процесса (`clear_tenant_cache()` сбрасывает кэш).
 3.  Найденный объект тенанта сохраняется в `request.tenant`.
-4.  Если тенант не найден, `request.tenant = None`, а система использует дефолтные параметры (fallback), описанные в `settings.py`.
+4.  Если тенант не найден, `request.tenant = None`. Данные тенантов при этом не отдаются (пустые выборки / 404).
+
+**Что намеренно игнорируется** (клиент мог бы подделать и выбрать чужого тенанта):
+`X-Tenant-Slug`, `X-Tenant`, `X-Original-Host`, `X-Real-Host`, `Forwarded`, `Origin`, `Referer`.
+Фоллбэка «единственный активный тенант» больше нет. В `nginx/nginx-prod.conf` эти заголовки обнуляются
+во всех проксирующих location, а порты backend/mini_app в `docker-compose.local-prod.yml` слушают только
+`127.0.0.1` — обойти nginx и подставить свой `X-Forwarded-Host` снаружи нельзя.
+
+В DEBUG дополнительно поддерживается `NGROK_HOST` → `NGROK_TENANT_SLUG`.
 
 ## 4. Контроль доступа в Django Admin
 Мы используем `TenantFilteredAdminMixin` (`tenants/mixins.py`), который переопределяет стандартное поведение `ModelAdmin`:
 
 *   **Superuser (`is_superuser=True`)**: Видит абсолютно все данные. Поля 'tenant' доступны для редактирования.
 *   **Staff-пользователи (контент-менеджеры)**: Обязаны быть привязаны к определенному `Tenant`.
+    *   Тенант staff берётся **только** из `request.user.tenant` (домен запроса не учитывается).
+        Staff без тенанта видит пустые списки.
     *   `get_queryset`: Возвращает только те данные, у которых `tenant == request.user.tenant`.
+    *   Кастомные admin-view (генерация видео, бан из жалоб, отправка ответов) получают объекты через
+        `self.get_queryset(request)`, а не `Model.objects.get(pk=...)` — иначе по id можно достать чужой объект.
+    *   Инлайны миксин не наследуют: ограничивайте FK вручную (`formfield_for_foreignkey`), как в `TelegramAdminGroupInline`.
+    *   Поля `is_superuser`, `groups`, `user_permissions` пользователя и раздел `DjangoAdmin` — только для суперпользователя.
     *   Создание записей: Поле `tenant` автоматически скрыто (`HiddenInput`) или вообще не отображается, и заполняется "под капотом" (`save_model`) значением `request.user.tenant`.
     *   Связи (Foreign Keys / M2M): Выпадающие списки связанных моделей (`formfield_for_foreignkey`) также фильтруются по тенанту текущего менеджера.
 
@@ -46,10 +62,10 @@
 class SubtopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     tenant_lookup = 'topic__tenant'
 ```
-Для `TaskCommentReport`:
+Для `UserChannelSubscription`:
 ```python
-class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
-    tenant_lookup = 'comment__task__tenant'
+class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'channel__tenant'
 ```
 
 ## 5. Изоляция в API (Django REST Framework)
@@ -57,8 +73,35 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 Его нужно добавлять основным классам `GenericAPIView` или `ModelViewSet`.
 
 Особенности `TenantFilteredViewMixin`:
-*   `get_queryset()`: Возвращает `qs.filter(tenant=request.tenant)`, исключая утечки данных в API. Возвращает пустой QuerySet, если тенант у текущего request не определен.
-*   `perform_create()`: Автоматически прикрепляет `request.tenant` к сохраняемой записи.
+*   `get_queryset()`: Возвращает `qs.filter(tenant=request.tenant)`, исключая утечки данных в API. Возвращает пустой QuerySet, если тенант у текущего request не определен,
+    а также для staff другого тенанта (или без тенанта). Суперпользователь получает всё — не используйте миксин
+    для публичных ответов, которые кэшируются; для публичного API блога есть `TenantPublicQuerysetMixin` (`blog/views.py`).
+*   `perform_create()`: Автоматически прикрепляет `request.tenant` к сохраняемой записи; staff другого тенанта получает 403.
+
+Глобально в DRF `DEFAULT_PERMISSION_CLASSES = IsAuthenticatedOrReadOnly`. Публичные эндпоинты (платежи, вебхуки,
+чтение Mini App) объявляют `AllowAny` явно.
+
+## 5.1. Аутентификация Mini App (Telegram initData)
+
+Пользователь Mini App определяется **только** по подписанному Telegram `initData`, а не по `telegram_id` из запроса.
+
+*   Клиент: обёртка `fetch` в `mini_app/templates/base.html` добавляет заголовок `X-Telegram-Init-Data`
+    (`Telegram.WebApp.initData`) ко всем same-origin запросам. Новых `fetch` это касается автоматически.
+*   Django: `quiz_backend/accounts/telegram_webapp_auth.py`
+    *   `validate_init_data()` — HMAC-SHA256 по алгоритму Telegram ключом `HMAC("WebAppData", bot_token)`,
+        `bot_token` — `request.tenant.bot_token` (если пуст — `TELEGRAM_BOT_TOKEN`); проверка `auth_date`
+        (`TELEGRAM_INIT_DATA_MAX_AGE`, по умолчанию 86400 с).
+    *   `IsMiniAppUserOrReadOnly` — запись только с валидным initData; `telegram_id`/`author_telegram_id`/
+        `reporter_telegram_id` в URL, теле или query должны совпадать с проверенным. `IsMiniAppUser` — то же для
+        любых методов (аналитика), `IsMiniAppUserByPk` — pk в URL это telegram_id, `IsMiniAppFeedbackAuthor` — поле `user_id`.
+    *   `POST /api/accounts/miniapp-users/auth/verify/` возвращает проверенного пользователя.
+    *   Новый Mini App эндпоинт с записью должен использовать один из этих permission-классов.
+*   mini_app (FastAPI): `mini_app/core/telegram_auth.py`
+    *   Зависимость `verified_telegram_user` проверяет initData через Django `/auth/verify/` (кэш 5 минут)
+        и отдаёт пользователя; `ensure_same_user()` — 403 при несовпадении `telegram_id` из пути.
+    *   `get_proxy_headers()` пересылает `X-Telegram-Init-Data` в Django. `X-Tenant-Slug` больше не пересылается.
+*   Важно: большинство `/api/*` на mini-домене nginx проксирует **прямо в Django** — защита живёт в Django,
+    FastAPI-проверка — дополнительный слой для его собственных эндпоинтов.
 
 ## 6. Context Processors и SEO
 `blog/context_processors.py` адаптирован для использования данных из `request.tenant`.
@@ -78,6 +121,13 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 *   `UniqueConstraint`: Во избежание ошибок с уникальностью, ограничения `unique=True` были заменены на `UniqueConstraint(fields=['tenant', 'name'])`, чтобы разные клиенты могли использовать одинаковые имена категорий или username-ов пользователей.
 
 ## 8. Изоляция рабочих процессов (Celery) и Mini App в Docker
+
+> ⚠️ **Состояние на 2026-10-18: описанное ниже — целевая схема, а не текущий код.**
+> Переменная `TENANT_SLUG` задаётся в `docker-compose.yml`, но ни бот (`bot/`), ни mini_app, ни Celery её не читают.
+> Бот работает с одним глобальным `TELEGRAM_BOT_TOKEN` и не фильтрует данные по тенанту; Celery-задачи и сервисы
+> публикации используют глобальный токен и глобальные `Webhook`/`SocialMediaCredentials`/`DefaultLink`.
+> Подробности и план — в `TECH_DEBT.md` (раздел «Изоляция: бот и Celery»).
+
 Так как фоновые Worker'ы (Celery) и асинхронные скрипты Telegram-ботов не зависят от HTTP запросов, они не имеют `request.get_host()`.
 Поэтому для них переменная окружения `TENANT_SLUG` пробрасывается прямо в файле `docker-compose.yml`.
 

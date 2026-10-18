@@ -49,6 +49,26 @@ docker compose down
 
 **Важно:** Сертификаты сохраняются и НЕ пересоздаются при каждом запуске!
 
+### Переменные окружения безопасности (`.env`)
+
+| Переменная | Обязательна | Назначение |
+|---|---|---|
+| `REDIS_PASSWORD` | **да** — без неё `docker-compose.local-prod.yml` не стартует | пароль Redis (`requirepass`); подставляется в `REDIS_URL`/`CELERY_*`. Используйте символы, безопасные для URL (без `@ : / ?`) |
+| `TELEGRAM_WEBHOOK_SECRET` | да, если используется webhook Telegram на `/api/webhooks/telegram/` | при пустом значении все запросы отклоняются |
+| `WALLET_PAY_API_KEY` | да, если включён Wallet Pay | при пустом значении webhook Wallet Pay отклоняется |
+| `COINGATE_API_TOKEN` | да, если включён CoinGate | callback CoinGate проверяется запросом статуса заказа к API |
+| `SOCIAL_MEDIA_CALLBACK_SECRET` | нет | если задан — Make.com должен присылать его в заголовке `X-Callback-Secret` |
+| `TELEGRAM_INIT_DATA_MAX_AGE` | нет (86400) | срок действия initData Mini App, секунды |
+| `CORS_ALLOWED_ORIGINS` (mini_app) | нет | дополнительные CORS-источники для FastAPI через запятую; по умолчанию чужим сайтам доступ закрыт |
+
+Также у каждого тенанта в админке должен быть заполнен `bot_token` — им проверяется подпись Mini App
+(при пустом поле используется глобальный `TELEGRAM_BOT_TOKEN`).
+
+### Порты
+В `docker-compose.local-prod.yml` порты Postgres (5433), backend (8001), mini_app (8080) и бота (8002)
+слушают только `127.0.0.1`: снаружи всё идёт через nginx (80/443). Redis наружу не публикуется.
+С самого сервера доступ сохраняется: `curl http://localhost:8001/health/`.
+
 ## 🔐 SSL Сертификаты
 
 ### Автоматическое управление
@@ -118,8 +138,16 @@ sudo rm -rf ./certbot/conf/
 - `nginx/nginx-temp.conf` - временная (только для получения сертификатов)
 
 ### Docker Compose
-- `docker-compose.yml` - основная конфигурация
-- `docker-compose.local-prod.yml` - для локального тестирования продакшена
+- `docker-compose.yml` - локальная разработка (`start-local.sh`)
+- `docker-compose.local-prod.yml` - продакшен (используется `start-prod.sh`)
+
+### Тесты backend без Docker
+Миграции содержат Postgres-специфичный SQL, поэтому для прогона на SQLite есть
+`config/test_settings_sqlite.py` (SQLite в памяти, таблицы из моделей):
+```bash
+cd quiz_backend && DEBUG=True SECRET_KEY=test TELEGRAM_BOT_TOKEN=000:test pytest --ds=config.test_settings_sqlite tenants accounts/tests blog/tests donation/tests.py social_auth/tests.py webhooks/tests.py
+```
+Внутри Docker (Postgres) — обычный `pytest`.
 
 ### Скрипты
 - `start-local.sh` - запуск локальной разработки
