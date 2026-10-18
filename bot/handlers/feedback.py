@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
+from bot.services.admin_service import IsAdminFilter
 from bot.states.admin_states import FeedbackStates
 from bot.utils.markdownV2 import escape_markdown, format_user_link
 
@@ -274,7 +275,7 @@ async def save_feedback_message(message: types.Message):
     await message.answer("Ваше сообщение сохранено, Мы ответим Вам в ближайшее время. Спасибо!")
 
 # Обработчик для просмотра необработанных сообщений
-@router.callback_query(lambda c: c.data == "view_feedback")
+@router.callback_query(lambda c: c.data == "view_feedback", IsAdminFilter())
 async def show_unprocessed_feedback(callback_query: types.CallbackQuery):
     logger.info("Обработчик 'Просмотреть сообщения' вызван.")
     async with get_session() as session:
@@ -304,7 +305,7 @@ async def show_unprocessed_feedback(callback_query: types.CallbackQuery):
     await callback_query.answer()
 
 # Обработчик для пометки сообщения как обработанного
-@router.callback_query(lambda c: c.data.startswith("mark_processed:"))
+@router.callback_query(lambda c: c.data.startswith("mark_processed:"), IsAdminFilter())
 async def mark_feedback_processed(callback_query: types.CallbackQuery):
     logger.info(f"Callback 'mark_processed' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])
@@ -322,7 +323,7 @@ async def mark_feedback_processed(callback_query: types.CallbackQuery):
     await callback_query.message.delete()
 
 # Обработчик для ответа на feedback
-@router.message(StateFilter(FeedbackStates.awaiting_reply))
+@router.message(StateFilter(FeedbackStates.awaiting_reply), IsAdminFilter())
 async def handle_feedback_reply(message: types.Message, state: FSMContext):
     data = await state.get_data()
     feedback_id = data.get("feedback_id")
@@ -385,7 +386,7 @@ async def handle_feedback_reply(message: types.Message, state: FSMContext):
             await state.clear()
 
 # Обработчик для начала ответа на сообщение
-@router.callback_query(lambda c: c.data.startswith("reply_to_feedback:"))
+@router.callback_query(lambda c: c.data.startswith("reply_to_feedback:"), IsAdminFilter())
 async def start_feedback_reply(callback_query: types.CallbackQuery, state: FSMContext):
     logger.info(f"Callback 'reply_to_feedback' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])
@@ -408,7 +409,7 @@ async def start_feedback_reply(callback_query: types.CallbackQuery, state: FSMCo
     await callback_query.answer()
 
 # Обработчик для удаления сообщения
-@router.callback_query(lambda c: c.data.startswith("delete_feedback:"))
+@router.callback_query(lambda c: c.data.startswith("delete_feedback:"), IsAdminFilter())
 async def delete_feedback(callback_query: types.CallbackQuery):
     logger.info(f"Callback 'delete_feedback' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])

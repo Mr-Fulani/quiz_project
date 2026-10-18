@@ -20,7 +20,7 @@ from sqlalchemy.future import select
 from bot.database.models import Task, TelegramGroup, Topic, UserChannelSubscription
 from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
 from bot.keyboards.reply_keyboards import get_location_type_keyboard, get_start_reply_keyboard
-from bot.services.admin_service import is_admin
+from bot.services.admin_service import IsAdminFilter, is_admin
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_task_by_id
 from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
@@ -35,6 +35,10 @@ from bot.utils.url_validator import is_valid_url
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
+# Все хендлеры админ-меню (публикация, удаление задач, каналы, ссылки) — только для админов.
+# Без фильтра любой мог прислать callback_data (например, "delete_task") и выполнить действие.
+router.message.filter(IsAdminFilter())
+router.callback_query.filter(IsAdminFilter())
 
 
 
