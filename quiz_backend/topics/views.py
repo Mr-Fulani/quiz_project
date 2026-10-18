@@ -400,43 +400,46 @@ def subtopic_detail_simple(request, subtopic_id):
         logger.info(f"subtopic_detail_simple: Получен запрос для subtopic_id={subtopic_id}, lang={language}, level={level}")
 
         # Получаем задачи с переводами на нужном языке
+        from django.db.models import Prefetch
         from tasks.models import Task, TaskTranslation
-        
+
         tasks = Task.objects.filter(
             subtopic=subtopic,
             translations__language=language
         ).filter(
             models.Q(published=True) | models.Q(published_mini_app=True)
         )
-        logger.info(f"subtopic_detail_simple: Задач до фильтрации по сложности: {tasks.count()}")
 
         # Применяем фильтр по уровню сложности, если он указан
         if level in ['easy', 'medium', 'hard']:
             tasks = tasks.filter(difficulty__iexact=level)
-            logger.info(f"subtopic_detail_simple: Задач после фильтрации по сложности ('{level}'): {tasks.count()}")
-            for task in tasks:
-                logger.info(f"  - Task ID: {task.id}, Difficulty: {task.difficulty}")
-        elif level == 'all':
-            logger.info(f"subtopic_detail_simple: Уровень \'all\' указан, фильтрация по сложности не применяется.")
-        else:
-            logger.info(f"subtopic_detail_simple: Уровень сложности не указан или некорректен ({level}), фильтрация не применяется.")
 
-        tasks = tasks.select_related('topic', 'subtopic').prefetch_related(
-            'translations'
+        # Переводы нужного языка — одним запросом (раньше translations.filter() на каждую задачу)
+        tasks = tasks.distinct().select_related('topic', 'subtopic').prefetch_related(
+            Prefetch(
+                'translations',
+                queryset=TaskTranslation.objects.filter(language=language),
+                to_attr='language_translations',
+            )
         )
-        
-        # Подсчитываем количество задач с попытками для текущей подтемы
-        completed_tasks_count = 0
+
+        # Задачи подтемы, на которые пользователь уже отвечал — одним запросом
+        # (раньше exists() на каждую задачу); пользователь ищется в своём тенанте
+        attempted_task_ids = set()
         if telegram_id:
-            completed_tasks_count = MiniAppTaskStatistics.objects.filter(
-                mini_app_user__telegram_id=telegram_id,
-                task__subtopic=subtopic
-            ).values('task').distinct().count()
-        
+            attempted_task_ids = set(
+                MiniAppTaskStatistics.objects.filter(
+                    mini_app_user__telegram_id=telegram_id,
+                    mini_app_user__tenant=tenant,
+                    task__subtopic=subtopic
+                ).values_list('task_id', flat=True)
+            )
+        completed_tasks_count = len(attempted_task_ids)
+
         # Подготавливаем данные задач для мини-приложения
         tasks_data = []
         for task in tasks:
-            translation = task.translations.filter(language=language).first()
+            translation = task.language_translations[0] if task.language_translations else None
             if translation:
                 # Подготавливаем варианты ответов
                 answers = [translation.correct_answer]
@@ -475,12 +478,7 @@ def subtopic_detail_simple(request, subtopic_id):
                 
                 # Отмечаем как решенную для мини-аппа при ЛЮБОЙ попытке пользователя
                 # (одноразовая попытка — повторные клики должны быть заблокированы)
-                is_solved = False
-                if telegram_id:
-                    is_solved = MiniAppTaskStatistics.objects.filter(
-                        mini_app_user__telegram_id=telegram_id,
-                        task=task
-                    ).exists()
+                is_solved = task.id in attempted_task_ids
                 
                 task_data = {
                     'id': task.id,

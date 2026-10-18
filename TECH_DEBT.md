@@ -21,8 +21,12 @@
       снаружи — это больше не работает (используйте домен или SSH-туннель).
 - [ ] 🟡 Решить, нужен ли `SOCIAL_MEDIA_CALLBACK_SECRET` для Make.com (и прописать заголовок в сценарии).
 - [ ] 🟡 Подтвердить: Mini App в обычном браузере (без Telegram) теперь только читает — запись требует initData.
-- [ ] 🟢 Прогнать `tasks/tests` и `topics/tests` в Docker (локально без Docker они не запускались:
-      требуют S3/Telegram/генерации изображений).
+- [ ] 🟢 Прогнать `tasks/tests` и `topics/tests` в Docker (локально без Docker `tasks/tests` не запускались:
+      требуют S3/Telegram/генерации изображений). `topics/tests/test_normalize_subtopics.py` на SQLite без
+      миграций падает на уникальном индексе `(topic, name)` — проверить на Postgres.
+- [ ] 🟡 Перед `git rm --cached media/ staticfiles/` (см. «Мёртвый код») — решить, как деплоите: если сервер
+      делает `git pull` в рабочую копию с `./media`, удаление из индекса **удалит эти файлы на сервере** при pull.
+      Сначала сделать бэкап `media/` или перенести медиа вне репозитория.
 
 ---
 
@@ -86,8 +90,9 @@
 
 ## ⚡ Производительность
 
-- [ ] 🔴 N+1 в `topics/views.py` `subtopic_detail_simple` (2 запроса на задачу) + mini_app вызывает его
-      дважды за загрузку (`mini_app/routers/pages.py` `get_subtopic_detail` и `get_tasks_for_subtopic`).
+- [ ] 🟠 mini_app вызывает `/api/subtopics/<id>/` дважды за загрузку страницы задач
+      (`mini_app/routers/pages.py` `get_subtopic_detail` и `get_tasks_for_subtopic`); первый вызов без `level`
+      грузит все задачи подтемы и почти выбрасывается. (N+1 внутри самого эндпоинта исправлен.)
 - [ ] 🔴 `SubtopicWithTasksSerializer` — ~13 запросов на подтему; аннотация `tasks_count` не используется.
 - [ ] 🔴 Топ пользователей Mini App — сотни запросов: `get_rating` пересчитывает аннотированный `rating`,
       `quizzes_completed`/`average_score` — property с COUNT, логи заголовков на каждого пользователя.
@@ -109,8 +114,6 @@
 
 ## 🔎 SEO
 
-- [ ] 🔴 Canonical и hreflang на большинстве страниц указывают на главную (`context_processors.py` `seo_context`).
-- [ ] 🔴 www-редирект в nginx ведёт все домены на `quiz-code.com` (`nginx-prod.conf`, server с `www.*`).
 - [ ] 🔴 Текст вопроса квиза только на картинке (`quiz_subtopic.html`) — для поисковика thin content.
 - [ ] 🟠 Fuzzy-поиск тем/подтем (`iregex`) плодит дубли URL; пустые страницы отдают 200 (soft 404);
       `difficulty` принимает любое значение.
@@ -129,8 +132,6 @@
 - [ ] 🟠 В списке задач нет текста вопроса и поиска по нему (`translations__question`).
 - [ ] 🟠 Публикация в Telegram/соцсети и генерация картинок синхронно в запросе (`time.sleep`) → 504.
       Перевести в Celery по образцу генерации видео.
-- [ ] 🟠 `feedback/admin.py` `save_formset`: картинка ответа сохраняется дважды.
-- [ ] 🟠 `blog/admin.py` `send_to_telegram_action`: файлы закрываются после первого канала.
 - [ ] 🟡 Ссылка «Комментарий #N» ведёт на незарегистрированный `TaskComment` (404).
 - [ ] 🟡 `topics/admin.py`: превью через удалённый `allow_tags` (сырой HTML), счётчики N+1.
 - [ ] 🟡 `autocomplete_fields` нигде; у задачи тема/подтема — raw_id.
@@ -172,3 +173,7 @@
 - Посты/проекты, сообщения, подтемы ограничены тенантом.
 - Бот: админ-меню (`admin_menu.py`) и админские хендлеры обратной связи закрыты `IsAdminFilter`;
   `is_admin` учитывает `is_active` и не падает на дублях.
+- SEO: canonical/og:url/hreflang — текущая страница, а не главная; www-редирект nginx на свой домен.
+- Админка: картинка ответа на обратную связь больше не дублируется; пост с медиа уходит во все каналы.
+- Производительность: `subtopic_detail_simple` — фиксированное число запросов вместо 2 на задачу
+  (и статистика пользователя ищется в его тенанте).
