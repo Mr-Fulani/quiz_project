@@ -154,6 +154,10 @@ class WalletPayService:
         Returns:
             True если подпись валидна, иначе False.
         """
+        if not self.api_key:
+            # С пустым ключом подпись может посчитать кто угодно
+            logger.error("WALLET_PAY_API_KEY не задан — webhook Wallet Pay отклонён")
+            return False
         try:
             expected = hmac.new(self.api_key.encode('utf-8'), body.encode('utf-8'), hashlib.sha256).hexdigest()
             return hmac.compare_digest(signature or '', expected)

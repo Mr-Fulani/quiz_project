@@ -52,17 +52,15 @@ class TelegramWebhookView(APIView):
             )
 
     def _verify_telegram_signature(self, request):
-        """Проверяет подпись запроса от Telegram."""
-        if 'X-Telegram-Bot-Api-Secret-Token' not in request.headers:
+        """Проверяет секретный токен запроса от Telegram."""
+        expected_token = settings.TELEGRAM_WEBHOOK_SECRET
+        if not expected_token:
+            # Пустой секрет совпал бы с пустым заголовком — отклоняем
+            logger.error("TELEGRAM_WEBHOOK_SECRET не задан — Telegram webhook отклонён")
             return False
-            
-        received_token = request.headers['X-Telegram-Bot-Api-Secret-Token']
-        
-        # Для тестов: если токен совпадает с секретом, считаем подпись валидной
-        if received_token == settings.TELEGRAM_WEBHOOK_SECRET:
-            return True
-            
-        return False
+
+        received_token = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
+        return hmac.compare_digest(received_token, expected_token)
 
 class TelegramWebhookSetupView(APIView):
     """
@@ -93,12 +91,8 @@ class WebhookViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
     """
     queryset = Webhook.objects.all()
     serializer_class = WebhookSerializer
+    # Создание тоже только для админов: вебхук получает данные задач тенанта
     permission_classes = [permissions.IsAdminUser]
-
-    def get_permissions(self):
-        if self.action == 'create':
-            return [permissions.IsAuthenticated()]
-        return super().get_permissions()
 
 
 class SocialMediaCallbackView(APIView):
@@ -126,7 +120,18 @@ class SocialMediaCallbackView(APIView):
         post_id = request.data.get('post_id')
         
         logger.info(f"📥 Получен callback: task_id={task_id}, platform={platform}, status={status_value}")
-        
+
+        # Если задан общий секрет — Make.com обязан прислать его в заголовке
+        callback_secret = getattr(settings, 'SOCIAL_MEDIA_CALLBACK_SECRET', '')
+        if callback_secret and not hmac.compare_digest(
+            request.headers.get('X-Callback-Secret', ''), callback_secret
+        ):
+            return Response({'error': 'Invalid callback secret'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Без тенанта не трогаем публикации: иначе callback обновил бы запись любого тенанта
+        if getattr(request, 'tenant', None) is None:
+            return Response({'error': 'Unknown tenant'}, status=status.HTTP_404_NOT_FOUND)
+
         if not all([task_id, platform, status_value]):
             return Response(
                 {'error': 'Missing required fields: task_id, platform, status'},
