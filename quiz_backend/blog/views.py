@@ -191,44 +191,48 @@ def check_auth(request):
 
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class TenantPublicQuerysetMixin:
     """
-    ViewSet для модели Category.
+    Публичный API: отдаёт только объекты текущего тенанта (request.tenant).
+    Без тенанта — пустой набор. Суперпользователь здесь не получает данных других тенантов.
+    """
 
-    Обеспечивает стандартные операции REST API: получение списка, создание,
-    просмотр одной записи, обновление и удаление категорий. Поиск выполняется по полю slug.
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is None:
+            return qs.none()
+        return qs.filter(tenant=tenant)
+
+
+class CategoryViewSet(TenantPublicQuerysetMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet для модели Category (только чтение).
+
+    Отдаёт список и отдельные категории текущего тенанта. Поиск выполняется по полю slug.
+    Изменение категорий — только через админку.
     """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'slug'
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(TenantPublicQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet для модели Post.
+    ViewSet для модели Post (только чтение).
 
-    Предоставляет CRUD-операции, поиск по заголовку и содержимому, сортировку по дате
-    создания и количеству просмотров. Добавляет метод для увеличения счётчика просмотров.
+    Предоставляет список и просмотр опубликованных постов текущего тенанта, поиск по
+    заголовку и содержимому, сортировку по дате создания и количеству просмотров.
+    Добавляет методы для счётчика просмотров, лайков и репостов.
     """
-    queryset = Post.objects.all()
+    queryset = Post.objects.filter(published=True)
     serializer_class = PostSerializer
     lookup_field = 'slug'
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'views_count']
 
-    def get_queryset(self):
-        """
-        Возвращает отфильтрованный набор постов.
-
-        Если запрос — получение списка (list), возвращаются только опубликованные посты.
-        Для других операций возвращаются все посты.
-        """
-        if self.action == 'list':
-            return Post.objects.filter(published=True)
-        return Post.objects.all()
-
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def increment_views(self, request, slug=None):
         """
         Увеличивает счётчик просмотров поста (только уникальные).
@@ -389,23 +393,12 @@ class PostViewSet(viewsets.ModelViewSet):
             'total_count': post.get_shares_count()
         })
 
-    def perform_create(self, serializer):
-        """
-        Устанавливает дату публикации при создании поста.
 
-        Если пост создаётся с флагом published=True, автоматически устанавливается текущая дата
-        в поле published_at.
-        """
-        if serializer.validated_data.get('published', False):
-            serializer.validated_data['published_at'] = timezone.now()
-        serializer.save()
-
-
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProjectViewSet(TenantPublicQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet для модели Project.
+    ViewSet для модели Project (только чтение).
 
-    Обеспечивает CRUD-операции, поиск по заголовку, описанию и технологиям,
+    Отдаёт проекты текущего тенанта, поиск по заголовку, описанию и технологиям,
     сортировку по дате создания. Есть метод для получения избранных проектов.
     """
     queryset = Project.objects.all()
@@ -423,11 +416,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Доступен по GET-запросу на /projects/featured/. Возвращает проекты с флагом featured=True
         в формате JSON.
         """
-        featured_projects = Project.objects.filter(featured=True)
+        featured_projects = self.get_queryset().filter(featured=True)
         serializer = self.get_serializer(featured_projects, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def increment_views(self, request, slug=None):
         """
         Увеличивает счётчик просмотров проекта (только уникальные).
