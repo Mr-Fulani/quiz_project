@@ -268,8 +268,15 @@ class PostAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 # Отправляем в каждый выбранный канал
                 # Ссылка на полную версию добавляется в текст через truncate_telegram_text
                 post_success_count = 0
+                media_files = photos_list + gifs_list + videos_list
                 for channel in telegram_channels:
                     try:
+                        # Каждый канал читает файлы с начала (предыдущая отправка сдвинула позицию)
+                        for f in media_files:
+                            try:
+                                f.seek(0)
+                            except Exception:
+                                pass
                         # Если есть медиа, используем caption (лимит 1024)
                         if photos_list or gifs_list or videos_list:
                             caption_text = truncate_telegram_text(
@@ -301,15 +308,16 @@ class PostAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                             post_success_count += 1
                     except Exception as e:
                         logger.error(f"Ошибка при отправке поста '{post.title}' в канал {channel.group_name}: {e}")
-                    finally:
-                        # Закрываем файлы после отправки
-                        for f in photos_list + gifs_list + videos_list:
-                            if hasattr(f, 'close'):
-                                try:
-                                    f.close()
-                                except:
-                                    pass
-                
+
+                # Закрываем файлы после отправки во все каналы (раньше закрывались после первого,
+                # и во второй и следующие каналы пост с медиа уходил сломанным)
+                for f in media_files:
+                    if hasattr(f, 'close'):
+                        try:
+                            f.close()
+                        except Exception:
+                            pass
+
                 if post_success_count > 0:
                     success_count += 1
                     self.message_user(

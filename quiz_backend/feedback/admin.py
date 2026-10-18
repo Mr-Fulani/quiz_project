@@ -226,7 +226,7 @@ class FeedbackMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 if instance.feedback and not instance.feedback.is_processed:
                     instance.feedback.is_processed = True
                     instance.feedback.save(update_fields=['is_processed'])
-        formset.save()
+        # Сохраняем один раз (через super): повторный formset.save() создавал копию прикреплённой картинки
         super().save_formset(request, form, formset, change)
 
     def short_message(self, obj):
