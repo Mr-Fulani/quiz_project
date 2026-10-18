@@ -11,8 +11,9 @@ services:
       POSTGRES_DB: ${DB_NAME:-fulani_quiz_db}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+    # Только с самого сервера: снаружи БД недоступна
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
@@ -99,8 +100,10 @@ services:
       - ./quiz_backend/logs:/app/logs
       - ./bot:/quiz_project/bot
       - ./scripts:/scripts  # Монтируем scripts для запуска SEO-аудита и других скриптов
+    # Только с самого сервера: снаружи запросы идут через nginx, который перезаписывает
+    # X-Forwarded-Host (по нему определяется тенант). Прямой доступ позволил бы его подделать.
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -345,8 +348,9 @@ services:
     build:
       context: ./mini_app
       dockerfile: Dockerfile
+    # Только с самого сервера: снаружи — через nginx
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     networks:
       - quiz_network_local_prod
     environment:
@@ -428,7 +432,7 @@ services:
       - .:/quiz_project
       - ./bot/fonts:/quiz_project/fonts
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
     depends_on:
       postgres_db:
         condition: service_healthy
