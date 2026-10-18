@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, AllowAny
 import logging
 
+from accounts.telegram_webapp_auth import IsMiniAppFeedbackAuthor
 from tenants.mixins import TenantFilteredViewMixin
 from .models import FeedbackMessage, FeedbackImage
 from .serializers import FeedbackSerializer
@@ -91,7 +92,7 @@ class FeedbackCreateView(generics.CreateAPIView):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppFeedbackAuthor])
 def submit_feedback_from_mini_app(request):
     """
     API endpoint для отправки обратной связи из мини-аппа.

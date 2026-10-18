@@ -4,7 +4,6 @@ API endpoints для аналитики мини-приложения.
 """
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Count, Sum, Q
@@ -13,18 +12,20 @@ from datetime import timedelta
 import logging
 
 from accounts.models import MiniAppUser, TelegramAdmin, DjangoAdmin
+from accounts.telegram_webapp_auth import IsMiniAppUser
 from donation.models import Donation
 
 logger = logging.getLogger(__name__)
 
 
-def check_admin_access(telegram_id):
+def check_admin_access(telegram_id, tenant=None):
     """
-    Проверяет, является ли пользователь администратором.
-    
+    Проверяет, является ли пользователь администратором текущего тенанта.
+
     Args:
-        telegram_id: Telegram ID пользователя (int или str)
-        
+        telegram_id: Telegram ID пользователя (int или str), уже проверенный по initData
+        tenant: Тенант запроса; пользователь ищется только в нём
+
     Returns:
         bool: True если пользователь является админом, иначе False
     """
@@ -32,9 +33,13 @@ def check_admin_access(telegram_id):
         # Конвертируем в int если нужно
         if isinstance(telegram_id, str):
             telegram_id = int(telegram_id)
-        
-        # Проверяем, есть ли пользователь в MiniAppUser
-        mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+
+        if tenant is None:
+            logger.warning(f"⚠️ Admin check for {telegram_id} without tenant — denied")
+            return False
+
+        # Проверяем, есть ли пользователь в MiniAppUser этого тенанта
+        mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
         
         if not mini_app_user:
             logger.warning(f"⚠️ User {telegram_id} not found in MiniAppUser")
@@ -65,7 +70,7 @@ def check_admin_access(telegram_id):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppUser])
 def donations_analytics(request):
     """
     Статистика по донатам.
@@ -89,7 +94,7 @@ def donations_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(telegram_id):
+    if not check_admin_access(telegram_id, getattr(request, 'tenant', None)):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -141,7 +146,7 @@ def donations_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppUser])
 def subscriptions_analytics(request):
     """
     Статистика по подписчикам мини-аппа.
@@ -163,7 +168,7 @@ def subscriptions_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(telegram_id):
+    if not check_admin_access(telegram_id, getattr(request, 'tenant', None)):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -201,7 +206,7 @@ def subscriptions_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppUser])
 def activity_analytics(request):
     """
     Статистика по активности пользователей.
@@ -223,7 +228,7 @@ def activity_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(telegram_id):
+    if not check_admin_access(telegram_id, getattr(request, 'tenant', None)):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -264,7 +269,7 @@ def activity_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppUser])
 def overview_analytics(request):
     """
     Общая статистика - dashboard с ключевыми метриками.
@@ -284,7 +289,7 @@ def overview_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(telegram_id):
+    if not check_admin_access(telegram_id, getattr(request, 'tenant', None)):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN

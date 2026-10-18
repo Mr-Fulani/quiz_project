@@ -37,6 +37,7 @@ urlpatterns = [
         'get': 'list',
         'post': 'create'
     }), name='miniapp-user-list'),
+    path('miniapp-users/auth/verify/', api_views.MiniAppAuthVerifyView.as_view(), name='miniapp-auth-verify'),
     path('miniapp-users/me/', api_views.MiniAppUserViewSet.as_view({
         'get': 'me'
     }), name='miniapp-user-me'),

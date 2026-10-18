@@ -22,6 +22,7 @@ from django.utils.translation import activate, gettext_lazy as _
 import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
+from ..telegram_webapp_auth import IsMiniAppUser, IsMiniAppUserByPk, IsMiniAppUserOrReadOnly, get_verified_telegram_user
 from topics.models import Topic
 from ..serializers import (
     UserSerializer,
@@ -313,15 +314,15 @@ class PublicProfileAPIView(APIView):
 class ProfileByTelegramID(APIView):
     """
     API для получения или создания профиля пользователя по telegram_id.
-    Принимает POST-запрос с данными пользователя.
+    Принимает POST-запрос с данными пользователя и валидным initData.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
 
     def post(self, request, *args, **kwargs):
         """
         Ищет пользователя по telegram_id. Если находит - возвращает его
-        профиль. Если нет - пытается привязать по username или создает нового
-        пользователя с данными из запроса и возвращает его профиль.
+        профиль. Если нет - создает нового пользователя с данными из запроса
+        и возвращает его профиль.
         """
         user_data = request.data
         telegram_id = user_data.get('telegram_id')
@@ -340,24 +341,10 @@ class ProfileByTelegramID(APIView):
                 # Шаг 1: Ищем пользователя по telegram_id и тенанту
                 user = CustomUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
 
-                if not user:
-                    # Шаг 2: Не нашли. Пытаемся привязать аккаунт по username в том же тенанте.
-                    if username:
-                        unlinked_user = CustomUser.objects.filter(
-                            username=username, 
-                            tenant=tenant,
-                            telegram_id__isnull=True
-                        ).first()
-                        if unlinked_user:
-                            logger.info(f"Связываем аккаунт: найден пользователь сайта '{username}' в тенанте {tenant}, привязываем telegram_id {telegram_id}.")
-                            unlinked_user.telegram_id = telegram_id
-                            unlinked_user.is_telegram_user = True
-                            unlinked_user.first_name = user_data.get('first_name', unlinked_user.first_name)
-                            unlinked_user.last_name = user_data.get('last_name', unlinked_user.last_name)
-                            unlinked_user.save()
-                            user = unlinked_user
+                # Шаг 2: привязку к аккаунту сайта по совпадению username не делаем —
+                # username в Telegram выбирает сам пользователь, это захват чужого аккаунта.
 
-                # Шаг 3: Если пользователь все еще не найден, создаем нового в текущем тенанте.
+                # Шаг 3: Если пользователь не найден, создаем нового в текущем тенанте.
                 if not user:
                     logger.info(f"Создаем нового пользователя для telegram_id {telegram_id} в тенанте {tenant}.")
                     try:
@@ -439,10 +426,10 @@ class ProfileUpdateByTelegramView(generics.UpdateAPIView):
     """
     queryset = MiniAppUser.objects.all()
     serializer_class = MiniAppUserUpdateSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     lookup_field = 'telegram_id'
     parser_classes = [MultiPartParser, FormParser]
-    
+
     def update(self, request, *args, **kwargs):
         """Переопределяем update чтобы возвращать JSON вместо редиректа."""
         partial = kwargs.pop('partial', False)
@@ -605,7 +592,8 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
     Предоставляет полный CRUD для пользователей Mini App.
     """
     queryset = MiniAppUser.objects.all()
-    permission_classes = [permissions.AllowAny]  # Разрешаем доступ для Mini App
+    # Чтение открыто; изменения — только сам пользователь с валидным initData (pk = telegram_id)
+    permission_classes = [IsMiniAppUserByPk]
     
     def get_queryset(self):
         """
@@ -727,15 +715,11 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
                 linked_count += 1
 
             # Связываем с tenant-local CustomUser до любых глобальных сущностей.
+            # Только по telegram_id: username из Telegram выбирает сам пользователь.
             linked_custom_user = CustomUser.objects.filter(
                 telegram_id=telegram_id,
                 tenant=tenant
             ).first()
-            if not linked_custom_user and user.username:
-                linked_custom_user = CustomUser.objects.filter(
-                    username=user.username,
-                    tenant=tenant
-                ).first()
             if linked_custom_user and user.linked_custom_user_id != linked_custom_user.id:
                 user.linked_custom_user = linked_custom_user
                 user.save(update_fields=['linked_custom_user'])
@@ -846,7 +830,7 @@ class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
     """
     queryset = MiniAppUser.objects.all()
     serializer_class = MiniAppUserSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     lookup_field = 'telegram_id'
     
     def get_object(self):
@@ -882,7 +866,7 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
     """
     queryset = MiniAppUser.objects.all()
     serializer_class = MiniAppUserUpdateSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     lookup_field = 'telegram_id'
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
@@ -1029,9 +1013,9 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
 class MiniAppProfileByTelegramID(APIView):
     """
     API для получения или создания профиля Mini App пользователя по telegram_id.
-    Принимает POST-запрос с данными пользователя.
+    Принимает POST-запрос с данными пользователя и валидным initData.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
 
     def post(self, request, *args, **kwargs):
         """
@@ -1596,7 +1580,7 @@ class UserAvatarUploadView(APIView):
     API для загрузки аватарок пользователя Mini App.
     Поддерживает загрузку до 3 аватарок на пользователя.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     parser_classes = [MultiPartParser, FormParser]
     
     @swagger_auto_schema(
@@ -1732,7 +1716,7 @@ class UserAvatarDeleteView(APIView):
     """
     API для удаления аватарки пользователя Mini App.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     
     @swagger_auto_schema(
         operation_description="Удаление аватарки пользователя Mini App",
@@ -1817,7 +1801,7 @@ class UserAvatarReorderView(APIView):
     """
     API для изменения порядка аватарок пользователя Mini App.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUserOrReadOnly]
     
     @swagger_auto_schema(
         operation_description="Изменение порядка аватарок пользователя Mini App",
@@ -1925,4 +1909,16 @@ class UserAvatarReorderView(APIView):
             return Response(
                 {'error': 'Internal server error', 'detail': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) 
+            )
+
+
+class MiniAppAuthVerifyView(APIView):
+    """
+    Проверяет initData (заголовок X-Telegram-Init-Data) токеном бота текущего тенанта
+    и возвращает проверенного пользователя Telegram. Используется сервисом mini_app,
+    чтобы не доверять telegram_id, присланному клиентом.
+    """
+    permission_classes = [IsMiniAppUser]
+
+    def post(self, request):
+        return Response({'user': get_verified_telegram_user(request)})

@@ -218,16 +218,16 @@ def tasks_by_subtopic(request, subtopic_id):
 
 import logging
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Task, TaskTranslation, MiniAppTaskStatistics
 from accounts.models import MiniAppUser
+from accounts.telegram_webapp_auth import IsMiniAppUserOrReadOnly
 
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsMiniAppUserOrReadOnly])
 def submit_mini_app_task_answer(request, task_id):
     """
     API эндпоинт для отправки ответов на задачи из мини-аппа.

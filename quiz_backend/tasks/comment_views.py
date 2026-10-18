@@ -7,7 +7,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.utils.translation import activate, gettext as _
@@ -16,6 +15,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from .models import TaskComment, TaskCommentReport, TaskTranslation, TaskCommentImage
+from accounts.telegram_webapp_auth import IsMiniAppUserOrReadOnly, get_verified_telegram_user
 from tenants.mixins import TenantFilteredViewMixin
 from .comment_serializers import (
     TaskCommentSerializer,
@@ -51,7 +51,9 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
     queryset = TaskComment.objects.all()
     tenant_lookup = 'task_translation__task__tenant'
     pagination_class = CommentPagination
-    permission_classes = [AllowAny]
+    # Чтение открыто; создание/правка/удаление/жалобы — только с валидным initData,
+    # telegram_id в запросе должен совпадать с проверенным
+    permission_classes = [IsMiniAppUserOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     
     def get_serializer_class(self):
@@ -182,6 +184,14 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
         logger.info(f"Create comment request FILES: {request.FILES}")
         logger.info(f"Content-Type: {request.content_type}")
         
+        # Автор комментария — только проверенный пользователь Telegram (без него нельзя обойти бан)
+        verified_user = get_verified_telegram_user(request)
+        if str(request.data.get('author_telegram_id', '')) != str(verified_user['id']):
+            return Response(
+                {'error': 'author_telegram_id must match the authenticated Telegram user'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         # Проверка бана пользователя
         telegram_id = request.data.get('author_telegram_id')
         if telegram_id:
