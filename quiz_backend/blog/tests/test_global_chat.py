@@ -33,7 +33,7 @@ class GlobalChatTests(TestCase):
             tenant=self.tenant,
             is_staff=True
         )
-        self.tenant_header = {'HTTP_X_TENANT_SLUG': self.tenant.slug}
+        self.tenant_header = {'HTTP_HOST': self.tenant.domain}
 
     def test_global_chat_send_message(self):
         self.client.force_login(self.user)
