@@ -771,35 +771,12 @@ class TelegramAuthService:
                 logger.info(f"Данные пользователя обновлены: {user.username}, first_name={user.first_name}, last_name={user.last_name}")
             
             return user
-        
-        # Пытаемся найти существующего пользователя в этом тенанте по username
-        if telegram_username and telegram_username.strip():
-            existing_user_filter = Q(username=telegram_username)
-            if tenant:
-                existing_user_filter &= Q(tenant=tenant)
-            
-            existing_user = User.objects.filter(existing_user_filter).first()
-            if existing_user:
-                # Если найден пользователь без telegram_id или с другим telegram_id, связываем его
-                if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
-                    logger.info(f"Связывание существующего пользователя {existing_user.username} с telegram_id={telegram_id}")
-                    existing_user.telegram_id = telegram_id
-                    if first_name and not existing_user.first_name:
-                        existing_user.first_name = first_name
-                    if last_name and not existing_user.last_name:
-                        existing_user.last_name = last_name
-                    if not existing_user.is_telegram_user:
-                        existing_user.is_telegram_user = True
-                    
-                    # Загружаем аватарку если есть
-                    if photo_url and not existing_user.avatar:
-                        TelegramAuthService._download_avatar_from_url(photo_url, existing_user)
-                    
-                    existing_user.save()
-                    logger.info(f"Пользователь {existing_user.username} успешно связан с telegram_id={telegram_id}")
-                    return existing_user
-        
-        # Если не нашли существующего пользователя, создаем нового
+
+        # Связывать с существующим аккаунтом по совпадению username НЕЛЬЗЯ: username в Telegram
+        # выбирает сам пользователь, так можно войти в чужой аккаунт сайта.
+        # Привязка Telegram к существующему аккаунту — только из профиля залогиненного пользователя.
+
+        # Если не нашли пользователя по telegram_id, создаем нового
         # Генерируем уникальный username для User
         # ВАЖНО: username из Telegram идет в SocialAccount.username, а не в User.username
         # Для User.username генерируем уникальное имя на основе first_name/last_name или telegram_id

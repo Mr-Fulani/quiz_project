@@ -701,17 +701,11 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
                 telegram_id=mini_app_user.telegram_id,
                 tenant=tenant
             ).first()
+            # Связь с аккаунтом сайта — только по telegram_id: username из Telegram
+            # выбирает сам пользователь, совпадение не доказывает владение аккаунтом.
             if custom_user:
                 mini_app_user.linked_custom_user = custom_user
                 mini_app_user.save(update_fields=['linked_custom_user'])
-            elif mini_app_user.username:
-                custom_user = CustomUser.objects.filter(
-                    username=mini_app_user.username,
-                    tenant=tenant
-                ).first()
-                if custom_user:
-                    mini_app_user.linked_custom_user = custom_user
-                    mini_app_user.save(update_fields=['linked_custom_user'])
 
             if mini_app_user.linked_custom_user and (
                 mini_app_user.linked_custom_user.is_staff or mini_app_user.linked_custom_user.is_superuser
