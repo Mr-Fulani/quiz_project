@@ -952,6 +952,22 @@ class DjangoAdminAdmin(admin.ModelAdmin):
         ('Права через группы', {'fields': ('group_permissions',), 'classes': ('collapse',)}),
     )
 
+    # Раздел управляет правами суперпользователя для всех тенантов — только для суперпользователей
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
     def user_groups(self, obj):
         """
         Отображает группы, в которых состоит пользователь.
@@ -1408,7 +1424,16 @@ class CustomUserAdmin(TenantFilteredAdminMixin, UserOverviewMixin, UserAdmin):
         }),
     )
     actions = ['make_django_admin', 'remove_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
-    
+
+    # Поля, через которые можно повысить себе права: менять их может только суперпользователь
+    superuser_only_fields = ('is_superuser', 'groups', 'user_permissions')
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if not request.user.is_superuser:
+            readonly_fields += [f for f in self.superuser_only_fields if f not in readonly_fields]
+        return tuple(readonly_fields)
+
     def get_form(self, request, obj=None, **kwargs):
         """
         Переопределяем форму для добавления help_text к полю username.
