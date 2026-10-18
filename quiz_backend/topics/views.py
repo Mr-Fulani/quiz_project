@@ -53,10 +53,11 @@ class TopicDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class TopicCreateView(generics.CreateAPIView):
+class TopicCreateView(TenantFilteredViewMixin, generics.CreateAPIView):
     """
-    Создание новой темы.
+    Создание новой темы (тенант проставляется из запроса).
     """
+    queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
@@ -112,13 +113,14 @@ class SubtopicListView(generics.ListAPIView):
     def get_queryset(self):
         return Subtopic.objects.filter(topic_id=self.kwargs['topic_id']).prefetch_related('translations')
 
-class SubtopicDetailView(generics.RetrieveAPIView):
+class SubtopicDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     """
     Детальная информация о подтеме.
     """
     queryset = Subtopic.objects.prefetch_related('translations').all()
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAuthenticated]
+    tenant_lookup = 'topic__tenant'
 
 class SubtopicCreateView(generics.CreateAPIView):
     """
@@ -130,23 +132,26 @@ class SubtopicCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(topic_id=self.kwargs['topic_id'])
 
-class SubtopicUpdateView(generics.UpdateAPIView):
+class SubtopicUpdateView(TenantFilteredViewMixin, generics.UpdateAPIView):
     """
-    Обновление подтемы.
-    """
-    queryset = Subtopic.objects.prefetch_related('translations').all()
-    serializer_class = SubtopicSerializer
-    permission_classes = [permissions.IsAdminUser]
-
-class SubtopicDeleteView(generics.DestroyAPIView):
-    """
-    Удаление подтемы.
+    Обновление подтемы (только подтемы своего тенанта).
     """
     queryset = Subtopic.objects.prefetch_related('translations').all()
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAdminUser]
+    tenant_lookup = 'topic__tenant'
 
-class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
+class SubtopicDeleteView(TenantFilteredViewMixin, generics.DestroyAPIView):
+    """
+    Удаление подтемы (только подтемы своего тенанта).
+    """
+    queryset = Subtopic.objects.prefetch_related('translations').all()
+    serializer_class = SubtopicSerializer
+    permission_classes = [permissions.IsAdminUser]
+    tenant_lookup = 'topic__tenant'
+
+class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListAPIView):
+    """Список подтем темы для mini_app (только чтение; создание — через админку)."""
     queryset = Subtopic.objects.all()
     serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
     permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
@@ -199,9 +204,6 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
         context['telegram_id'] = telegram_id
         context['request'] = self.request
         return context
-
-    def perform_create(self, serializer):
-        serializer.save(topic_id=self.kwargs['topic_id'])
 
 # Простой тестовый endpoint для мини-приложения
 @api_view(['GET'])

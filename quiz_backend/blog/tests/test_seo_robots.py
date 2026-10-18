@@ -9,6 +9,8 @@ from django.utils.text import slugify
 from blog.models import Post, Project, Category
 from topics.models import Topic, Subtopic
 from tasks.models import Task
+from tenants.middleware import clear_tenant_cache
+from tenants.models import Tenant
 import re
 
 
@@ -20,6 +22,7 @@ import re
     # Отключаем silk middleware в тестах
     MIDDLEWARE=[m for m in [
         'django.middleware.security.SecurityMiddleware',
+        'tenants.middleware.TenantMiddleware',  # Посты/проекты открываются только на домене своего тенанта
         'config.performance_middleware.RequestIDMiddleware',
         'config.middleware.RequestLoggingMiddleware',
         'config.middleware.DisableCSRFForAPI',
@@ -56,21 +59,30 @@ class SEORobotsTestCase(TransactionTestCase):
                 name='QuizHub'
             )
         
+        # Тенант для домена тестового клиента (testserver)
+        clear_tenant_cache()
+        self.tenant = Tenant.objects.create(
+            slug='seo-test', name='SEO Test', domain='testserver', site_name='QuizHub'
+        )
+
         # Создаем тестовые данные
         self.category = Category.objects.create(
+            tenant=self.tenant,
             name='Test Category',
             slug='test-category'
         )
-        
+
         self.post = Post.objects.create(
+            tenant=self.tenant,
             title='Test Post',
             slug='test-post',
             content='Test content',
             category=self.category,
             published=True
         )
-        
+
         self.project = Project.objects.create(
+            tenant=self.tenant,
             title='Test Project',
             slug='test-project',
             description='Test description',
@@ -79,7 +91,7 @@ class SEORobotsTestCase(TransactionTestCase):
         
         # Создаем тестовую тему и подтему
         try:
-            self.topic = Topic.objects.create(name='Python')
+            self.topic = Topic.objects.create(name='Python', tenant=self.tenant)
             self.subtopic = Subtopic.objects.create(
                 name='Functions',
                 topic=self.topic

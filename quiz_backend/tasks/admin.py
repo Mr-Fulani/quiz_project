@@ -864,7 +864,8 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         from config.tasks import generate_video_for_task_async
 
         try:
-            task = Task.objects.get(pk=object_id)
+            # Только задачи своего тенанта (get_queryset фильтрует по тенанту staff)
+            task = self.get_queryset(request).get(pk=object_id)
         except Task.DoesNotExist:
             messages.error(request, f'Задача с ID {object_id} не найдена.')
             return redirect('admin:tasks_task_changelist')
@@ -2312,6 +2313,12 @@ class BackgroundMusicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     delete_selected_tracks.short_description = '🗑️ Удалить выбранные треки (файл будет удалён из storage)'
 
 
+def _report_tenant(report):
+    """Тенант задачи, к которой относится комментарий из жалобы."""
+    comment = report.comment
+    return comment.task_translation.task.tenant if comment else None
+
+
 @admin.register(TaskCommentReport)
 class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     tenant_lookup = 'comment__task_translation__task__tenant'
@@ -2362,7 +2369,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         # Пытаемся получить информацию из MiniAppUser
         try:
             from accounts.models import MiniAppUser
-            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(obj)).first()
             if author_user:
                 username = author_user.username or 'нет'
                 name = author_user.first_name or author_user.username or 'Без имени'
@@ -2390,7 +2397,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         # Пытаемся получить информацию из MiniAppUser
         try:
             from accounts.models import MiniAppUser
-            reporter_user = MiniAppUser.objects.filter(telegram_id=reporter_id).first()
+            reporter_user = MiniAppUser.objects.filter(telegram_id=reporter_id, tenant=_report_tenant(obj)).first()
             if reporter_user:
                 username = reporter_user.username or 'нет'
                 name = reporter_user.first_name or reporter_user.username or 'Без имени'
@@ -2427,7 +2434,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         # Пытаемся получить информацию из MiniAppUser
         try:
             from accounts.models import MiniAppUser
-            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(obj)).first()
             if author_user:
                 try:
                     user_url = reverse('admin:accounts_miniappuser_change', args=[author_user.id])
@@ -2562,7 +2569,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 author_id = report.comment.author_telegram_id
                 try:
                     from accounts.models import MiniAppUser
-                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
                     if author_user:
                         author_user.ban_user(
                             duration_hours=1,
@@ -2586,7 +2593,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 author_id = report.comment.author_telegram_id
                 try:
                     from accounts.models import MiniAppUser
-                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
                     if author_user:
                         author_user.ban_user(
                             duration_hours=24,
@@ -2610,7 +2617,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 author_id = report.comment.author_telegram_id
                 try:
                     from accounts.models import MiniAppUser
-                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
                     if author_user:
                         author_user.ban_user(
                             duration_hours=168,  # 7 * 24
@@ -2634,7 +2641,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 author_id = report.comment.author_telegram_id
                 try:
                     from accounts.models import MiniAppUser
-                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
                     if author_user:
                         author_user.ban_user(
                             duration_hours=None,
@@ -2657,7 +2664,7 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 author_id = report.comment.author_telegram_id
                 try:
                     from accounts.models import MiniAppUser
-                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
                     if author_user and author_user.is_banned:
                         author_user.unban_user()
                         count += 1
@@ -2687,11 +2694,12 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def ban_user_view(self, request, report_id, hours):
         """Блокирует пользователя на указанное время (использует существующую логику из MiniAppUser)."""
         try:
-            report = TaskCommentReport.objects.get(id=report_id)
+            # Только жалобы своего тенанта (get_queryset фильтрует по тенанту staff)
+            report = self.get_queryset(request).get(id=report_id)
             author_id = report.comment.author_telegram_id
-            
+
             from accounts.models import MiniAppUser
-            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
             
             if not author_user:
                 self.message_user(
@@ -2752,11 +2760,12 @@ class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def unban_user_view(self, request, report_id):
         """Разблокирует пользователя (использует существующую логику из MiniAppUser)."""
         try:
-            report = TaskCommentReport.objects.get(id=report_id)
+            # Только жалобы своего тенанта (get_queryset фильтрует по тенанту staff)
+            report = self.get_queryset(request).get(id=report_id)
             author_id = report.comment.author_telegram_id
-            
+
             from accounts.models import MiniAppUser
-            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id, tenant=_report_tenant(report)).first()
             
             if not author_user:
                 self.message_user(

@@ -306,7 +306,8 @@ class FeedbackMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def send_all_replies_action(self, request, feedback_id):
         """Действие для отправки всех ответов на сообщение"""
         try:
-            feedback = FeedbackMessage.objects.get(id=feedback_id)
+            # Только сообщения своего тенанта (get_queryset фильтрует по тенанту staff)
+            feedback = self.get_queryset(request).get(id=feedback_id)
             pending_replies = feedback.feedbackreply_set.filter(is_sent_to_user=False)
             
             sent_count = 0
@@ -535,6 +536,10 @@ class FeedbackReplyAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 
     def send_reply_action(self, request, reply_id):
         """Действие для отправки ответа"""
+        # Только ответы своего тенанта (get_queryset фильтрует по тенанту staff)
+        if not self.get_queryset(request).filter(id=reply_id).exists():
+            messages.error(request, "Ответ не найден")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/'))
         try:
             if send_feedback_reply_to_telegram(reply_id):
                 messages.success(request, "Ответ успешно отправлен пользователю")

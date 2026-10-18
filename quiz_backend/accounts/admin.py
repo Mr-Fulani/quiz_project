@@ -184,6 +184,13 @@ class TelegramAdminGroupInline(admin.TabularInline):
     raw_id_fields = ['telegram_group']
     formset = TelegramAdminGroupInlineFormSet
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        # Staff может назначать админа только в каналы своего тенанта
+        if db_field.name == 'telegram_group' and not request.user.is_superuser:
+            from platforms.models import TelegramGroup
+            kwargs['queryset'] = TelegramGroup.objects.filter(tenant=getattr(request.user, 'tenant', None))
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 class NotificationAdminForm(forms.ModelForm):
     """Кастомная форма для админки уведомлений."""
@@ -430,7 +437,9 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             return JsonResponse({'error': 'Пустой запрос'}, status=400)
         
         results = []
-        
+        # Staff ищет только среди пользователей своего тенанта
+        scope = {} if request.user.is_superuser else {'tenant': self._get_current_tenant(request)}
+
         # Удаляем @ если есть
         query_clean = query.lstrip('@')
         
@@ -439,7 +448,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             telegram_id = int(query_clean)
             # Поиск по ID
             # TelegramUser
-            telegram_users = TelegramUser.objects.filter(telegram_id=telegram_id)[:5]
+            telegram_users = TelegramUser.objects.filter(telegram_id=telegram_id, **scope)[:5]
             for user in telegram_users:
                 results.append({
                     'telegram_id': user.telegram_id,
@@ -451,7 +460,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 })
             
             # MiniAppUser
-            mini_app_users = MiniAppUser.objects.filter(telegram_id=telegram_id)[:5]
+            mini_app_users = MiniAppUser.objects.filter(telegram_id=telegram_id, **scope)[:5]
             for user in mini_app_users:
                 results.append({
                     'telegram_id': user.telegram_id,
@@ -464,7 +473,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 })
             
             # CustomUser
-            custom_users = CustomUser.objects.filter(telegram_id=telegram_id)[:5]
+            custom_users = CustomUser.objects.filter(telegram_id=telegram_id, **scope)[:5]
             for user in custom_users:
                 results.append({
                     'telegram_id': user.telegram_id,
@@ -476,7 +485,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 })
         except ValueError:
             # Поиск по username
-            telegram_users = TelegramUser.objects.filter(username__icontains=query_clean)[:5]
+            telegram_users = TelegramUser.objects.filter(username__icontains=query_clean, **scope)[:5]
             for user in telegram_users:
                 results.append({
                     'telegram_id': user.telegram_id,
@@ -487,7 +496,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     'source': 'TelegramUser'
                 })
             
-            mini_app_users = MiniAppUser.objects.filter(username__icontains=query_clean)[:5]
+            mini_app_users = MiniAppUser.objects.filter(username__icontains=query_clean, **scope)[:5]
             for user in mini_app_users:
                 results.append({
                     'telegram_id': user.telegram_id,
@@ -499,7 +508,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     'source': 'MiniAppUser'
                 })
             
-            custom_users = CustomUser.objects.filter(username__icontains=query_clean)[:5]
+            custom_users = CustomUser.objects.filter(username__icontains=query_clean, **scope)[:5]
             for user in custom_users:
                 if user.telegram_id:
                     results.append({
@@ -534,6 +543,9 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         subscriptions = UserChannelSubscription.objects.filter(
             subscription_status='active'
         ).select_related('telegram_user').order_by('-subscribed_at')
+        # Staff видит подписчиков только каналов своего тенанта
+        if not request.user.is_superuser:
+            subscriptions = subscriptions.filter(channel__tenant=self._get_current_tenant(request))
         
         # Если есть поиск, фильтруем по username или telegram_id
         if search_query:
@@ -1793,10 +1805,11 @@ class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
 
 
-class UserChannelSubscriptionAdmin(admin.ModelAdmin):
+class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
-    Админ-панель для подписок пользователей на каналы.
+    Админ-панель для подписок пользователей на каналы (staff — только каналы своего тенанта).
     """
+    tenant_lookup = 'channel__tenant'
     list_display = [
         'telegram_user', 'channel', 'subscription_status', 
         'subscribed_at', 'banned_status', 'user_admin_status', 'channel_admin_status'

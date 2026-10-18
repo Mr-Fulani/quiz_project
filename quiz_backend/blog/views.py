@@ -737,6 +737,19 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
     template_name = 'blog/post_detail.html'
     context_object_name = 'post'
 
+    def get_queryset(self):
+        """
+        Только посты текущего тенанта; черновики видит лишь staff (предпросмотр).
+        Без тенанта — 404, чтобы посты не открывались на чужих доменах.
+        """
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is None:
+            return Post.objects.none()
+        queryset = Post.objects.filter(tenant=tenant)
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(published=True)
+        return queryset
+
     def get_breadcrumbs(self):
         """
         Возвращает динамические крошки для поста.
@@ -752,6 +765,7 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
         context = super().get_context_data(**kwargs)
         post = self.object
         related_posts = Post.objects.filter(
+            tenant=post.tenant,
             published=True,
             category=post.category
         ).exclude(id=post.id)[:3]
@@ -814,7 +828,7 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
         context['hreflang_ru'] = hreflang_ru
         context['hreflang_x_default'] = hreflang_en or canonical_url
         context['related_posts'] = related_posts
-        context['page_videos'] = PageVideo.objects.filter(page='post_detail')
+        context['page_videos'] = PageVideo.objects.filter(page='post_detail', tenant=post.tenant)
         return context
 
 
@@ -833,6 +847,13 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
     template_name = 'blog/project_detail.html'
     context_object_name = 'project'
 
+    def get_queryset(self):
+        """Только проекты текущего тенанта; без тенанта — 404."""
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is None:
+            return Project.objects.none()
+        return Project.objects.filter(tenant=tenant)
+
     def get_breadcrumbs(self):
         """
         Возвращает динамические крошки для проекта.
@@ -848,6 +869,7 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = self.object
         related_projects = Project.objects.filter(
+            tenant=project.tenant,
             featured=True,
             category=project.category
         ).exclude(id=project.id)[:3]
@@ -902,7 +924,7 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
         context['hreflang_ru'] = hreflang_ru
         context['hreflang_x_default'] = hreflang_en or canonical_url
         context['related_projects'] = related_projects
-        context['page_videos'] = PageVideo.objects.filter(page='project_detail')
+        context['page_videos'] = PageVideo.objects.filter(page='project_detail', tenant=project.tenant)
         return context
 
 
@@ -2305,7 +2327,9 @@ def send_message(request):
         logger.error("send_message: Получатель не указан")
         return JsonResponse({'status': 'error', 'message': 'Получатель не указан'}, status=400)
 
-    recipient = get_object_or_404(CustomUser, username=recipient_username)
+    # Писать можно только пользователям своего тенанта
+    tenant = getattr(request, 'tenant', None)
+    recipient = get_object_or_404(CustomUser, username=recipient_username, tenant=tenant)
     content = request.POST.get('content', '').strip()
     files = request.FILES.getlist('attachments')
 
@@ -2365,6 +2389,7 @@ def send_message(request):
 
             # Создаём сообщение
             message = Message.objects.create(
+                tenant=tenant,
                 sender=request.user,
                 recipient=recipient,
                 content=content
@@ -2431,7 +2456,9 @@ def get_conversation(request, recipient_username):
     Отмечает непрочитанные сообщения как прочитанные.
     """
     logger.info(f"get_conversation: Запрос от {request.user.username} для {recipient_username}")
-    recipient = get_object_or_404(CustomUser, username=recipient_username)
+    recipient = get_object_or_404(
+        CustomUser, username=recipient_username, tenant=getattr(request, 'tenant', None)
+    )
     user = request.user
 
     # Отмечаем непрочитанные сообщения как прочитанные

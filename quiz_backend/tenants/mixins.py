@@ -39,7 +39,11 @@ class TenantFilteredAdminMixin:
     tenant_hidden_field_names = {'tenant', 'tenant_display', 'get_tenant'}
 
     def _get_current_tenant(self, request):
-        return getattr(request.user, 'tenant', None) or getattr(request, 'tenant', None)
+        # Staff работает только со своим тенантом; тенант по домену запроса
+        # (который зависит от заголовков) учитывается лишь для суперпользователя.
+        if request.user.is_superuser:
+            return getattr(request.user, 'tenant', None) or getattr(request, 'tenant', None)
+        return getattr(request.user, 'tenant', None)
 
     def _is_restricted_tenant_admin(self, request) -> bool:
         return bool(request.user and request.user.is_staff and not request.user.is_superuser)
@@ -282,6 +286,12 @@ class TenantFilteredViewMixin:
             return qs
 
         tenant = getattr(request, 'tenant', None)
+        if tenant and self._is_foreign_staff(request, tenant):
+            logger.warning(
+                f"[TenantFilteredViewMixin] Staff {request.user} of another tenant "
+                f"accessed {request.path} on tenant {tenant.slug}. Returning empty queryset."
+            )
+            return qs.none()
         if tenant:
             return qs.filter(**{self.tenant_lookup: tenant})
 
@@ -291,6 +301,15 @@ class TenantFilteredViewMixin:
         )
         return qs.none()
 
+    @staticmethod
+    def _is_foreign_staff(request, tenant):
+        """Staff (не суперпользователь), привязанный к другому тенанту или ни к какому."""
+        user = request.user
+        return bool(
+            user and user.is_authenticated and user.is_staff and not user.is_superuser
+            and getattr(user, 'tenant_id', None) != tenant.id
+        )
+
     def perform_create(self, serializer):
         """
         Автоматически подставляет тенант при создании объекта через API.
@@ -298,6 +317,9 @@ class TenantFilteredViewMixin:
         """
         request = getattr(self, 'request', None)
         tenant = getattr(request, 'tenant', None) if request else None
+
+        if tenant and request and self._is_foreign_staff(request, tenant):
+            raise exceptions.PermissionDenied('Staff can only create objects in their own tenant.')
 
         if tenant:
             # Проверяем, есть ли у модели именно поле 'tenant'.
