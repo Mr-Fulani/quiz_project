@@ -7,7 +7,7 @@ from django.utils.html import strip_tags
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Case, When, IntegerField, Value
-from django.urls import reverse
+from django.urls import reverse, translate_url
 from django.utils.translation import get_language, gettext as _
 from tasks.models import TaskStatistics
 
@@ -325,17 +325,25 @@ def seo_context(request):
         base_url = f"{scheme}://{host}"
         is_mini_app = False
 
+    # Canonical по умолчанию — сама страница (раньше — главная, из-за чего поисковик склеивал
+    # все страницы с главной). Query отбрасываем, кроме номера страницы пагинации.
+    canonical_path = path
+    page_number = request.GET.get('page', '')
+    if page_number.isdigit() and page_number != '1':
+        canonical_path = f"{path}?page={page_number}"
+    canonical_url = base_url + canonical_path
+
     # Базовые SEO данные
     seo_data = {
         'meta_title': f"{site_name} | {site_desc[:50]}",
         'meta_description': site_desc,
         'meta_keywords': meta_kws,
-        'canonical_url': base_url + reverse('blog:home'),
-        'hreflang_url': base_url + reverse('blog:home'),
+        'canonical_url': canonical_url,
+        'hreflang_url': canonical_url,
         'og_title': f"{site_name} - Interactive Learning Platform",
         'og_description': site_desc,
         'og_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
-        'og_url': base_url + reverse('blog:home'),
+        'og_url': canonical_url,
         'og_site_name': site_name,
         'og_locale': 'en_US' if language == 'en' else 'ru_RU',
         'is_mini_app': is_mini_app,
@@ -353,10 +361,10 @@ def seo_context(request):
         'meta_rating': 'general',
         'meta_distribution': 'global',
         'meta_revisit_after': '7 days',
-        # Языковые альтернативы
-        'hreflang_en': f"{base_url}/en/",
-        'hreflang_ru': f"{base_url}/ru/",
-        'hreflang_x_default': f"{base_url}/en/",
+        # Языковые альтернативы этой же страницы (раньше — главной)
+        'hreflang_en': base_url + translate_url(path, 'en'),
+        'hreflang_ru': base_url + translate_url(path, 'ru'),
+        'hreflang_x_default': base_url + translate_url(path, 'en'),
     }
 
     # Специфичные SEO данные для разных страниц

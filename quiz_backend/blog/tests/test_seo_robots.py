@@ -184,7 +184,19 @@ class SEORobotsTestCase(TransactionTestCase):
             
             self._check_canonical_url(response, '/en/blog/')
             self._check_hreflang_tags(response)
-    
+
+    def test_canonical_and_hreflang_point_to_current_page_not_home(self):
+        """
+        Тест: canonical и hreflang страницы указывают на неё саму, а не на главную
+        (иначе поисковик склеивает все страницы с главной).
+        """
+        response = self.client.get('/en/blog/?page=2&utm_source=x', HTTP_USER_AGENT='Googlebot')
+        canonical = self._check_canonical_url(response, '/en/blog/')
+        self.assertTrue(canonical.endswith('/en/blog/?page=2'), canonical)
+        hreflangs = self._check_hreflang_tags(response)
+        self.assertTrue(hreflangs['en'].endswith('/en/blog/'), hreflangs)
+        self.assertTrue(hreflangs['ru'].endswith('/ru/blog/'), hreflangs)
+
     def test_robots_can_access_post_detail(self):
         """
         Тест: Роботы могут получить доступ к странице поста.
