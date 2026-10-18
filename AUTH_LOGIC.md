@@ -1,362 +1,93 @@
-# Логика авторизации через GitHub и Telegram
+# Логика авторизации
 
-## Общая схема работы
+> Актуально на 2026-10-18. Описывает фактический код; при изменении логики обновляйте этот файл.
 
-Система поддерживает авторизацию через два провайдера:
-- **GitHub OAuth 2.0** - авторизация через GitHub
-- **Telegram Login Widget** - авторизация через Telegram
+Система поддерживает:
+- **Telegram Login Widget** — вход на сайт через Telegram (`social_auth/services.py`, `TelegramAuthService`)
+- **GitHub OAuth 2.0** (`GitHubAuthService`) и **Google OAuth** (`GoogleAuthService`)
+- **Telegram Mini App** — пользователь определяется по подписанному `initData` (см. раздел ниже)
 
-Оба провайдера могут:
-1. Создавать новых пользователей
-2. Связывать существующие аккаунты
-3. Автоматически связывать связанные сущности (MiniAppUser, TelegramUser, TelegramAdmin и т.д.)
+Все поиски пользователей и соцаккаунтов выполняются **в рамках тенанта** запроса (`request.tenant`).
 
 ---
 
-## 🔵 Авторизация через GitHub
+## Главное правило безопасности
 
-### Сценарий 1: Пользователь уже авторизован на сайте
+Аккаунт сайта связывается с внешним входом **только по идентификатору, который нельзя выбрать самому**:
+`telegram_id` (подписан Telegram), `provider_user_id` соцаккаунта, email (для GitHub/Google).
 
-**Что происходит:**
-- Если пользователь уже авторизован (`request.user.is_authenticated`), его текущий аккаунт используется для связывания с GitHub
-- GitHub SocialAccount создается или обновляется для текущего пользователя
-- Все существующие данные сохраняются
+**Никогда не связываем по username.** Username в Telegram и логин GitHub выбирает сам пользователь:
+назвавшись `admin`, можно было войти в чужой аккаунт. Эта логика удалена из Telegram-логина,
+GitHub-логина, `ProfileByTelegramID`, `link_users` и `MiniAppUserCreateSerializer` — не возвращайте её.
 
-**Логика:**
-```
-1. Проверка: request.user.is_authenticated == True
-2. Использование: current_user = request.user
-3. Создание/обновление SocialAccount для GitHub
-4. Синхронизация полей (github URL, email, имя и т.д.)
-5. Автосвязывание с другими сущностями (MiniAppUser и т.д.)
-```
+Связать вход с существующим аккаунтом осознанно можно, будучи уже авторизованным на сайте (сценарий ниже).
 
 ---
 
-### Сценарий 2: У пользователя уже есть SocialAccount для GitHub
+## 🟢 Telegram Login Widget
 
-**Что происходит:**
-- Находится существующий SocialAccount по `provider='github'` и `provider_user_id`
-- Обновляются данные SocialAccount (username, email, avatar и т.д.)
-- Обновляется информация пользователя (только пустые поля)
-- Выполняется автосвязывание с другими сущностями
+`TelegramAuthService.process_telegram_auth(data, request)`:
 
-**Логика:**
-```
-1. Поиск: SocialAccount.objects.filter(provider='github', provider_user_id=github_id)
-2. Если найден → обновление SocialAccount и CustomUser
-3. Синхронизация полей социальных сетей
-4. Автосвязывание через auto_link_existing_users()
-```
+1. Проверка подписи данных виджета и `auth_date`.
+2. Поиск `SocialAccount(provider='telegram', provider_user_id=telegram_id, tenant=tenant)`.
+   - Найден → вход в его пользователя, обновление данных соцаккаунта, автосвязывание
+     (`TelegramUser`, `MiniAppUser`, `TelegramAdmin` по `telegram_id`), объединение статистики Mini App.
+3. Не найден:
+   - Пользователь уже авторизован на сайте → Telegram привязывается к **текущему** пользователю.
+   - Иначе `_get_or_create_user(data, tenant)`:
+     1. `CustomUser` с этим `telegram_id` в тенанте (без тенанта — среди `tenant=None`) → он.
+     2. Иначе создаётся **новый** пользователь. `User.username` генерируется
+        (`first_name_last_name`, `first_name`, `tg_<telegram_username>` или `user_<telegram_id>`) с суффиксом для уникальности;
+        Telegram username хранится в `SocialAccount.username`.
 
----
+## 🔵 GitHub OAuth
 
-### Сценарий 3: SocialAccount не найден - поиск существующего пользователя
+`GitHubAuthService.process_github_auth(...)`:
 
-**Метод:** `GitHubAuthService._get_or_create_user()`
+1. Поиск `SocialAccount(provider='github', provider_user_id=github_id, tenant=tenant)` → вход.
+2. Не найден: авторизованный пользователь → привязка к нему; иначе `_get_or_create_user(user_info, tenant)`:
+   1. Пользователь с тем же **email** в тенанте → он (обновляются только пустые поля).
+   2. Иначе создаётся новый пользователь (username на основе логина GitHub, с суффиксом при занятости).
 
-**Порядок поиска:**
-
-#### 3.1. Проверка текущего пользователя
-```python
-if current_user:
-    return current_user  # Используем уже авторизованного пользователя
-```
-
-#### 3.2. Поиск по EMAIL (приоритет 1)
-```python
-if email:
-    user = User.objects.filter(email=email).first()
-    if user:
-        # Обновляем только пустые поля:
-        # - first_name (если пустое)
-        # - last_name (если пустое)
-        # - avatar (если нет)
-        # - github URL (если нет)
-        return user
-```
-
-**Важно:** Существующие данные (статистика, настройки, логотип) сохраняются!
-
-#### 3.3. Поиск по USERNAME (приоритет 2)
-```python
-if github_username:
-    user = User.objects.filter(username=github_username).first()
-    if user:
-        # Обновляем только пустые поля:
-        # - email (если пустой)
-        # - first_name (если пустое)
-        # - last_name (если пустое)
-        # - avatar (если нет)
-        # - github URL (если нет)
-        return user
-```
-
-#### 3.4. Создание нового пользователя
-```python
-# Генерируется уникальный username на основе github_username
-user = User.objects.create(
-    username=username,  # уникальный, например: github_username или github_username_1
-    email=email,
-    first_name=first_name,
-    last_name=last_name,
-    is_active=True
-)
-# Загружается аватарка если есть
-return user
-```
+Google OAuth устроен так же (поиск по `provider_user_id`, затем по email, затем создание).
 
 ---
 
-## 🟢 Авторизация через Telegram
+## 📱 Telegram Mini App
 
-### Сценарий 1: У пользователя уже есть SocialAccount для Telegram
+Подробно — в `MULTI_TENANT_ARCHITECTURE.md`, раздел «Аутентификация Mini App». Кратко:
 
-**Что происходит:**
-- Находится существующий SocialAccount по `provider='telegram'` и `provider_user_id=telegram_id`
-- Обновляются данные SocialAccount (username, first_name, last_name, avatar)
-- Обновляется информация в CustomUser (только пустые поля)
-- Выполняется автосвязывание с другими сущностями:
-  - `TelegramUser` (по `telegram_id`)
-  - `MiniAppUser` (по `telegram_id`)
-  - `TelegramAdmin` (по `telegram_id`)
-  - `DjangoAdmin` (по `username`)
-- Объединяется статистика Mini App с основной статистикой
-
-**Логика:**
-```
-1. Поиск: SocialAccount.objects.filter(provider='telegram', provider_user_id=telegram_id)
-2. Если найден → обновление SocialAccount и CustomUser
-3. Синхронизация полей социальных сетей
-4. Автосвязывание через auto_link_existing_users()
-5. Объединение статистики Mini App с основной статистикой
-```
+- Клиент отправляет подписанный Telegram `initData` в заголовке `X-Telegram-Init-Data`
+  со всеми same-origin запросами (обёртка `fetch` в `mini_app/templates/base.html`).
+- Django проверяет HMAC-SHA256 подпись **токеном бота тенанта** (`Tenant.bot_token`, при его отсутствии —
+  `TELEGRAM_BOT_TOKEN`) и срок `auth_date` (`TELEGRAM_INIT_DATA_MAX_AGE`, по умолчанию 24 ч):
+  `quiz_backend/accounts/telegram_webapp_auth.py`.
+- Любой `telegram_id` в URL, теле или query (`telegram_id`, `author_telegram_id`, `reporter_telegram_id`,
+  `user_id` в обратной связи) обязан совпадать с проверенным — иначе 401/403.
+- `mini_app` (FastAPI) не проверяет подпись сам, а спрашивает Django
+  (`POST /api/accounts/miniapp-users/auth/verify/`), кэширует результат на 5 минут
+  (`mini_app/core/telegram_auth.py`) и подставляет проверенный `telegram_id` в запросы к Django.
+- Чтение (GET) пока открыто без initData — см. `TECH_DEBT.md`.
+- Без Telegram (в обычном браузере) запись в Mini App недоступна.
 
 ---
 
-### Сценарий 2: SocialAccount не найден - поиск существующего пользователя
+## 🔗 Автосвязывание сущностей
 
-**Метод:** `TelegramAuthService._get_or_create_user()`
-
-**Порядок поиска:**
-
-#### 2.1. Поиск по TELEGRAM_ID (приоритет 1)
-```python
-user = User.objects.filter(telegram_id=telegram_id).first()
-if user:
-    # Обновляем данные:
-    # - first_name, last_name (обновляются всегда)
-    # - avatar (только если нет)
-    # - is_telegram_user = True
-    return user
-```
-
-#### 2.2. Поиск по EMAIL через SocialAccount GitHub (приоритет 2)
-```python
-# Ищем среди пользователей с GitHub SocialAccount, у которых есть email
-# И которые еще НЕ имеют Telegram SocialAccount
-social_accounts_with_email = SocialAccount.objects.filter(
-    email__isnull=False,
-    provider='github'
-).exclude(email='').select_related('user')
-
-# Пропускаем пользователей, у которых уже есть Telegram SocialAccount
-users_with_telegram = set(
-    SocialAccount.objects.filter(provider='telegram')
-    .values_list('user_id', flat=True)
-)
-
-for social_account in social_accounts_with_email:
-    existing_user = social_account.user
-    if existing_user.id not in users_with_telegram:
-        # Связываем с telegram_id
-        # Обновляем только пустые поля
-        return existing_user
-```
-
-**Важно:** Это помогает связать аккаунт пользователя, который:
-- Уже зарегистрирован через GitHub
-- Теперь входит через Telegram
-- Telegram Login Widget не предоставляет email, поэтому ищем среди всех GitHub аккаунтов
-
-#### 2.3. Поиск по EMAIL в CustomUser (приоритет 3)
-```python
-# Ищем среди пользователей с email в CustomUser
-# Которые еще НЕ имеют Telegram SocialAccount
-users_with_email = User.objects.filter(
-    email__isnull=False
-).exclude(email='').exclude(id__in=users_with_telegram)
-
-for existing_user in users_with_email:
-    # Связываем с telegram_id
-    # Обновляем только пустые поля
-    return existing_user
-```
-
-**Важно:** Это для пользователей, зарегистрированных напрямую на сайте (не через соцсети).
-
-#### 2.4. Поиск по USERNAME из Telegram (приоритет 4)
-```python
-if telegram_username:
-    existing_user = User.objects.filter(username__iexact=telegram_username).first()
-    if existing_user:
-        # Связываем с telegram_id
-        # Обновляем только пустые поля
-        return existing_user
-```
-
-**Важно:** Регистронезависимый поиск (`__iexact`).
-
-#### 2.5. Создание нового пользователя
-```python
-# Генерируется уникальный username на основе:
-# - first_name + last_name (если есть)
-# - first_name (если есть)
-# - tg_{telegram_username} (если есть telegram_username)
-# - user_{telegram_id} (в крайнем случае)
-
-user = User.objects.create(
-    username=username,  # уникальный
-    first_name=first_name,
-    last_name=last_name,
-    telegram_id=telegram_id,
-    is_telegram_user=True,
-    is_active=True
-)
-# Загружается аватарка если есть
-return user
-```
-
----
-
-## 🔗 Автосвязывание аккаунтов
-
-После создания/обновления SocialAccount вызывается метод `auto_link_existing_users()`:
-
-```python
-linked_count = social_account.auto_link_existing_users()
-```
-
-**Что делает автосвязывание:**
-
-1. **Для Telegram:**
-   - Связывает с `TelegramUser` (по `telegram_id`)
-   - Связывает с `MiniAppUser` (по `telegram_id`)
-   - Связывает с `TelegramAdmin` (по `telegram_id`)
-   - Связывает с `DjangoAdmin` (по `username`)
-
-2. **Для GitHub:**
-   - Аналогично ищет связанные сущности
-
-**Важно:** Все связи устанавливаются автоматически, если найдены соответствующие записи в БД.
-
----
+`SocialAccount.auto_link_existing_users()` после входа связывает `TelegramUser`, `MiniAppUser`,
+`TelegramAdmin` по `telegram_id` в том же тенанте. `MiniAppUser` связывается с `DjangoAdmin` только через
+`linked_custom_user`, у которого `is_staff`/`is_superuser`.
 
 ## 📊 Синхронизация данных
 
-### Принцип работы:
+Существующие данные не перезаписываются: обновляются только пустые поля (`first_name`, `last_name`,
+`email`, `avatar`, ссылки), данные `SocialAccount` обновляются всегда. Статистика и настройки сохраняются.
 
-**ВАЖНО:** Система **НИКОГДА** не перезаписывает существующие данные!
+## ⚠️ Прочие меры безопасности
 
-**Что обновляется:**
-- ✅ Пустые поля (`first_name`, `last_name`, `email`, `avatar`)
-- ✅ Отсутствующие ссылки (`github`, `telegram_id`)
-- ✅ Данные в `SocialAccount` (всегда обновляются)
-
-**Что НЕ перезаписывается:**
-- ❌ Статистика пользователя
-- ❌ Настройки
-- ❌ Логотип (если уже есть)
-- ❌ Другие данные профиля
-
----
-
-## 🎯 Примеры сценариев
-
-### Пример 1: Новый пользователь через GitHub
-```
-1. Пользователь впервые авторизуется через GitHub
-2. Не найден по email, не найден по username
-3. Создается новый CustomUser
-4. Создается SocialAccount для GitHub
-5. Создается сессия
-6. Пользователь авторизован ✅
-```
-
-### Пример 2: Пользователь уже зарегистрирован через сайт, теперь через GitHub
-```
-1. Пользователь зарегистрирован на сайте с email: user@example.com
-2. Авторизуется через GitHub с тем же email
-3. Найден по email: user@example.com
-4. Существующий CustomUser используется
-5. Создается SocialAccount для GitHub (привязывается к существующему CustomUser)
-6. Обновляются только пустые поля (first_name, avatar и т.д.)
-7. Статистика и настройки сохраняются ✅
-8. Пользователь авторизован ✅
-```
-
-### Пример 3: Пользователь через GitHub, потом через Telegram
-```
-1. Пользователь авторизован через GitHub (email: user@example.com)
-2. Теперь авторизуется через Telegram (telegram_id: 123456)
-3. Не найден по telegram_id
-4. Найден по email через GitHub SocialAccount
-5. Существующий CustomUser используется
-6. Устанавливается telegram_id в CustomUser
-7. Создается SocialAccount для Telegram
-8. Автосвязывание с MiniAppUser (если есть) и объединение статистики
-9. Все данные сохранены ✅
-10. Пользователь авторизован ✅
-```
-
-### Пример 4: Пользователь через Telegram, потом через GitHub
-```
-1. Пользователь авторизован через Telegram (telegram_id: 123456)
-2. Теперь авторизуется через GitHub (email: user@example.com)
-3. Не найден GitHub SocialAccount
-4. Найден по email в CustomUser (если email был установлен)
-   ИЛИ найден по username (если совпадает)
-5. Существующий CustomUser используется
-6. Создается SocialAccount для GitHub
-7. Обновляется github URL в профиле
-8. Все данные сохранены ✅
-9. Пользователь авторизован ✅
-```
-
-### Пример 5: Пользователь уже авторизован, добавляет GitHub
-```
-1. Пользователь уже авторизован на сайте (request.user)
-2. Нажимает "Авторизоваться через GitHub"
-3. GitHub OAuth возвращает код
-4. current_user = request.user используется напрямую
-5. Создается SocialAccount для GitHub (привязывается к текущему пользователю)
-6. Обновляются поля профиля (github URL, email и т.д.)
-7. Все данные сохранены ✅
-```
-
----
-
-## ⚠️ Важные замечания
-
-1. **Telegram не предоставляет email**, поэтому поиск по email для Telegram работает "в обратную сторону":
-   - Ищем среди пользователей, которые уже имеют email (через GitHub или регистрацию на сайте)
-   - Связываем их с Telegram аккаунтом
-
-2. **Приоритет поиска:**
-   - GitHub: email → username → создание нового
-   - Telegram: telegram_id → email (GitHub) → email (User) → username → создание нового
-
-3. **Автосвязывание сущностей:**
-   - Происходит автоматически после создания/обновления SocialAccount
-   - Объединяет статистику Mini App с основной статистикой
-
-4. **Сохранение данных:**
-   - Всегда сохраняются существующие данные (статистика, настройки)
-   - Обновляются только пустые поля
-   - Данные в SocialAccount обновляются всегда
-
-5. **Безопасность:**
-   - Проверка подписи Telegram
-   - Проверка `auth_date` (не старше 86400 секунд)
-   - Проверка CSRF через state в GitHub OAuth
-
+- Определение тенанта — только по `Host`/`X-Forwarded-Host` (nginx перезаписывает его на `$host`);
+  заголовки `X-Tenant-Slug`, `X-Original-Host`, `Forwarded`, `Origin`, `Referer` игнорируются.
+- DRF по умолчанию `IsAuthenticatedOrReadOnly`; публичные эндпоинты объявляют `AllowAny` явно.
+- В админке поля `is_superuser`, `groups`, `user_permissions` меняет только суперпользователь;
+  раздел DjangoAdmin доступен только суперпользователю.
+- CSRF в GitHub OAuth проверяется через `state`.

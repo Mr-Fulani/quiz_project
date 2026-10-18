@@ -1314,30 +1314,9 @@ class GitHubAuthService:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
                 return user
         
-        # Пытаемся найти по username в рамках тенанта
-        if github_username:
-            qs = User.objects.filter(username=github_username)
-            if tenant:
-                qs = qs.filter(tenant=tenant)
-            user = qs.first()
-            if user:
-                logger.info(f"Найден пользователь по username: {user.username}")
-                updated = False
-                if not user.email and email:
-                    user.email = email
-                    updated = True
-                if first_name and not user.first_name:
-                    user.first_name = first_name
-                    updated = True
-                if last_name and not user.last_name:
-                    user.last_name = last_name
-                    updated = True
-                if updated:
-                    user.save()
-                if avatar_url and not user.avatar:
-                    TelegramAuthService._download_avatar_from_url(avatar_url, user)
-                return user
-        
+        # Связывать с существующим аккаунтом по совпадению username НЕЛЬЗЯ: логин GitHub
+        # выбирает сам пользователь, так можно войти в чужой аккаунт сайта.
+
         # Создаём нового пользователя с тенантом
         base_username = github_username or f"github_{github_id}"
         username = base_username
@@ -1846,39 +1825,9 @@ class GoogleAuthService:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
                 return user
         
-        # Ищем по имени/фамилии + Telegram аккаунт (в рамках тенанта)
-        if first_name and last_name:
-            from django.db.models import Q
-            potential_qs = User.objects.filter(
-                first_name=first_name,
-                last_name=last_name
-            ).filter(Q(email__isnull=True) | Q(email=''))
-            if tenant:
-                potential_qs = potential_qs.filter(tenant=tenant)
-            
-            for potential_user in potential_qs:
-                telegram_account = potential_user.social_accounts.filter(
-                    provider='telegram',
-                    is_active=True
-                ).first()
-                if telegram_account:
-                    logger.info(f"Найден пользователь по имени/фамилии + Telegram: {potential_user.username}")
-                    if not potential_user.email and google_email:
-                        potential_user.email = google_email
-                        potential_user.save()
-                    updated = False
-                    if first_name and not potential_user.first_name:
-                        potential_user.first_name = first_name
-                        updated = True
-                    if last_name and not potential_user.last_name:
-                        potential_user.last_name = last_name
-                        updated = True
-                    if updated:
-                        potential_user.save()
-                    if avatar_url and not potential_user.avatar:
-                        TelegramAuthService._download_avatar_from_url(avatar_url, potential_user)
-                    return potential_user
-        
+        # Связывать по совпадению имени и фамилии НЕЛЬЗЯ: их в Google-аккаунте задаёт
+        # сам пользователь, так можно войти в чужой аккаунт (например, Telegram-пользователя без email).
+
         # Создаём нового пользователя с тенантом
         base_username = google_email.split('@')[0] if google_email else f"google_{google_id}"
         username = base_username
