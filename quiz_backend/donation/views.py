@@ -10,7 +10,8 @@ import logging
 import stripe
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 
 
 from .forms import DonationForm
@@ -347,6 +348,7 @@ def confirm_payment(request):
     }
 )
 @api_view(['POST'])
+@permission_classes([AllowAny])
 @csrf_exempt
 def create_wallet_pay_payment(request):
     """Создаёт заказ для оплаты через Telegram Wallet Pay."""
@@ -418,6 +420,7 @@ def create_wallet_pay_payment(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 @csrf_exempt
 def wallet_pay_webhook(request):
     """Webhook для уведомлений от Wallet Pay. Обновляет статус Donation."""
@@ -683,6 +686,7 @@ def get_crypto_currencies(request):
     }
 )
 @api_view(['POST'])
+@permission_classes([AllowAny])
 @csrf_exempt
 def create_crypto_payment(request):
     """
@@ -921,6 +925,7 @@ def get_crypto_payment_status(request, order_id):
     }
 )
 @api_view(['POST'])
+@permission_classes([AllowAny])
 @csrf_exempt
 def coingate_callback(request):
     """
@@ -948,12 +953,19 @@ def coingate_callback(request):
             logger.error(f"Donation not found for order_id: {order_id}")
             return JsonResponse({'status': 'error', 'message': 'Donation not found'}, status=404)
         
-        # Верификация callback (опционально, для дополнительной безопасности)
-        # service = CoinGateService()
-        # if not service.verify_callback(order_id, token):
-        #     logger.error(f"Invalid callback token for order: {order_id}")
-        #     return JsonResponse({'status': 'error', 'message': 'Invalid token'}, status=403)
-        
+        # Верификация callback: статусу из тела запроса не доверяем (его может прислать кто угодно),
+        # берём актуальный статус заказа напрямую из CoinGate API.
+        order_data = CoinGateService().get_order(order_id)
+        if not order_data.get('success'):
+            logger.error(f"Could not verify CoinGate order {order_id} via API")
+            return JsonResponse({'status': 'error', 'message': 'Verification failed'}, status=403)
+        if status != order_data.get('status'):
+            logger.warning(
+                f"CoinGate callback status {status!r} differs from API status "
+                f"{order_data.get('status')!r} for order {order_id}; using API status"
+            )
+        status = order_data.get('status')
+
         # Обновляем статус
         old_status = donation.status
         donation.coingate_status = status
@@ -1012,6 +1024,7 @@ def coingate_callback(request):
     }
 )
 @api_view(['POST'])
+@permission_classes([AllowAny])
 @csrf_exempt
 def create_telegram_stars_invoice(request):
     """
