@@ -156,10 +156,12 @@
 Как сменить домен хранилища: `R2_PUBLIC_DOMAIN` в `.env` + старый домен в `STORAGE_LEGACY_DOMAINS`;
 данные в БД не трогать (там ключи файлов).
 
-- [ ] 🟠 Привязки по slug тенанта (`tenant.slug == 'quiz-code'`, ~19 мест): автор «Anvar Sh.», телефон,
-      соцсети в SEO/JSON-LD (`blog/context_processors.py`), выбор стиля картинок
-      (`tasks/services/image_generation_service.py`, `tasks/tasks.py`), шаблоны админки импорта/генерации.
-      Нужны поля тенанта (автор, телефон, профили) вместо проверки slug.
+- [ ] 🟡 Личные данные автора всё ещё в коде (включаются флагом тенанта `is_author_site`, не slug):
+      встроенный профиль в `blog/context_processors.py` (email, соцсети, ресурсы, тексты «обо мне»)
+      и SEO-тексты резюме/«обо мне»/контактов с «Anvar Sh.» в msgid. Ещё ссылки `Mr_Fulani` в письмах
+      (`donation/templates/...thank_you_email_*.html`, `templates/registration/password_reset_email*.html`),
+      `blog/templates/blog/resume.html`, `blog/management/commands/import_resume.py`. Лучше перенести
+      в «Данные владельца» (`blog.TenantInfo`).
 - [ ] 🟡 `nginx/nginx-prod.conf` перечисляет домены (`server_name`, пути сертификатов) — при смене домена
       править вручную; `quiz-code.com` и мёртвые quiz-format/quiz-game можно убрать.
 - [ ] 🟢 Бренд по умолчанию «QuizHub»/`@quiz_code_hub` в SEO, когда тенант не определён.
@@ -184,6 +186,10 @@
   (и статистика пользователя ищется в его тенанте).
 
 ## ✅ Сделано (2026-10-19)
+
+- Привязки по slug тенанта убраны: автор, телефон, профили (SEO/JSON-LD), стиль картинок и общий логотип —
+  поля `Tenant` (`author_name`, `contact_phone`, `social_profiles`, `is_author_site`, `image_theme`,
+  `use_global_logo`); миграция `tenants/0004` перенесла прежние значения в quiz-code и iqro-forum.
 
 - Исходящие вебхуки, `GlobalWebhookLink`, `DefaultLink`/`MainFallbackLink`, credentials соцсетей —
   только тенанта задачи (+ общие без тенанта); сводная отправка разбивается по тенантам.
