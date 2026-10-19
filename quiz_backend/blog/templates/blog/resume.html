@@ -180,67 +180,67 @@
         <form id="resume-form">
             <div class="form-group">
                 <label for="edit-name">Name</label>
-                <input type="text" id="edit-name" name="name" value="{{ resume.name|default:'Anvar Sharipov' }}">
+                <input type="text" id="edit-name" name="name" value="{{ resume.name }}">
             </div>
             <div class="form-group">
                 <label for="edit-contact-en">Contact Info (EN)</label>
-                <input type="text" id="edit-contact-en" name="contact-en" value="{{ resume.contact_info_en|default:'Istanbul, Turkey 34520 | +905525821497' }}">
+                <input type="text" id="edit-contact-en" name="contact-en" value="{{ resume.contact_info_en }}">
             </div>
             <div class="form-group">
                 <label for="edit-contact-ru">Contact Info (RU)</label>
-                <input type="text" id="edit-contact-ru" name="contact-ru" value="{{ resume.contact_info_ru|default:'Стамбул, Турция 34520 | +905525821497' }}">
+                <input type="text" id="edit-contact-ru" name="contact-ru" value="{{ resume.contact_info_ru }}">
             </div>
             <div class="form-group">
                 <label for="edit-email">Email</label>
-                <input type="text" id="edit-email" name="email" value="{{ resume.email|default:'fulani.dev@gmail.com' }}">
+                <input type="text" id="edit-email" name="email" value="{{ resume.email }}">
             </div>
             <div class="form-group">
                 <label for="edit-websites">Websites (separated by , )</label>
-                <input type="text" id="edit-websites" name="websites" value="{% if websites %}{% for website in websites %}{{ website.url }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}https://github.com/Mr-Fulani, https://t.me/Mr_Fulani{% endif %}">
+                <input type="text" id="edit-websites" name="websites" value="{% if websites %}{% for website in websites %}{{ website.url }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-summary-en">Summary (EN)</label>
-                <textarea id="edit-summary-en" name="summary-en">{{ resume.summary_en|default:'Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.' }}</textarea>
+                <textarea id="edit-summary-en" name="summary-en">{{ resume.summary_en }}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-summary-ru">Summary (RU)</label>
-                <textarea id="edit-summary-ru" name="summary-ru">{{ resume.summary_ru|default:'Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.' }}</textarea>
+                <textarea id="edit-summary-ru" name="summary-ru">{{ resume.summary_ru }}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-skills">Skills (separated by , )</label>
-                <textarea id="edit-skills" name="skills">{% if skills %}{% for skill in skills %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Linux Environments, Python, Django (DRF), FastAPI, Flask, Docker, API Development, SQLAlchemy{% endif %}</textarea>
+                <textarea id="edit-skills" name="skills">{% if skills %}{% for skill in skills %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-en">Work History 1 Title (EN)</label>
-                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="{% if work_history.0 %}{{ work_history.0.title_en }}{% else %}Private Practice / Freelancing Remote{% endif %}">
+                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="{% if work_history.0 %}{{ work_history.0.title_en }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-ru">Work History 1 Title (RU)</label>
-                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="{% if work_history.0 %}{{ work_history.0.title_ru }}{% else %}Частная практика / Фриланс удалённо{% endif %}">
+                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="{% if work_history.0 %}{{ work_history.0.title_ru }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-period-en">Work History 1 Period (EN)</label>
-                <input type="text" id="edit-job1-period-en" name="job1-period-en" value="{% if work_history.0 %}{{ work_history.0.period_en }}{% else %}01/2023 to Current{% endif %}">
+                <input type="text" id="edit-job1-period-en" name="job1-period-en" value="{% if work_history.0 %}{{ work_history.0.period_en }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-period-ru">Work History 1 Period (RU)</label>
-                <input type="text" id="edit-job1-period-ru" name="job1-period-ru" value="{% if work_history.0 %}{{ work_history.0.period_ru }}{% else %}01/2023 по настоящее время{% endif %}">
+                <input type="text" id="edit-job1-period-ru" name="job1-period-ru" value="{% if work_history.0 %}{{ work_history.0.period_ru }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-en">Work History 1 Company (EN)</label>
-                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="{% if work_history.0 %}{{ work_history.0.company_en }}{% else %}Upwork.com{% endif %}">
+                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="{% if work_history.0 %}{{ work_history.0.company_en }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-ru">Work History 1 Company (RU)</label>
-                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="{% if work_history.0 %}{{ work_history.0.company_ru }}{% else %}Upwork.com{% endif %}">
+                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="{% if work_history.0 %}{{ work_history.0.company_ru }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-en">Work History 1 Responsibilities (EN, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_en }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}Self-motivated, with a strong sense of personal responsibility.; Skilled at working independently and collaboratively in a team environment.{% endif %}</textarea>
+                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_en }}{% if not forloop.last %}; {% endif %}{% endfor %}{% endif %}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-ru">Work History 1 Responsibilities (RU, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_ru }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}Самомотивирован, с сильным чувством личной ответственности.; Умение работать самостоятельно и в команде.{% endif %}</textarea>
+                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_ru }}{% if not forloop.last %}; {% endif %}{% endfor %}{% endif %}</textarea>
             </div>
             <div class="form-actions">
                 <button type="submit" class="save-btn">Save Changes</button>

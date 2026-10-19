@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else if (langKey === 'personal_info.name') {
                 // Специальная обработка для имени
-                el.textContent = document.getElementById('edit-name') ? document.getElementById('edit-name').value : 'Anvar Sharipov';
+                el.textContent = document.getElementById('edit-name') ? document.getElementById('edit-name').value : '';
             }
         });
         console.log('Language switched to:', lang);
