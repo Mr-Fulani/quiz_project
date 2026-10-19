@@ -54,7 +54,6 @@ docker compose down
 | Переменная | Обязательна | Назначение |
 |---|---|---|
 | `REDIS_PASSWORD` | **да** — без неё `docker-compose.local-prod.yml` не стартует | пароль Redis (`requirepass`); подставляется в `REDIS_URL`/`CELERY_*`. Используйте символы, безопасные для URL (без `@ : / ?`) |
-| `TELEGRAM_WEBHOOK_SECRET` | да, если используется webhook Telegram на `/api/webhooks/telegram/` | при пустом значении все запросы отклоняются |
 | `WALLET_PAY_API_KEY` | да, если включён Wallet Pay | при пустом значении webhook Wallet Pay отклоняется |
 | `COINGATE_API_TOKEN` | да, если включён CoinGate | callback CoinGate проверяется запросом статуса заказа к API |
 | `SOCIAL_MEDIA_CALLBACK_SECRET` | нет | если задан — Make.com должен присылать его в заголовке `X-Callback-Secret` |

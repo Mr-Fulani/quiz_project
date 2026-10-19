@@ -710,7 +710,6 @@ TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', '')  # Будет формироваться автоматически, но можно переопределить
-TELEGRAM_WEBHOOK_SECRET = os.getenv('TELEGRAM_WEBHOOK_SECRET', '')
 # Необязательный общий секрет для callback'ов Make.com (заголовок X-Callback-Secret)
 SOCIAL_MEDIA_CALLBACK_SECRET = os.getenv('SOCIAL_MEDIA_CALLBACK_SECRET', '')
 # Срок действия подписанного Telegram initData Mini App (секунды)

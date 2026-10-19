@@ -1,5 +1,4 @@
 from django.shortcuts import render
-import json
 import hmac
 import hashlib
 from django.conf import settings
@@ -8,7 +7,6 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status, viewsets
-from .services import TelegramWebhookHandler
 from .models import Webhook
 from .serializers import WebhookSerializer
 from tenants.mixins import TenantFilteredViewMixin
@@ -17,73 +15,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Create your views here.
-
-class TelegramWebhookView(APIView):
-    """
-    Обработчик вебхуков от Telegram.
-    
-    Проверяет подпись запроса и обрабатывает различные типы обновлений:
-    - Новые сообщения
-    - Ответы на вопросы
-    - Команды бота
-    - Действия в группах/каналах
-    """
-    permission_classes = []  # Публичный endpoint
-
-    def post(self, request, *args, **kwargs):
-        # Проверяем подпись запроса
-        if not self._verify_telegram_signature(request):
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        try:
-            handler = TelegramWebhookHandler()
-            update = json.loads(request.body)
-            handler.process_update(update)
-            return Response({'status': 'ok'})
-        except json.JSONDecodeError:
-            return Response(
-                {'error': 'Invalid JSON'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except Exception as e:
-            return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def _verify_telegram_signature(self, request):
-        """Проверяет секретный токен запроса от Telegram."""
-        expected_token = settings.TELEGRAM_WEBHOOK_SECRET
-        if not expected_token:
-            # Пустой секрет совпал бы с пустым заголовком — отклоняем
-            logger.error("TELEGRAM_WEBHOOK_SECRET не задан — Telegram webhook отклонён")
-            return False
-
-        received_token = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
-        return hmac.compare_digest(received_token, expected_token)
-
-class TelegramWebhookSetupView(APIView):
-    """
-    Настройка вебхука в Telegram Bot API.
-    Только для администраторов.
-    """
-    permission_classes = [permissions.IsAdminUser]
-
-    def post(self, request):
-        try:
-            handler = TelegramWebhookHandler()
-            success = handler.setup_webhook()
-            if success:
-                return Response({'status': 'webhook setup successful'})
-            return Response(
-                {'error': 'Failed to setup webhook'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        except Exception as e:
-            return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 class WebhookViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
     """

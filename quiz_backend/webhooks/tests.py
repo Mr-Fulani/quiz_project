@@ -17,21 +17,10 @@ class WebhookSecurityTests(TestCase):
         self.tenant_b = Tenant.objects.create(slug='wh-b', name='B', domain='wh-b.example.com', site_name='B')
         self.host_a = {'HTTP_HOST': 'wh-a.example.com'}
 
-    @override_settings(TELEGRAM_WEBHOOK_SECRET='')
-    def test_telegram_webhook_rejects_everything_without_configured_secret(self):
-        response = self.client.post(
-            '/api/webhooks/telegram/', data='{}', content_type='application/json',
-            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN='', **self.host_a,
-        )
-        self.assertEqual(response.status_code, 401)
-
-    @override_settings(TELEGRAM_WEBHOOK_SECRET='s3cret')
-    def test_telegram_webhook_rejects_wrong_secret(self):
-        response = self.client.post(
-            '/api/webhooks/telegram/', data='{}', content_type='application/json',
-            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN='wrong', **self.host_a,
-        )
-        self.assertEqual(response.status_code, 401)
+    def test_django_telegram_webhook_stub_removed(self):
+        # Бот работает через polling; заглушка вебхука в Django удалена (setWebhook сломал бы polling)
+        response = self.client.post('/api/webhooks/telegram/', data='{}', content_type='application/json', **self.host_a)
+        self.assertEqual(response.status_code, 404)
 
     def test_regular_user_cannot_register_webhook(self):
         user = CustomUser.objects.create_user(username='regular', password='password123', tenant=self.tenant_a)
