@@ -757,17 +757,12 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             avatar_url = obj.avatar.url
             # Декодируем URL
             decoded_url = unquote(avatar_url)
-            
-            logger.info(f"[DEBUG AVATAR] raw avatar_url: {avatar_url}")
-            logger.info(f"[DEBUG AVATAR] decoded_url: {decoded_url}")
 
             if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
-                logger.info(f"[DEBUG AVATAR] returning decoded: {decoded_url}")
                 return decoded_url
 
             request = self.context.get('request')
             if request:
-                logger.info(f"[DEBUG AVATAR] all request headers: {dict(request.headers)}")
                 forwarded_host = request.headers.get('X-Forwarded-Host')
                 host_header = request.headers.get('Host')
                 x_forwarded_port = request.headers.get('X-Forwarded-Port')
@@ -778,13 +773,11 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                     port = x_forwarded_port or '8080'
                     scheme = 'http'  # Локально используем http
                     final_url = f"{scheme}://{host}:{port}{avatar_url}"
-                    logger.info(f"[DEBUG AVATAR] Localhost detected, using: {final_url}")
                 elif forwarded_host:
                     # Для продакшена и ngrok используем forwarded_host
                     host = forwarded_host
                     scheme = request.headers.get('X-Forwarded-Proto', 'https')
                     final_url = f"{scheme}://{host}{avatar_url}"
-                    logger.info(f"[DEBUG AVATAR] Using forwarded host: {final_url}")
                 elif host_header and not host_header.startswith('localhost'):
                     host = host_header
                     scheme = request.headers.get('X-Forwarded-Proto', 'https')
@@ -794,21 +787,19 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                     host = 'mini.quiz-code.com'
                     scheme = 'https'
                     final_url = f"{scheme}://{host}{avatar_url}"
-                
-                logger.info(f"[DEBUG AVATAR] headers: forwarded_host={forwarded_host}, host_header={host_header}, final_host={host}, scheme={scheme}")
-                logger.info(f"[DEBUG AVATAR] final_url: {final_url}")
+
                 return final_url
             return avatar_url
-        
+
         # Если загруженного аватара нет, используем URL из Telegram
         if obj.telegram_photo_url:
-            logger.info(f"[DEBUG AVATAR] Using telegram_photo_url: {obj.telegram_photo_url}")
             return obj.telegram_photo_url
-        
+
         # Если нет главного аватара и telegram_photo_url, используем первую аватарку из галереи как fallback
-        avatars = obj.avatars.all().order_by('order')
-        if avatars.exists():
-            first_avatar = avatars.first()
+        # (avatars.all() без order_by — чтобы использовать prefetch; сортируем в Python)
+        avatars = sorted(obj.avatars.all(), key=lambda avatar: avatar.order)
+        if avatars:
+            first_avatar = avatars[0]
             if first_avatar.image and hasattr(first_avatar.image, 'url'):
                 avatar_url = first_avatar.image.url
                 decoded_url = unquote(avatar_url)
@@ -859,8 +850,10 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         """
         if not obj.is_profile_public:
             return None
-        return obj.calculate_rating()
-    
+        # rating уже посчитан аннотацией в queryset топа; иначе — отдельный запрос
+        annotated = getattr(obj, 'rating', None)
+        return (annotated or 0) if hasattr(obj, 'rating') else obj.calculate_rating()
+
     def get_quizzes_completed(self, obj):
         """
         Возвращает количество завершенных квизов для Mini App пользователя.
@@ -868,8 +861,10 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         """
         if not obj.is_profile_public:
             return None
+        if hasattr(obj, 'completed_count'):
+            return obj.completed_count
         return obj.quizzes_completed
-    
+
     def get_average_score(self, obj):
         """
         Возвращает средний балл (процент успешности) для Mini App пользователя.
@@ -877,6 +872,10 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         """
         if not obj.is_profile_public:
             return None
+        if hasattr(obj, 'completed_count') and hasattr(obj, 'attempts_count'):
+            if not obj.attempts_count:
+                return 0.0
+            return round((obj.completed_count / obj.attempts_count) * 100, 1)
         return obj.average_score
     
     def get_is_online(self, obj):
@@ -921,9 +920,10 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             data['age'] = None
             data['gender'] = None
             data['grade'] = None
+            data['birth_date'] = None  # раньше дата рождения приватного профиля отдавалась в топе
             # last_seen можно оставить, но лучше скрыть для консистентности
             data['last_seen'] = None
-        
+
         return data
 
 

@@ -1143,14 +1143,17 @@ class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
         """
         Возвращает топ-N пользователей Mini App, отсортированных по рейтингу с поддержкой фильтрации.
         """
-        # Аннотируем пользователей их рейтингом, используя метод из модели MiniAppUser
+        # Рейтинг и статистику считаем аннотациями в ОДНОМ annotate() (общий JOIN по task_statistics,
+        # иначе суммы раздуваются) — сериализатор берёт их отсюда, а не делает запросы на каждого
+        from django.db.models import Prefetch
+        from accounts.models import UserAvatar
         queryset = super().get_queryset().annotate(
-            rating=MiniAppUser.get_rating_annotation()
+            rating=MiniAppUser.get_rating_annotation(),
+            completed_count=Count('task_statistics', filter=Q(task_statistics__successful=True), distinct=True),
+            attempts_count=Count('task_statistics', distinct=True),
+        ).prefetch_related(
+            Prefetch('avatars', queryset=UserAvatar.objects.order_by('order'))
         )
-        
-        tenant = getattr(self.request, 'tenant', None)
-        logger.info(f"[MiniAppTopUsers] Request tenant: {tenant.slug if tenant else 'None'}")
-        logger.info(f"[MiniAppTopUsers] Initial queryset count for tenant: {queryset.count()}")
         
         # Применяем фильтры
         gender = self.request.query_params.get('gender')
@@ -1197,23 +1200,14 @@ class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
             
             # Фильтруем по ManyToMany полю - он находит всех пользователей, у которых есть хотя бы одна технология с таким названием
             # Также проверяем старое поле programming_language для обратной совместимости
-            queryset = queryset.filter(
+            # Фильтр через подзапрос по id, а не JOIN по M2M: иначе строки пользователя
+            # размножатся и рейтинг/статистика в аннотациях будут завышены
+            matching_ids = MiniAppUser.objects.filter(
                 Q(programming_languages__name__iexact=language_pref_cleaned) |
                 Q(programming_language__name__iexact=language_pref_cleaned)
-            ).distinct()
-            
-            # Логируем для отладки
-            logger.info(f"🔍 После фильтрации по технологии '{language_pref_cleaned}': {queryset.count()} пользователей")
-            
-            # Дополнительная диагностика: проверяем, какие технологии есть в базе
-            if queryset.count() == 0:
-                # Если ничего не найдено, проверяем похожие названия для диагностики
-                similar_topics = Topic.objects.filter(
-                    name__icontains=language_pref_cleaned[:3]  # Первые 3 символа для поиска похожих
-                ).values_list('name', flat=True)[:5]
-                if similar_topics:
-                    logger.warning(f"⚠️ По запросу '{language_pref_cleaned}' ничего не найдено. Похожие темы в базе: {list(similar_topics)}")
-        
+            ).values('id')
+            queryset = queryset.filter(id__in=matching_ids)
+
         if online_only == 'true':
             # Фильтрация только онлайн пользователей (последний визит в течение 5 минут)
             from datetime import timedelta
