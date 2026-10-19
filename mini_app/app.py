@@ -12,6 +12,7 @@ from routers import pages as pages_router
 from middleware.language_middleware import LanguageMiddleware
 from core.telegram_auth import init_data_for_read, request_host_headers, request_init_data, tenant_host_headers
 from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
+from core.config import settings
 
 # Создаём экземпляр FastAPI (debug=False: трейсбеки не отдаются клиенту)
 app = FastAPI(debug=False)
@@ -57,6 +58,7 @@ app.include_router(api_router.router)
 # Делаем функции get_js_url и get_css_url доступными в шаблонах Jinja2
 pages_router.templates.env.globals['get_js_url'] = get_js_url
 pages_router.templates.env.globals['get_css_url'] = get_css_url
+pages_router.templates.env.globals['dev_test_telegram_id'] = settings.DEV_TEST_TELEGRAM_ID
 
 # Монтируем папку static как /static
 current_dir = os.path.dirname(__file__)

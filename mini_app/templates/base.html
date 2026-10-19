@@ -45,6 +45,7 @@
 
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    {% if dev_test_telegram_id %}<script>window.DEV_TEST_TELEGRAM_ID = {{ dev_test_telegram_id|tojson }};</script>{% endif %}
 
     <!-- Подписанный Telegram initData отправляется со всеми запросами на свой домен:
          сервер определяет пользователя только по нему (telegram_id из параметров не доверяется) -->
@@ -530,11 +531,15 @@
                     localStorage.getItem('test_mode') === 'true';
                 
                 if (isDevMode) {
-                    // Получаем тестовый telegram_id из URL, localStorage или используем дефолтный (Mr_Fulani)
+                    // Получаем тестовый telegram_id из URL, localStorage или DEV_TEST_TELEGRAM_ID из .env
                     const urlParams = new URLSearchParams(window.location.search);
                     const testIdFromUrl = urlParams.get('test_telegram_id');
                     const testIdFromStorage = localStorage.getItem('test_telegram_id');
-                    const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || '975113235'); // Mr_Fulani из БД
+                    const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || window.DEV_TEST_TELEGRAM_ID);
+                    if (!testTelegramId) {
+                        console.warn('🔧 ТЕСТОВЫЙ РЕЖИМ: укажите ?test_telegram_id=... или DEV_TEST_TELEGRAM_ID в .env мини-аппа');
+                        return;
+                    }
                     
                     console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Имитируем Telegram WebApp для локальной разработки.');
                     console.log('   Hostname:', window.location.hostname);
@@ -667,11 +672,15 @@
                         localStorage.getItem('test_mode') === 'true';
                     
                     if (isDevMode) {
-                        // Получаем тестовый telegram_id из URL, localStorage или используем дефолтный (Mr_Fulani)
+                        // Получаем тестовый telegram_id из URL, localStorage или DEV_TEST_TELEGRAM_ID из .env
                         const urlParams = new URLSearchParams(window.location.search);
                         const testIdFromUrl = urlParams.get('test_telegram_id');
                         const testIdFromStorage = localStorage.getItem('test_telegram_id');
-                        const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || '975113235'); // Mr_Fulani из БД
+                        const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || window.DEV_TEST_TELEGRAM_ID);
+                        if (!testTelegramId) {
+                            console.warn('🔧 [MOCK] укажите ?test_telegram_id=... или DEV_TEST_TELEGRAM_ID в .env мини-аппа');
+                            return;
+                        }
                         
                         console.log('═══════════════════════════════════════════════════');
                         console.log('🔧 [MOCK] Создаем моковые данные для браузера...');

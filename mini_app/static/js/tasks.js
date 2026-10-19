@@ -383,8 +383,12 @@ if (window.TaskManagerAlreadyLoaded) {
                 // Затем проверяем localStorage
                 const testIdFromStorage = localStorage.getItem('test_telegram_id');
                 
-                // Используем ID из URL, localStorage или дефолтный
-                const testTelegramId = testIdFromUrl || testIdFromStorage || 975113235; // Mr_Fulani из БД
+                // Используем ID из URL, localStorage или DEV_TEST_TELEGRAM_ID из .env
+                const testTelegramId = testIdFromUrl || testIdFromStorage || window.DEV_TEST_TELEGRAM_ID;
+                if (!testTelegramId) {
+                    console.error('❌ ТЕСТОВЫЙ РЕЖИМ: укажите ?test_telegram_id=... или DEV_TEST_TELEGRAM_ID в .env мини-аппа');
+                    return null;
+                }
                 
                 console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Используем fallback telegram_id для браузера');
                 console.log('   Hostname:', window.location.hostname);
@@ -1394,10 +1398,10 @@ if (window.TaskManagerAlreadyLoaded) {
                     initData: mockInitData,
                     initDataUnsafe: {
                         user: {
-                            id: 975113235, // ID пользователя Mr_Fulani
-                            first_name: 'Mr',
-                            last_name: 'Fulani',
-                            username: 'Mr_Fulani'
+                            id: Number(window.DEV_TEST_TELEGRAM_ID) || null,
+                            first_name: 'Test',
+                            last_name: 'User',
+                            username: 'testuser'
                         }
                     },
                     ready: function() {

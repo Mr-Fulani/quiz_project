@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Только для вызовов Django вне запроса пользователя; обычно хост берётся из запроса
     MINI_APP_DOMAIN: str = os.getenv('MINI_APP_DOMAIN', '')
 
+    # telegram_id пользователя для отладки в браузере без Telegram (localhost/ngrok/test_mode)
+    DEV_TEST_TELEGRAM_ID: str = os.getenv('DEV_TEST_TELEGRAM_ID', '')
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'
