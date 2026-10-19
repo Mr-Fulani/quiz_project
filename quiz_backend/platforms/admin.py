@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django import forms
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.urls import path
 from django.template.response import TemplateResponse
@@ -184,9 +185,14 @@ class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def send_post_view(self, request):
         """
         Представление для отправки поста.
+        Каналы и подписчики — только тенанта текущего пользователя.
         """
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        channels_queryset = self.get_queryset(request)
+        current_tenant = self._get_current_tenant(request)
         if request.method == 'POST':
-            form = TelegramPostForm(request.POST, request.FILES)
+            form = TelegramPostForm(request.POST, request.FILES, channels_queryset=channels_queryset)
             if form.is_valid():
                 try:
                     # Получаем данные из формы
@@ -259,7 +265,8 @@ class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                             photos=photos_list,
                             gifs=gifs_list,
                             videos=videos_list,
-                            buttons=buttons if buttons else None
+                            buttons=buttons if buttons else None,
+                            tenant=current_tenant,
                         )
                     
                     # Формируем сообщения об успехе
@@ -293,8 +300,8 @@ class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     logger.error(f"Ошибка при отправке поста: {e}")
                     messages.error(request, f'Ошибка при отправке поста: {str(e)}')
         else:
-            form = TelegramPostForm()
-        
+            form = TelegramPostForm(channels_queryset=channels_queryset)
+
         context = {
             'title': _('Отправить пост в Telegram'),
             'form': form,
@@ -331,8 +338,11 @@ class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         topic = form.cleaned_data['topic']
         new_topic_name = form.cleaned_data['new_topic_name']
         if new_topic_name:
+            # Новая тема — в тенанте канала (или текущего пользователя), а не глобальная
+            topic_tenant = getattr(obj, 'tenant', None) or self._get_current_tenant(request)
             topic, created = Topic.objects.get_or_create(
                 name=new_topic_name,
+                tenant=topic_tenant,
                 defaults={'name': new_topic_name}
             )
         obj.topic_id = topic  # Присваиваем объект Topic, как ожидает ForeignKey
@@ -350,7 +360,14 @@ class TelegramPostForm(forms.Form):
         widget=forms.SelectMultiple(attrs={'size': '8', 'class': 'channels-select'}),
         required=False
     )
-    
+
+    def __init__(self, *args, channels_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Только каналы тенанта текущего пользователя; без явного queryset — ни одного
+        self.fields['channels'].queryset = (
+            channels_queryset if channels_queryset is not None else TelegramGroup.objects.none()
+        )
+
     send_to_bot_subscribers = forms.BooleanField(
         required=False,
         label=_('Отправить подписчикам бота'),

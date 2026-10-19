@@ -732,12 +732,14 @@ def send_post_to_bot_subscribers(
     photos=None,
     gifs=None,
     videos=None,
-    buttons: Optional[List[Dict[str, str]]] = None
+    buttons: Optional[List[Dict[str, str]]] = None,
+    tenant=None,
 ) -> int:
     """
-    Отправляет пост всем активным подписчикам бота в личные сообщения.
-    
+    Отправляет пост всем активным подписчикам бота тенанта в личные сообщения.
+
     Args:
+        tenant: Тенант, чьим подписчикам отправляется пост (обязателен)
         text (str, optional): Текст поста
         photos: Список файлов изображений
         gifs: Список файлов GIF
@@ -747,6 +749,11 @@ def send_post_to_bot_subscribers(
     Returns:
         int: Количество успешно отправленных сообщений
     """
+    if tenant is None:
+        # Без тенанта рассылка ушла бы пользователям всех тенантов
+        logger.error("send_post_to_bot_subscribers вызван без тенанта — рассылка отменена")
+        return 0
+
     # Сохраняем все файлы во временные файлы один раз
     temp_photo_files = []
     temp_gif_files = []
@@ -786,7 +793,7 @@ def send_post_to_bot_subscribers(
         # Получаем всех пользователей бота (всех, кто когда-либо взаимодействовал с ботом)
         # Для отправки подписчикам бота используем всех пользователей с telegram_id,
         # так как subscription_status относится к подпискам на каналы, а не к подписке на бота
-        subscribers = TelegramUser.objects.filter(telegram_id__isnull=False)
+        subscribers = TelegramUser.objects.filter(telegram_id__isnull=False, tenant=tenant)
         total_subscribers = subscribers.count()
         
         if total_subscribers == 0:
