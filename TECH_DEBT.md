@@ -24,6 +24,8 @@
 - [ ] 🟢 Прогнать `tasks/tests` и `topics/tests` в Docker (локально без Docker `tasks/tests` не запускались:
       требуют S3/Telegram/генерации изображений). `topics/tests/test_normalize_subtopics.py` на SQLite без
       миграций падает на уникальном индексе `(topic, name)` — проверить на Postgres.
+- [ ] 🟠 При деплое выполнить миграции (`blog 0034` — новый `upload_to` вложений) и `collectstatic`
+      (изменён `quiz_styles.css`), перезагрузить nginx (новые location для вложений).
 - [ ] 🟡 Перед `git rm --cached media/ staticfiles/` (см. «Мёртвый код») — решить, как деплоите: если сервер
       делает `git pull` в рабочую копию с `./media`, удаление из индекса **удалит эти файлы на сервере** при pull.
       Сначала сделать бэкап `media/` или перенести медиа вне репозитория.
@@ -49,11 +51,11 @@
       `is_admin` по `telegram_id` без тенанта (админ одного тенанта — админ бота для всех).
 - [ ] 🟠 Celery и сервисы публикации используют глобальный `TELEGRAM_BOT_TOKEN`
       (`tasks/services/telegram_service.py`, `platforms/services.py`, `feedback/services.py`, …).
-- [ ] 🟠 Исходящие вебхуки глобальные: `webhooks/services.py`, `config/tasks.py`
-      (`Webhook.objects.filter(is_active=True)`) — задачи всех тенантов уходят во все вебхуки.
-      Так же `SocialMediaCredentials`, `DefaultLink`, `MainFallbackLink`, `GlobalWebhookLink`.
-- [ ] 🟠 `platforms/admin.py` `send_post_view`: каналы — `TelegramGroup.objects.all()`, рассылка
-      подписчикам всех тенантов.
+- [ ] 🟡 Вебхуки, ссылки, credentials соцсетей с `tenant=NULL` считаются **общими** для всех тенантов
+      (`tenants/scoping.py`) — чтобы не сломать текущую публикацию. Проставьте `tenant` в админке у записей,
+      которые относятся к одному сайту. `DefaultLink` (unique `language, topic`) и `MainFallbackLink`
+      (unique `language`) глобально уникальны — для своих ссылок у разных тенантов нужна миграция на
+      `UniqueConstraint(tenant, …)`.
 - [ ] 🟡 ~44 места ищут `MiniAppUser` по `telegram_id` без тенанта (`tasks/comment_views.py`,
       `tasks/notification_service.py`, …): `.get()` даст MultipleObjectsReturned, `.first()` — чужой профиль.
 - [ ] 🟡 Аналитика Mini App (`accounts/api/mini_app_analytics.py`) считает донаты/подписки/активность
@@ -61,10 +63,9 @@
 - [ ] 🟡 Письма с формы контактов уходят на глобальный `EMAIL_ADMIN`, а не `tenant.contact_email`.
 
 ### Django
-- [ ] 🟠 Приватные медиа публичны: `message_attachments/%Y/%m/%d/<имя>` раздаётся nginx `/media/` без
-      проверки; то же `feedback_images/`, `task_comments/`. План: UUID-имена, `internal` location +
-      `X-Accel-Redirect` из `download_attachment`, либо приватный R2-бакет с presigned URL.
-      Плюс `Content-Disposition` в `download_attachment` не экранирует имя файла.
+- [ ] 🟡 Вложения сообщений закрыты; публичными остаются `feedback_images/`, `feedback_reply_images/`,
+      `task_comments/` (картинки обратной связи и комментариев) — сделать по образцу `download_attachment`
+      (X-Accel-Redirect + `^~` location с 404 в nginx).
 - [ ] 🟠 Вход не привязан к тенанту: `CustomUser.username` уникален глобально, логин тенанта A работает на B.
       Нужен tenant-aware backend + `UniqueConstraint(tenant, username)` (миграция данных).
 - [ ] 🟡 Sitemaps (`blog/sitemaps.py`) и robots берут домен из `Site #1` и содержат объекты всех тенантов.
@@ -93,9 +94,6 @@
 - [ ] 🟠 mini_app вызывает `/api/subtopics/<id>/` дважды за загрузку страницы задач
       (`mini_app/routers/pages.py` `get_subtopic_detail` и `get_tasks_for_subtopic`); первый вызов без `level`
       грузит все задачи подтемы и почти выбрасывается. (N+1 внутри самого эндпоинта исправлен.)
-- [ ] 🔴 `SubtopicWithTasksSerializer` — ~13 запросов на подтему; аннотация `tasks_count` не используется.
-- [ ] 🔴 Топ пользователей Mini App — сотни запросов: `get_rating` пересчитывает аннотированный `rating`,
-      `quizzes_completed`/`average_score` — property с COUNT, логи заголовков на каждого пользователя.
 - [ ] 🟠 `blog/context_processors.py` `personal_info` — тяжёлая агрегация на каждой странице без кэша.
 - [ ] 🟠 `dynamic_seo_context` вызывает `connection.close()` (ломает `CONN_MAX_AGE`), лишние запросы;
       в тестах логирует `name 'connection' is not defined` — проверить импорт.
@@ -114,7 +112,7 @@
 
 ## 🔎 SEO
 
-- [ ] 🔴 Текст вопроса квиза только на картинке (`quiz_subtopic.html`) — для поисковика thin content.
+- [ ] 🟡 `quiz_subtopic.html` добавляет второй viewport с `user-scalable=no` (минус доступности).
 - [ ] 🟠 Fuzzy-поиск тем/подтем (`iregex`) плодит дубли URL; пустые страницы отдают 200 (soft 404);
       `difficulty` принимает любое значение.
 - [ ] 🟠 Slug без транслитерации (`slugify` по кириллице даёт пустой slug).
@@ -177,3 +175,15 @@
 - Админка: картинка ответа на обратную связь больше не дублируется; пост с медиа уходит во все каналы.
 - Производительность: `subtopic_detail_simple` — фиксированное число запросов вместо 2 на задачу
   (и статистика пользователя ищется в его тенанте).
+
+## ✅ Сделано (2026-10-19)
+
+- Исходящие вебхуки, `GlobalWebhookLink`, `DefaultLink`/`MainFallbackLink`, credentials соцсетей —
+  только тенанта задачи (+ общие без тенанта); сводная отправка разбивается по тенантам.
+- «Отправить пост» в админке каналов: только каналы и подписчики бота своего тенанта, нужно право на изменение.
+- Вложения личных сообщений: прямой путь в nginx закрыт, раздача через `download_attachment` + X-Accel-Redirect,
+  случайные имена файлов, корректный `Content-Disposition`, доступ — участникам, staff тенанта, суперпользователю.
+- Подтемы темы в mini_app: статистика тремя запросами на весь список вместо ~13 на подтему.
+- Топ пользователей: рейтинг/статистика аннотациями, без запросов на пользователя; фильтр по технологии больше
+  не завышает рейтинг; дата рождения приватных профилей скрыта.
+- SEO: текст вопроса квиза в HTML, alt картинки из вопроса.

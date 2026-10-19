@@ -125,8 +125,10 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 > ⚠️ **Состояние на 2026-10-18: описанное ниже — целевая схема, а не текущий код.**
 > Переменная `TENANT_SLUG` задаётся в `docker-compose.yml`, но ни бот (`bot/`), ни mini_app, ни Celery её не читают.
 > Бот работает с одним глобальным `TELEGRAM_BOT_TOKEN` и не фильтрует данные по тенанту; Celery-задачи и сервисы
-> публикации используют глобальный токен и глобальные `Webhook`/`SocialMediaCredentials`/`DefaultLink`.
-> Подробности и план — в `TECH_DEBT.md` (раздел «Изоляция: бот и Celery»).
+> публикации используют глобальный токен Telegram.
+> `Webhook`, `GlobalWebhookLink`, `DefaultLink`, `MainFallbackLink`, `SocialMediaCredentials` выбираются по тенанту
+> задачи через `tenants/scoping.for_tenant_or_shared`: записи тенанта + общие (`tenant=NULL`), чужие — никогда.
+> Подробности и план — в `TECH_DEBT.md` (раздел «Бот и Celery»).
 
 Так как фоновые Worker'ы (Celery) и асинхронные скрипты Telegram-ботов не зависят от HTTP запросов, они не имеют `request.get_host()`.
 Поэтому для них переменная окружения `TENANT_SLUG` пробрасывается прямо в файле `docker-compose.yml`.
