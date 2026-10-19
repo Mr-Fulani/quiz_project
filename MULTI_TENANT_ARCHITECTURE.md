@@ -95,11 +95,17 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         `reporter_telegram_id` в URL, теле или query должны совпадать с проверенным. `IsMiniAppUser` — то же для
         любых методов (аналитика), `IsMiniAppUserByPk` — pk в URL это telegram_id, `IsMiniAppFeedbackAuthor` — поле `user_id`.
     *   `POST /api/accounts/miniapp-users/auth/verify/` возвращает проверенного пользователя.
+    *   Приватное чтение (by-telegram, statistics, me) — `IsMiniAppUser`/`IsMiniAppUserByPkStrict`;
+        прогресс в публичных эндпоинтах тем/задач — через `verified_telegram_id_param` (без подписи — как аноним).
     *   Новый Mini App эндпоинт с записью должен использовать один из этих permission-классов.
 *   mini_app (FastAPI): `mini_app/core/telegram_auth.py`
     *   Зависимость `verified_telegram_user` проверяет initData через Django `/auth/verify/` (кэш 5 минут)
         и отдаёт пользователя; `ensure_same_user()` — 403 при несовпадении `telegram_id` из пути.
     *   `get_proxy_headers()` пересылает `X-Telegram-Init-Data` в Django. `X-Tenant-Slug` больше не пересылается.
+    *   Серверный рендер: httpOnly-cookie `tg_init_data` (ставится в `/api/verify-init-data`) для GET-запросов
+        попадает в contextvar `request_init_data` и автоматически добавляется `DjangoAPIService._make_request`.
+*   Приватные файлы (вложения сообщений, картинки обратной связи) раздаются через `config/protected_media.py`
+    (X-Accel-Redirect на internal `/protected-media/`); прямые пути в `/media/` закрыты в nginx.
 *   Важно: большинство `/api/*` на mini-домене nginx проксирует **прямо в Django** — защита живёт в Django,
     FastAPI-проверка — дополнительный слой для его собственных эндпоинтов.
 

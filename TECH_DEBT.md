@@ -35,13 +35,9 @@
 ## 🔐 Безопасность и изоляция данных
 
 ### Mini App
-- [ ] 🟠 Чтение без initData всё ещё открыто: `GET /api/accounts/miniapp-users/by-telegram/<id>/`,
-      `/profile/by-telegram/<id>/`, `/miniapp-users/statistics/?telegram_id=`, `GET /miniapp-users/` (список с
-      `birth_date`, `gender`). Причина: серверный рендер страниц mini_app (`routers/pages.py`) берёт
-      `telegram_id` из cookie/заголовка. План: выдавать подписанную сессию после `verify-init-data`
-      (httpOnly cookie) и требовать её на чтении приватных данных; публичный профиль — через
-      `PublicMiniAppUserSerializer` с учётом `is_profile_public`.
-- [ ] 🟡 `mini_app/routers/pages.py` доверяет `telegram_id` из cookie/`X-Telegram-User-Id` (только чтение).
+- [ ] 🟢 `mini_app/routers/pages.py` всё ещё передаёт в Django `telegram_id` из cookie/`X-Telegram-User-Id` —
+      безопасно (Django учитывает его только при совпадении с подписью), но можно брать id из проверенного
+      пользователя. `pages.py` `update_profile` — пустая заглушка.
 - [ ] 🟡 `LanguageMiddleware` меняет язык на глобальном синглтоне `localization_service` — гонка между
       запросами (пользователь может получить чужой язык).
 - [ ] 🟢 Логи mini_app пишут полные профили и заголовки запросов (PII).
@@ -63,9 +59,6 @@
 - [ ] 🟡 Письма с формы контактов уходят на глобальный `EMAIL_ADMIN`, а не `tenant.contact_email`.
 
 ### Django
-- [ ] 🟡 Вложения сообщений закрыты; публичными остаются `feedback_images/`, `feedback_reply_images/`,
-      `task_comments/` (картинки обратной связи и комментариев) — сделать по образцу `download_attachment`
-      (X-Accel-Redirect + `^~` location с 404 в nginx).
 - [ ] 🟠 Вход не привязан к тенанту: `CustomUser.username` уникален глобально, логин тенанта A работает на B.
       Нужен tenant-aware backend + `UniqueConstraint(tenant, username)` (миграция данных).
 - [ ] 🟡 Sitemaps (`blog/sitemaps.py`) и robots берут домен из `Site #1` и содержат объекты всех тенантов.
@@ -187,3 +180,8 @@
 - Топ пользователей: рейтинг/статистика аннотациями, без запросов на пользователя; фильтр по технологии больше
   не завышает рейтинг; дата рождения приватных профилей скрыта.
 - SEO: текст вопроса квиза в HTML, alt картинки из вопроса.
+- Mini App: приватное чтение (профиль, статистика, `me`) только с подписью initData; список пользователей —
+  админам; прогресс в темах/задачах — только для подписанного пользователя; серверный рендер получает подпись
+  из httpOnly-cookie `tg_init_data`.
+- Картинки обращений в поддержку и ответов на них — только staff своего тенанта (X-Accel-Redirect);
+  общий хелпер `config/protected_media.py`. Картинки комментариев остаются публичными (комментарии публичны).
