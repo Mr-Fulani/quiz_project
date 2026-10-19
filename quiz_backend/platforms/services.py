@@ -480,16 +480,15 @@ class TelegramPostService:
         await self.bot.session.close()
 
 
-def get_telegram_bot_token() -> str:
+def get_telegram_bot_token(tenant=None) -> str:
     """
-    Получает токен Telegram бота из настроек.
-    
+    Токен Telegram-бота тенанта (глобальный TELEGRAM_BOT_TOKEN, если у тенанта он не задан).
+
     Returns:
         str: Токен бота
     """
-    # Здесь нужно получить токен из настроек
-    # Пока используем заглушку
-    return getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+    from tenants.scoping import bot_token_for
+    return bot_token_for(tenant)
 
 
 async def send_telegram_post_async(
@@ -514,11 +513,12 @@ async def send_telegram_post_async(
     Returns:
         bool: True если отправка успешна, False в противном случае
     """
-    bot_token = get_telegram_bot_token()
+    # Канал тенанта администрирует бот этого тенанта
+    bot_token = get_telegram_bot_token(getattr(channel, 'tenant', None))
     if not bot_token:
         logger.error("Токен Telegram бота не настроен")
         return False
-    
+
     service = TelegramPostService(bot_token)
     try:
         result = await service.send_post(channel, text, photos, gifs, videos, buttons)
@@ -827,7 +827,8 @@ def send_post_to_bot_subscribers(
                             photo_paths=temp_photo_files,
                             gif_paths=temp_gif_files,
                             video_paths=temp_video_files,
-                            buttons=buttons
+                            buttons=buttons,
+                            bot_token=get_telegram_bot_token(tenant),
                         )
                     )
                     if result:
@@ -865,11 +866,12 @@ async def send_post_to_user_with_files(
     photo_paths: Optional[List[str]] = None,
     gif_paths: Optional[List[str]] = None,
     video_paths: Optional[List[str]] = None,
-    buttons: Optional[List[Dict[str, str]]] = None
+    buttons: Optional[List[Dict[str, str]]] = None,
+    bot_token: Optional[str] = None,
 ) -> bool:
     """
     Асинхронная функция для отправки поста пользователю в личные сообщения с использованием путей к файлам.
-    
+
     Args:
         user_id (int): Telegram ID пользователя
         text (str, optional): Текст поста
@@ -877,11 +879,12 @@ async def send_post_to_user_with_files(
         gif_paths: Список путей к файлам GIF
         video_paths: Список путей к файлам видео
         buttons (List[Dict], optional): Список кнопок
-        
+        bot_token: Токен бота тенанта (по умолчанию глобальный)
+
     Returns:
         bool: True если отправка успешна, False в противном случае
     """
-    bot_token = get_telegram_bot_token()
+    bot_token = bot_token or get_telegram_bot_token()
     if not bot_token:
         logger.error("Токен Telegram бота не настроен")
         return False

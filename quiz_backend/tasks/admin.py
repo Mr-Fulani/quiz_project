@@ -13,6 +13,7 @@ from .services.task_import_service import import_tasks_from_json
 from accounts.models import MiniAppUser
 from .services.s3_service import delete_image_from_s3
 from .services.telegram_service import publish_task_to_telegram, delete_message
+from tenants.scoping import bot_token_for
 from .services.image_generation_service import generate_image_for_task
 from .services.s3_service import upload_image_to_s3
 from webhooks.services import send_webhooks_for_task, send_webhooks_for_bulk_tasks
@@ -1098,7 +1099,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                         for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
                             message_id_to_delete = task.message_id + offset
                             logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
-                            if delete_message(chat_id, message_id_to_delete):
+                            if delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(task.tenant)):
                                 deleted_messages_count += 1
                                 logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
                             else:
@@ -1143,7 +1144,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     for offset in range(-2, 2):
                         message_id_to_delete = obj.message_id + offset
                         logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
-                        delete_message(chat_id, message_id_to_delete)
+                        delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(obj.tenant))
                 except Exception as e:
                     logger.warning(f"Ошибка при удалении сообщений для задачи {obj.id}: {e}", exc_info=True)
             else:
@@ -1185,7 +1186,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
                         message_id_to_delete = task.message_id + offset
                         logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
-                        if delete_message(chat_id, message_id_to_delete):
+                        if delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(task.tenant)):
                             deleted_messages_count += 1
                             logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
                         else:

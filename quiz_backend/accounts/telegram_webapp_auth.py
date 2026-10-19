@@ -78,8 +78,8 @@ def validate_init_data(init_data, bot_token, max_age_seconds=None, now=None):
 
 def get_bot_token(request):
     """Токен бота тенанта; глобальный токен — только если у тенанта он не задан."""
-    tenant = getattr(request, 'tenant', None)
-    return (getattr(tenant, 'bot_token', None) or '') or (settings.TELEGRAM_BOT_TOKEN or '')
+    from tenants.scoping import bot_token_for
+    return bot_token_for(getattr(request, 'tenant', None))
 
 
 def get_verified_telegram_user(request):

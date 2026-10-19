@@ -635,7 +635,8 @@ async def notify_admin(action: str, admin, groups):
     :param admin: Объект TelegramAdmin.
     :param groups: Список групп/каналов (QuerySet).
     """
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    from tenants.scoping import bot_token_for
+    bot_token = bot_token_for(getattr(admin, 'tenant', None))  # бот тенанта администратора
     if not bot_token:
         logger.error("TELEGRAM_BOT_TOKEN не найден — уведомление TelegramAdmin не отправлено")
         return

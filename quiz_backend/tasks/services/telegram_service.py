@@ -13,6 +13,8 @@ import requests
 from django.conf import settings
 from django.utils.text import slugify
 
+from tenants.scoping import bot_token_for
+
 logger = logging.getLogger(__name__)
 
 
@@ -175,7 +177,7 @@ def escape_markdown_v2(text: str) -> str:
     return text
 
 
-def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Dict]:
+def send_photo(chat_id: str, photo_url: str, caption: str = None, bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет фото в Telegram канал.
     
@@ -187,11 +189,12 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendPhoto"
+    url = f"https://api.telegram.org/bot{token}/sendPhoto"
     
     data = {
         'chat_id': chat_id,
@@ -246,7 +249,7 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
             return None
 
 
-def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Dict]:
+def send_video(chat_id: str, video_url: str, caption: str = None, bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет видео в Telegram чат по URL.
     
@@ -258,11 +261,12 @@ def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Di
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendVideo"
+    url = f"https://api.telegram.org/bot{token}/sendVideo"
     
     data = {
         'chat_id': chat_id,
@@ -319,7 +323,7 @@ def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Di
             return None
 
 
-def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optional[Dict]:
+def send_video_file(chat_id: str, video_path: str, caption: str = None, bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет видео файл напрямую в Telegram чат.
     
@@ -331,7 +335,8 @@ def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optio
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
@@ -339,7 +344,7 @@ def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optio
         logger.error(f"❌ Файл видео не найден: {video_path}")
         return None
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendVideo"
+    url = f"https://api.telegram.org/bot{token}/sendVideo"
     
     data = {
         'chat_id': chat_id,
@@ -399,7 +404,7 @@ def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optio
             return None
 
 
-def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Optional[Dict]:
+def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2", bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет текстовое сообщение в Telegram канал.
     
@@ -411,11 +416,12 @@ def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Opt
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     
     data = {
         'chat_id': chat_id,
@@ -471,7 +477,7 @@ def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Opt
 
 def send_poll(chat_id: str, question: str, options: List[str], 
               correct_option_id: int, explanation: str = None,
-              is_anonymous: bool = True) -> Optional[Dict]:
+              is_anonymous: bool = True, bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет опрос (quiz) в Telegram канал.
     
@@ -486,7 +492,8 @@ def send_poll(chat_id: str, question: str, options: List[str],
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
@@ -504,7 +511,7 @@ def send_poll(chat_id: str, question: str, options: List[str],
         logger.warning(f"Объяснение слишком длинное ({len(explanation)} символов), обрезаем до {MAX_EXPLANATION_LENGTH}")
         explanation = explanation[:MAX_EXPLANATION_LENGTH - 3] + '...'
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendPoll"
+    url = f"https://api.telegram.org/bot{token}/sendPoll"
     
     # Telegram API требует JSON payload, а не form data для опросов
     payload = {
@@ -578,7 +585,7 @@ def send_poll(chat_id: str, question: str, options: List[str],
             return None
 
 
-def delete_message(chat_id: str, message_id: int) -> bool:
+def delete_message(chat_id: str, message_id: int, bot_token: Optional[str] = None) -> bool:
     """
     Удаляет сообщение из Telegram канала/чата.
     
@@ -589,11 +596,12 @@ def delete_message(chat_id: str, message_id: int) -> bool:
     Returns:
         True если удаление успешно, False при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return False
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/deleteMessage"
+    url = f"https://api.telegram.org/bot{token}/deleteMessage"
     
     data = {
         'chat_id': chat_id,
@@ -628,7 +636,7 @@ def delete_message(chat_id: str, message_id: int) -> bool:
 
 
 def send_message_with_button(chat_id: str, text: str, button_text: str, 
-                             button_url: str, parse_mode: str = "MarkdownV2") -> Optional[Dict]:
+                             button_url: str, parse_mode: str = "MarkdownV2", bot_token: Optional[str] = None) -> Optional[Dict]:
     """
     Отправляет сообщение с inline кнопкой.
     
@@ -642,11 +650,12 @@ def send_message_with_button(chat_id: str, text: str, button_text: str,
     Returns:
         Результат отправки или None при ошибке
     """
-    if not settings.TELEGRAM_BOT_TOKEN:
+    token = bot_token or settings.TELEGRAM_BOT_TOKEN  # токен бота тенанта или глобальный
+    if not token:
         logger.error("TELEGRAM_BOT_TOKEN не настроен")
         return None
     
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     
     # Формируем inline keyboard
     inline_keyboard = {
@@ -721,7 +730,9 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
     """
     language = translation.language
     chat_id = telegram_group.group_id
-    
+    # Публикуем ботом тенанта задачи (канал тенанта администрирует его бот)
+    bot_token = bot_token_for(getattr(task, 'tenant', None) or getattr(telegram_group, 'tenant', None))
+
     # Получаем переводы для языка
     lang_trans = LANGUAGE_TRANSLATIONS.get(language, LANGUAGE_TRANSLATIONS['en'])
     
@@ -741,7 +752,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         # 1. Отправляем изображение БЕЗ подписи (вопрос будет в опросе)
         if task.image_url:
             result['detailed_logs'].append(f"📷 Отправка изображения: {task.image_url[:50]}...")
-            photo_result = send_photo(chat_id, task.image_url, caption=None)  # Без caption - вопрос будет в опросе
+            photo_result = send_photo(chat_id, task.image_url, caption=None, bot_token=bot_token)  # Без caption - вопрос будет в опросе
             time.sleep(1)
             if photo_result:
                 result['image_sent'] = True
@@ -780,7 +791,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         )
         
         result['detailed_logs'].append(f"📝 Отправка деталей задачи")
-        text_result = send_message(chat_id, task_details_text, "MarkdownV2")
+        text_result = send_message(chat_id, task_details_text, "MarkdownV2", bot_token=bot_token)
         time.sleep(0.2)
         if text_result:
             result['text_sent'] = True
@@ -834,7 +845,8 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             question=poll_question,  # Короткий вопрос вместо полного translation.question
             options=options,
             correct_option_id=correct_option_id,
-            explanation=poll_explanation
+            explanation=poll_explanation,
+            bot_token=bot_token,
         )
         time.sleep(0.2)
         
@@ -944,7 +956,8 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             text=button_message_text,
             button_text=button_text,
             button_url=final_link,
-            parse_mode=None  # Без форматирования
+            parse_mode=None,  # Без форматирования
+            bot_token=bot_token,
         )
         time.sleep(0.2)
         

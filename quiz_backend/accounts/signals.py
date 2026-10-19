@@ -279,7 +279,9 @@ async def _promote_telegram_admin_async(instance):
     """
     Асинхронная функция для назначения Telegram-админа в группе.
     """
-    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    from tenants.scoping import bot_token_for
+    # Канал тенанта администрирует бот этого тенанта
+    bot = Bot(token=bot_token_for(instance.telegram_group.tenant))
     try:
         # Пытаемся назначить админа в Telegram
         try:
@@ -345,7 +347,8 @@ async def _notify_admin_rights_removed_async(instance):
     """
     Асинхронная функция для уведомления пользователя о снятии прав администратора.
     """
-    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    from tenants.scoping import bot_token_for
+    bot = Bot(token=bot_token_for(instance.telegram_group.tenant))
     try:
         await bot.send_message(
             chat_id=instance.telegram_admin.telegram_id,

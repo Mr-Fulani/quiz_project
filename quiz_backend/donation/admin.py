@@ -352,7 +352,6 @@ class DonationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             )
             return
         
-        service = TelegramStarsService()
         refunded_count = 0
         error_count = 0
         
@@ -374,7 +373,9 @@ class DonationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 error_count += 1
                 continue
             
-            # Выполняем возврат
+            # Выполняем возврат: вернуть Stars может только бот тенанта, который принял платёж
+            from tenants.scoping import bot_token_for
+            service = TelegramStarsService(bot_token=bot_token_for(donation.tenant))
             result = service.refund_star_payment(
                 user_id=telegram_id,
                 telegram_payment_charge_id=donation.telegram_payment_charge_id

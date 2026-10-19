@@ -52,6 +52,21 @@ class TenantScopingOfIntegrationsTests(TestCase):
             DefaultLinkService.get_default_link('ru', 'Python', tenant=self.tenant_b), 'https://b.example.com/'
         )
 
+    @patch('tasks.services.telegram_service.requests.post')
+    def test_telegram_send_uses_given_bot_token(self, post):
+        from django.test import override_settings
+        from tasks.services.telegram_service import send_message
+        from tenants.scoping import bot_token_for
+        post.return_value.json.return_value = {'ok': True, 'result': {'message_id': 1}}
+        post.return_value.status_code = 200
+
+        self.tenant_a.bot_token = '777:TENANT_A'
+        with override_settings(TELEGRAM_BOT_TOKEN='000:GLOBAL'):
+            self.assertEqual(bot_token_for(self.tenant_a), '777:TENANT_A')
+            self.assertEqual(bot_token_for(self.tenant_b), '000:GLOBAL')
+            send_message('-100', 'hi', bot_token=bot_token_for(self.tenant_a))
+        self.assertIn('/bot777:TENANT_A/', post.call_args.args[0])
+
     def test_social_credentials_of_other_tenant_are_not_used(self):
         SocialMediaCredentials.objects.create(tenant=self.tenant_b, platform='pinterest', access_token='b-token')
         self.assertIsNone(_active_credentials('pinterest', self.tenant_a))

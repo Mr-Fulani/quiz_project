@@ -16,6 +16,7 @@ from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdm
 from .telegram_admin_service import TelegramAdminService, run_async_function
 import logging
 from tenants.mixins import TenantFilteredAdminMixin
+from tenants.scoping import bot_token_for
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class TelegramAdminGroupInlineFormSet(BaseInlineFormSet):
             return
 
         has_errors = False
-        service = TelegramAdminService()
+        service = TelegramAdminService(bot_token=bot_token_for(admin_instance.tenant))
         try:
             for form in self.forms:
                 if not hasattr(form, "cleaned_data"):
@@ -654,7 +655,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 self.message_user(request, f"⚠️ Администратор {admin.username or admin.telegram_id} не имеет связанных каналов", level='WARNING')
                 continue
             
-            service = TelegramAdminService()
+            service = TelegramAdminService(bot_token=bot_token_for(admin.tenant))
             try:
                 success_count, messages = run_async_function(
                     service.remove_admin_from_all_channels,
@@ -760,7 +761,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                             """.strip()
                             
                             # Отправляем уведомление
-                            message_service = TelegramAdminService()
+                            message_service = TelegramAdminService(bot_token=bot_token_for(admin.tenant))
                             try:
                                 message_sent, message_result = run_async_function(
                                     message_service.send_message_to_user,
@@ -818,7 +819,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 self.message_user(request, f"⚠️ Администратор {admin.username or admin.telegram_id} не имеет связанных каналов", level='WARNING')
                 continue
             
-            service = TelegramAdminService()
+            service = TelegramAdminService(bot_token=bot_token_for(admin.tenant))
             try:
                 success_count, messages = run_async_function(
                     service.remove_admin_from_all_channels,
@@ -872,7 +873,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                             """.strip()
                             
                             # Отправляем уведомление
-                            message_service = TelegramAdminService()
+                            message_service = TelegramAdminService(bot_token=bot_token_for(admin.tenant))
                             try:
                                 message_sent, message_result = run_async_function(
                                     message_service.send_message_to_user,
@@ -923,7 +924,7 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         """
         Проверяет права бота в каналах админов.
         """
-        service = TelegramAdminService()
+        service = TelegramAdminService(bot_token=bot_token_for(self._get_current_tenant(request)))
         checked_channels = set()
         
         for admin in queryset:
@@ -1727,7 +1728,7 @@ class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         Синхронизирует данные пользователей с Telegram.
         """
         from accounts.telegram_admin_service import TelegramAdminService, run_async_function
-        service = TelegramAdminService()
+        service = TelegramAdminService(bot_token=bot_token_for(self._get_current_tenant(request)))
         synced_count = 0
         
         try:
@@ -1778,7 +1779,7 @@ class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             # Получаем все каналы, где пользователь состоит
             channel_ids = [sub.channel.group_id for sub in user.channel_subscriptions.all()]
             if channel_ids:
-                service = TelegramAdminService()
+                service = TelegramAdminService(bot_token=bot_token_for(user.tenant))
                 try:
                     success_count, messages = run_async_function(
                         service.remove_user_from_all_channels,
@@ -1992,7 +1993,7 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                         continue
                     
                     # Создаем новый сервис для каждой операции
-                    service = TelegramAdminService()
+                    service = TelegramAdminService(bot_token=bot_token_for(subscription.channel.tenant))
                     try:
                         # Удаляем пользователя из канала
                         print(f"=== DEBUG: Вызываем remove_user_from_channel для пользователя {subscription.telegram_user.telegram_id} в канале {subscription.channel.group_id} ===", file=sys.stderr)
@@ -2060,7 +2061,7 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         from django.utils import timezone
         from datetime import datetime, timedelta
         
-        service = TelegramAdminService()
+        service = TelegramAdminService(bot_token=bot_token_for(self._get_current_tenant(request)))
         total_banned = 0
         
         for subscription in queryset:
@@ -2090,7 +2091,7 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         """
         Отмечает подписчиков как разблокированных в базе данных.
         """
-        service = TelegramAdminService()
+        service = TelegramAdminService(bot_token=bot_token_for(self._get_current_tenant(request)))
         total_unbanned = 0
         
         for subscription in queryset:
@@ -2146,7 +2147,7 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 )
                 continue
             
-            service = TelegramAdminService()
+            service = TelegramAdminService(bot_token=bot_token_for(channel.tenant))
             try:
                 # Назначаем админом в Telegram
                 success, message = run_async_function(
