@@ -37,7 +37,7 @@ from django.template.response import TemplateResponse
 
 # Health check endpoint
 from django.http import HttpResponse, JsonResponse
-from django.contrib.sites.shortcuts import get_current_site
+from django.contrib.sites.requests import RequestSite
 
 def health_check(request):
     return HttpResponse("OK", status=200)
@@ -131,25 +131,17 @@ def robots_txt_view(request):
     """
     Генерирует robots.txt динамически с правильным доменом для sitemap.
     """
-    current_site = get_current_site(request)
-    # Всегда используем HTTPS в продакшене
-    scheme = 'https'
-    sitemap_url = f"{scheme}://{current_site.domain}/sitemap.xml"
-    
-    robots_content = f"""User-agent: *
-Disallow: /admin/
-Disallow: /api/
-Disallow: /swagger/
-Disallow: /redoc/
-Disallow: /messages/
-Disallow: /inbox/
-Disallow: /silk/
-Disallow: /__debug__/
-Allow: /
+    # Домен — из запроса (у каждого тенанта свой), а не из Site #1.
+    sitemap_url = f"https://{request.get_host()}/sitemap.xml"
 
-Sitemap: {sitemap_url}
-"""
-    return HttpResponse(robots_content, content_type='text/plain')
+    lines = ['User-agent: *']
+    lines += [f'Disallow: {path}' for path in ('/admin/', '/api/', '/silk/', '/__debug__/', '/set-language/')]
+    # Страницы внутри i18n_patterns живут под /ru/, /en/ — без префикса правило бы не срабатывало.
+    for lang_code, _name in settings.LANGUAGES:
+        for path in ('swagger', 'redoc', 'messages', 'inbox', 'chat'):
+            lines.append(f'Disallow: /{lang_code}/{path}/')
+    lines += ['Allow: /', '', f'Sitemap: {sitemap_url}', '']
+    return HttpResponse('\n'.join(lines), content_type='text/plain')
 
 def custom_sitemap_view(request, sitemaps, section=None, template_name='blog/sitemap.xml', content_type='application/xml'):
     """
@@ -159,7 +151,9 @@ def custom_sitemap_view(request, sitemaps, section=None, template_name='blog/sit
     from django.contrib.sitemaps import Sitemap
     
     req_protocol = 'https'
-    req_site = get_current_site(request)
+    # Домен и объекты — текущего тенанта (раньше — Site #1 и записи всех тенантов).
+    req_site = RequestSite(request)
+    tenant = getattr(request, 'tenant', None)
     
     if section is not None:
         if section not in sitemaps:
@@ -179,6 +173,7 @@ def custom_sitemap_view(request, sitemaps, section=None, template_name='blog/sit
         try:
             if callable(site_map):
                 site_map = site_map()
+            site_map.tenant = tenant
             # Получаем URL с alternates
             site_urls = site_map.get_urls(page=page, site=req_site, protocol=req_protocol)
             urls.extend(site_urls)

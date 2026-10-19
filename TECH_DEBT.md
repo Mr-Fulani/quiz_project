@@ -25,9 +25,10 @@
       снаружи — это больше не работает (используйте домен или SSH-туннель).
 - [ ] 🟡 Решить, нужен ли `SOCIAL_MEDIA_CALLBACK_SECRET` для Make.com (и прописать заголовок в сценарии).
 - [ ] 🟡 Подтвердить: Mini App в обычном браузере (без Telegram) теперь только читает — запись требует initData.
-- [ ] 🟢 Прогнать `tasks/tests` и `topics/tests` в Docker (локально без Docker `tasks/tests` не запускались:
-      требуют S3/Telegram/генерации изображений). `topics/tests/test_normalize_subtopics.py` на SQLite без
-      миграций падает на уникальном индексе `(topic, name)` — проверить на Postgres.
+- [ ] 🟢 Прогнать `tasks/tests` и `topics/tests` в Docker. На SQLite падают (не из-за изменений аудита):
+      `test_normalize_subtopics` — уникальный индекс `(topic, name)`; 3 теста `test_task_import` — регистр
+      кириллицы (`lower()` в SQLite только для ASCII), на Postgres, вероятно, проходят;
+      `test_generate_islamic_image` — тест передаёт `tenant_slug`, которого у `generate_image_for_task` нет (устарел).
 - [ ] 🟠 При деплое выполнить миграции (`blog 0034` — новый `upload_to` вложений) и `collectstatic`
       (изменён `quiz_styles.css`), перезагрузить nginx (новые location для вложений).
 - [ ] 🟡 Перед `git rm --cached media/ staticfiles/` (см. «Мёртвый код») — решить, как деплоите: если сервер
@@ -65,7 +66,6 @@
 ### Django
 - [ ] 🟠 Вход не привязан к тенанту: `CustomUser.username` уникален глобально, логин тенанта A работает на B.
       Нужен tenant-aware backend + `UniqueConstraint(tenant, username)` (миграция данных).
-- [ ] 🟡 Sitemaps (`blog/sitemaps.py`) и robots берут домен из `Site #1` и содержат объекты всех тенантов.
 - [ ] 🟡 `tenant` везде `null=True`, часто `SET_NULL`: удаление тенанта превращает его данные в «глобальные».
       Глобальные unique: `Category.slug`, `Post.slug`, `Project.slug`, `Webhook.url`, `SocialAuthSettings.provider`.
 - [ ] 🟡 `DisableCSRFForAPI` снимает CSRF со всех `/api/`, `/auth/telegram*`, `*/telegram/*` и мутирует view
@@ -109,8 +109,7 @@
       `difficulty` принимает любое значение.
 - [ ] 🟠 Slug без транслитерации (`slugify` по кириллице даёт пустой slug).
 - [ ] 🟠 Захардкоженные/одинаковые title («QuizHub», «Quiz Python, Go…» на всех тенантах).
-- [ ] 🟠 hreflang для постов без переводов; `Disallow` в robots не работает из-за языковых префиксов;
-      noindex отсутствует на профилях, статистике, `/swagger/`, сбросе пароля.
+- [ ] 🟠 hreflang для постов без переводов.
 - [ ] 🟡 JSON-LD: breadcrumbs выводятся как Python-dict, SearchAction на несуществующий поиск, `logo.png` 404,
       дублирующиеся Article/BlogPosting.
 - [ ] 🟡 Mini App: `X-Robots-Tag: noindex` в nginx, share-страницы с `index,follow`.
@@ -197,3 +196,6 @@
 - Mini App: JS/CSS кэшируются браузером — версия в URL = хэш файла (раньше текущее время), nginx отдаёт `/static/`
   с `?v` как immutable на год.
 - Админка задач: колонка с текстом вопроса, поиск по тексту вопроса; список без запросов на каждую строку.
+- SEO: `sitemap.xml` и `robots.txt` — домен тенанта из запроса (было: `Site #1` для всех) и только его объекты;
+  `Disallow` с языковыми префиксами (`/ru/swagger/`, `/en/inbox/`…); `noindex` на профилях, статистике,
+  личных сообщениях, чате, сбросе пароля (`NOINDEX_URL_NAMES` в `blog/context_processors.py`).

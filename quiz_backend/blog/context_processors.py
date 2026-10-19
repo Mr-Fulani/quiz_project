@@ -305,6 +305,14 @@ def user_statistics(request):
 
 
 
+# Служебные и личные страницы: поисковик может их обходить, но не должен индексировать.
+NOINDEX_URL_NAMES = {
+    'inbox', 'global_chat', 'statistics', 'maintenance',
+    'dashboard', 'profile', 'full_profile', 'user_profile', 'user-list',
+    'password_reset', 'password_reset_done', 'password_reset_confirm', 'password_reset_complete',
+}
+
+
 def seo_context(request):
     """
     Контекстный процессор для предоставления SEO-тегов для статических страниц.
@@ -375,6 +383,10 @@ def seo_context(request):
         'hreflang_ru': base_url + translate_url(path, 'ru'),
         'hreflang_x_default': base_url + translate_url(path, 'en'),
     }
+
+    resolver_match = getattr(request, 'resolver_match', None)
+    if resolver_match and resolver_match.url_name in NOINDEX_URL_NAMES:
+        seo_data['robots_content'] = 'noindex, follow'
 
     # Специфичные SEO данные для разных страниц
     if path == reverse('blog:resume'):

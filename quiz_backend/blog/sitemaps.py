@@ -13,6 +13,14 @@ class I18nSitemap(Sitemap):
     Базовый класс для мультиязычных карт сайта с поддержкой hreflang.
     Генерирует полные URL для всех языковых версий страниц.
     """
+    # Тенант запроса (выставляет custom_sitemap_view): в карту попадают только его объекты.
+    tenant = None
+
+    def for_tenant(self, queryset, lookup='tenant'):
+        if self.tenant is None:
+            return queryset.none()
+        return queryset.filter(**{lookup: self.tenant})
+
     def get_urls(self, page=1, site=None, protocol=None):
         # Получаем стандартные URL
         urls = super().get_urls(page, site, protocol)
@@ -125,7 +133,7 @@ class PostSitemap(I18nSitemap):
     protocol = 'https'
 
     def items(self):
-        return Post.objects.filter(published=True).order_by('-updated_at')
+        return self.for_tenant(Post.objects.filter(published=True)).order_by('-updated_at')
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -142,7 +150,7 @@ class ProjectSitemap(I18nSitemap):
     protocol = 'https'
 
     def items(self):
-        return Project.objects.all().order_by('-updated_at')
+        return self.for_tenant(Project.objects.all()).order_by('-updated_at')
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -187,7 +195,7 @@ class QuizSitemap(I18nSitemap):
     def items(self):
         try:
             from topics.models import Topic
-            return Topic.objects.filter(tasks__published=True).distinct().order_by('name')
+            return self.for_tenant(Topic.objects.filter(tasks__published=True)).distinct().order_by('name')
         except ImportError:
             return []
 
@@ -216,9 +224,9 @@ class SubtopicSitemap(I18nSitemap):
             from topics.models import Subtopic
             from django.db.models import Q, Count
             # Получаем только подтемы с опубликованными задачами
-            return Subtopic.objects.filter(
+            return self.for_tenant(Subtopic.objects.filter(
                 tasks__published=True
-            ).distinct().select_related('topic').order_by('topic__name', 'name')
+            ), 'topic__tenant').distinct().select_related('topic').order_by('topic__name', 'name')
         except ImportError:
             return []
 
@@ -270,10 +278,10 @@ class TaskImageSitemap(I18nSitemap):
             from django.db.models import Q, Count
             
             # Получаем все подтемы с опубликованными задачами, имеющими изображения
-            subtopics_with_images = Subtopic.objects.filter(
+            subtopics_with_images = self.for_tenant(Subtopic.objects.filter(
                 tasks__published=True,
                 tasks__image_url__isnull=False
-            ).distinct().select_related('topic').prefetch_related('tasks').order_by('topic__name', 'name')
+            ), 'topic__tenant').distinct().select_related('topic').prefetch_related('tasks').order_by('topic__name', 'name')
             
             # Группируем задачи по подтеме и создаем структуру данных
             pages_with_images = []
@@ -398,10 +406,10 @@ class ImageSitemap(I18nSitemap):
         pages_with_images = {}
         
         # Изображения из постов
-        posts_with_images = Post.objects.filter(
+        posts_with_images = self.for_tenant(Post.objects.filter(
             published=True,
             images__isnull=False
-        ).prefetch_related('images')
+        )).prefetch_related('images')
         
         for post in posts_with_images:
             post_url = reverse('blog:post_detail', kwargs={'slug': post.slug})
@@ -417,9 +425,9 @@ class ImageSitemap(I18nSitemap):
                     pages_with_images[post_url]['images'].append(image)
         
         # Изображения из проектов
-        projects_with_images = Project.objects.filter(
+        projects_with_images = self.for_tenant(Project.objects.filter(
             images__isnull=False
-        ).prefetch_related('images')
+        )).prefetch_related('images')
         
         for project in projects_with_images:
             project_url = reverse('blog:project_detail', kwargs={'slug': project.slug})
