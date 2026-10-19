@@ -267,3 +267,35 @@ def submit_feedback_from_mini_app(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+def protected_feedback_image(request, kind, pk):
+    """
+    Картинка обращения в поддержку (kind='message') или ответа админа (kind='reply').
+
+    Это личные данные пользователей: прямой путь в /media/ закрыт, показываем только staff
+    тенанта обращения и суперпользователю (используется в админке обратной связи).
+    """
+    from django.core.exceptions import PermissionDenied
+    from django.http import Http404
+    from django.shortcuts import get_object_or_404
+    from config.protected_media import serve_protected_file
+    from .models import FeedbackReplyImage
+
+    user = request.user
+    if not (user.is_authenticated and user.is_staff):
+        raise PermissionDenied
+
+    if kind == 'message':
+        image = get_object_or_404(FeedbackImage.objects.select_related('feedback'), pk=pk)
+        tenant_id = image.feedback.tenant_id
+    elif kind == 'reply':
+        image = get_object_or_404(FeedbackReplyImage.objects.select_related('reply__feedback'), pk=pk)
+        tenant_id = image.reply.feedback.tenant_id
+    else:
+        raise Http404
+
+    if not user.is_superuser and (tenant_id is None or tenant_id != getattr(user, 'tenant_id', None)):
+        raise PermissionDenied
+
+    return serve_protected_file(image.image, as_attachment=False)

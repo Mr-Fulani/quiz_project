@@ -24,7 +24,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, FileResponse, Http404, HttpResponse, HttpResponseRedirect
+from django.http import JsonResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -2516,7 +2516,7 @@ def download_attachment(request, attachment_id):
     прямой путь /media/message_attachments/ закрыт. В DEBUG файл отдаёт Django.
     ?inline=1 — показать в браузере (превью картинок), иначе — скачать.
     """
-    from django.utils.http import content_disposition_header
+    from config.protected_media import serve_protected_file
 
     attachment = get_object_or_404(MessageAttachment, id=attachment_id)
     message = attachment.message
@@ -2527,19 +2527,11 @@ def download_attachment(request, attachment_id):
     if not (is_participant or user.is_superuser or is_tenant_staff):
         raise PermissionDenied
 
-    as_attachment = request.GET.get('inline') != '1'
-    disposition = content_disposition_header(as_attachment, attachment.filename or os.path.basename(attachment.file.name))
-
-    if settings.DEBUG:
-        response = FileResponse(attachment.file)
-    else:
-        response = HttpResponse()
-        response['X-Accel-Redirect'] = f"/protected-media/{attachment.file.name}"
-        response['Content-Type'] = ''  # тип определит nginx по расширению
-    response['Content-Disposition'] = disposition
-    response['X-Content-Type-Options'] = 'nosniff'
-    response['Cache-Control'] = 'private, no-store'
-    return response
+    return serve_protected_file(
+        attachment.file,
+        filename=attachment.filename,
+        as_attachment=request.GET.get('inline') != '1',
+    )
 
 
 @login_required

@@ -53,8 +53,8 @@ class FeedbackImageInline(admin.TabularInline):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-height: 100px; max-width: 200px; border: 1px solid #ddd; border-radius: 4px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "Нет изображения"
     image_preview.short_description = 'Превью'
@@ -87,8 +87,8 @@ class FeedbackReplyImageInline(admin.TabularInline):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-height: 100px; max-width: 200px; border: 1px solid #ddd; border-radius: 4px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "Нет изображения"
     image_preview.short_description = 'Превью'
@@ -135,8 +135,8 @@ class FeedbackReplyInline(admin.StackedInline):
                         '</a>'
                         '<div style="font-size: 10px; color: #666;">📦 {} MB</div>'
                         '</div>',
-                        img.image.url,
-                        img.image.url,
+                        img.get_protected_url(),
+                        img.get_protected_url(),
                         img.file_size_mb
                     )
                 html += '</div>'
@@ -204,8 +204,8 @@ class FeedbackMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     '</a>'
                     '<div style="font-size: 11px; color: #666; margin-top: 5px;">📦 {} MB</div>'
                     '</div>',
-                    img.image.url,
-                    img.image.url,
+                    img.get_protected_url(),
+                    img.get_protected_url(),
                     img.file_size_mb
                 )
             html += '</div>'
@@ -383,8 +383,8 @@ class FeedbackImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-height: 50px; max-width: 100px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "—"
     image_thumbnail.short_description = 'Превью'
@@ -394,8 +394,8 @@ class FeedbackImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-width: 600px; border: 2px solid #ddd; border-radius: 8px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "Нет изображения"
     image_large_preview.short_description = 'Изображение'
@@ -437,8 +437,8 @@ class FeedbackReplyImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-height: 50px; max-width: 100px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "—"
     image_thumbnail.short_description = 'Превью'
@@ -448,8 +448,8 @@ class FeedbackReplyImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         if obj.image:
             return format_html(
                 '<a href="{}" target="_blank"><img src="{}" style="max-width: 600px; border: 2px solid #ddd; border-radius: 8px;"/></a>',
-                obj.image.url,
-                obj.image.url
+                obj.get_protected_url(),
+                obj.get_protected_url()
             )
         return "Нет изображения"
     image_large_preview.short_description = 'Изображение'
@@ -510,8 +510,8 @@ class FeedbackReplyAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     '</a>'
                     '<div style="font-size: 11px; color: #666; margin-top: 5px;">📦 {} MB</div>'
                     '</div>',
-                    img.image.url,
-                    img.image.url,
+                    img.get_protected_url(),
+                    img.get_protected_url(),
                     img.file_size_mb
                 )
             html += '</div>'

@@ -8,4 +8,5 @@ urlpatterns = [
     path('<int:pk>/', views.FeedbackDetailView.as_view(), name='feedback-detail'),
     path('create/', views.FeedbackCreateView.as_view(), name='feedback-create'),
     path('submit/', views.submit_feedback_from_mini_app, name='feedback-submit'),
+    path('feedback-image/<str:kind>/<int:pk>/', views.protected_feedback_image, name='feedback-image'),
 ] 

@@ -130,7 +130,12 @@ class FeedbackImage(models.Model):
     
     def __str__(self):
         return f"Изображение к сообщению #{self.feedback.id}"
-    
+
+    def get_protected_url(self):
+        """Ссылка через проверяющий доступ view (прямой путь /media/feedback_images/ закрыт)."""
+        from django.urls import reverse
+        return reverse('feedback:feedback-image', args=['message', self.id])
+
     def delete(self, *args, **kwargs):
         """Удаляем файл изображения при удалении записи"""
         if self.image and os.path.isfile(self.image.path):
@@ -283,6 +288,11 @@ class FeedbackReplyImage(models.Model):
     
     def __str__(self):
         return f"Изображение к ответу #{self.reply.id}"
+
+    def get_protected_url(self):
+        """Ссылка через проверяющий доступ view (прямой путь /media/feedback_reply_images/ закрыт)."""
+        from django.urls import reverse
+        return reverse('feedback:feedback-image', args=['reply', self.id])
     
     def delete(self, *args, **kwargs):
         """Удаляем файл изображения при удалении записи"""
