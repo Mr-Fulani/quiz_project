@@ -69,3 +69,20 @@ class TenantOriginsTest(TestCase):
         self.assertEqual(response.json()['site_url'], 'https://a.example.com')
         self.assertEqual(response.json()['mini_app_url'], 'https://mini.a.example.com')
         self.assertNotIn('bot_token', response.json())
+
+    def test_current_tenant_endpoint_bot_links(self):
+        self.tenant.bot_username = 'a_bot'
+        self.tenant.save()
+        clear_tenant_cache()
+        data = Client().get('/api/tenant/', HTTP_HOST='mini.a.example.com').json()
+        self.assertEqual(data['bot_username'], 'a_bot')
+        self.assertEqual(data['bot_link'], 'https://t.me/a_bot')
+        self.assertEqual(data['mini_app_link'], 'https://t.me/a_bot/quiz')
+        self.assertEqual(data['site_name'], 'Site A')
+
+    def test_mini_app_link_without_short_name_points_to_bot(self):
+        self.tenant.bot_username = 'a_bot'
+        self.tenant.mini_app_short_name = ''
+        self.assertEqual(self.tenant.mini_app_link, 'https://t.me/a_bot')
+        self.tenant.bot_username = ''
+        self.assertIsNone(self.tenant.mini_app_link)

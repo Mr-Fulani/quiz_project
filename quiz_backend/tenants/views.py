@@ -8,8 +8,12 @@ def current_tenant(request):
         return JsonResponse({'detail': 'Тенант не определён'}, status=404)
     return JsonResponse({
         'slug': tenant.slug,
+        'name': tenant.name,
         'site_name': tenant.site_name or tenant.name,
         'domain': tenant.domain,
         'site_url': tenant.site_url,
         'mini_app_url': tenant.mini_app_url,
+        'bot_username': tenant.bot_username,
+        'bot_link': tenant.bot_link,
+        'mini_app_link': tenant.mini_app_link,
     })

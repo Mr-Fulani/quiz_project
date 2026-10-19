@@ -58,6 +58,13 @@ class Tenant(models.Model):
         blank=True,
         help_text=_('Username бота без @ (например: my_quiz_bot)')
     )
+    mini_app_short_name = models.CharField(
+        max_length=64,
+        blank=True,
+        default='quiz',
+        help_text=_('Короткое имя Mini App в @BotFather (ссылка t.me/<бот>/<имя>). '
+                    'Если пусто — ссылки ведут просто на бота.')
+    )
 
     # ── Брендинг ───────────────────────────────────────────────────────────────
     site_name = models.CharField(
@@ -150,3 +157,10 @@ class Tenant(models.Model):
         if self.bot_username:
             return f'https://t.me/{self.bot_username}'
         return None
+
+    @property
+    def mini_app_link(self):
+        """Прямая ссылка на Mini App в Telegram (или на бота, если короткое имя не задано)."""
+        if self.bot_username and self.mini_app_short_name:
+            return f'https://t.me/{self.bot_username}/{self.mini_app_short_name}'
+        return self.bot_link

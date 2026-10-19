@@ -29,7 +29,7 @@ class TenantAdmin(admin.ModelAdmin):
             'fields': ('domain', 'mini_app_domain', 'site_url_display')
         }),
         ('🤖 Telegram Бот', {
-            'fields': ('bot_token', 'bot_username', 'bot_link_display')
+            'fields': ('bot_token', 'bot_username', 'mini_app_short_name', 'bot_link_display')
         }),
         ('🎨 Брендинг', {
             'fields': ('site_name', 'site_description', 'theme_color', 'logo')
