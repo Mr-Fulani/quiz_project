@@ -126,30 +126,40 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 *   **Пользователи**: `CustomUser` (через связанный объект / домен), `TelegramUser`, `MiniAppUser`, `TelegramAdmin`.
 *   `UniqueConstraint`: Во избежание ошибок с уникальностью, ограничения `unique=True` были заменены на `UniqueConstraint(fields=['tenant', 'name'])`, чтобы разные клиенты могли использовать одинаковые имена категорий или username-ов пользователей.
 
-## 8. Изоляция рабочих процессов (Celery) и Mini App в Docker
+## 8. Telegram-бот, Celery и интеграции
 
-> ⚠️ **Состояние на 2026-10-18: описанное ниже — целевая схема, а не текущий код.**
-> Переменная `TENANT_SLUG` задаётся в `docker-compose.yml`, но ни бот (`bot/`), ни mini_app, ни Celery её не читают.
-> Бот работает с одним глобальным `TELEGRAM_BOT_TOKEN` и не фильтрует данные по тенанту; Celery-задачи и сервисы
-> публикации используют глобальный токен Telegram.
-> `Webhook`, `GlobalWebhookLink`, `DefaultLink`, `MainFallbackLink`, `SocialMediaCredentials` выбираются по тенанту
-> задачи через `tenants/scoping.for_tenant_or_shared`: записи тенанта + общие (`tenant=NULL`), чужие — никогда.
-> Подробности и план — в `TECH_DEBT.md` (раздел «Бот и Celery»).
+У фоновых процессов нет HTTP-хоста, поэтому тенант определяется иначе.
 
-Так как фоновые Worker'ы (Celery) и асинхронные скрипты Telegram-ботов не зависят от HTTP запросов, они не имеют `request.get_host()`.
-Поэтому для них переменная окружения `TENANT_SLUG` пробрасывается прямо в файле `docker-compose.yml`.
+### Бот (`bot/`) — один процесс на всех тенантов
+*   При старте (`bot/main.py`) читаются активные тенанты; для каждого `Tenant.bot_token` запускается свой
+    `aiogram.Bot`, все — в одном диспетчере (`dp.start_polling(*bots)`). Кнопка Mini App каждого бота
+    ведёт на `https://<mini_app_domain>` его тенанта.
+*   Глобальный `TELEGRAM_BOT_TOKEN` (если он не совпадает ни с одним токеном тенанта) обслуживает тенант из
+    `BOT_DEFAULT_TENANT_SLUG`, иначе — единственный активный тенант без своего токена. Если выбрать нельзя,
+    бот работает без фильтра по тенанту (как раньше) и пишет предупреждение в лог.
+*   `bot/tenancy.py`: `TenantContextMiddleware` по боту, получившему апдейт, кладёт id тенанта в contextvar
+    `current_tenant_id`. Событие SQLAlchemy `do_orm_execute` ограничивает **все** ORM-запросы
+    (SELECT/UPDATE/DELETE, ленивые загрузки) к моделям с `TenantScopedMixin` записями тенанта и общими
+    (`tenant_id IS NULL`); `before_flush` проставляет `tenant_id` новым записям.
+    Осознанный обход: `.execution_options(skip_tenant_filter=True)`.
+*   Сырой SQL (`text()`) фильтром не покрывается — в нём `tenant_id` указывается явно.
+*   Новый тенант подхватывается после перезапуска контейнера бота.
 
-Пример из `docker-compose.yml`:
-```yaml
-  mini_app:
-    environment:
-      - TENANT_SLUG=${TENANT_SLUG:-quiz-code}
+### Старые записи без тенанта
+Записи, созданные до мультитенантности (или ботом до перехода на ботов тенантов), имеют `tenant_id = NULL`
+и считаются общими. Привязать их к тенанту:
+```bash
+python manage.py assign_tenant_to_legacy_rows --slug it-dev            # отчёт
+python manage.py assign_tenant_to_legacy_rows --slug it-dev --apply    # записать
 ```
 
-Скрипты (например, Telegram бот или backend FastAPI Mini-App) используют `os.getenv('TENANT_SLUG')` для того, чтобы:
-1. Запросить у Django API данные конкретного `Tenant`.
-2. Запускать бот с правильным токеном тенанта.
-3. Отправлять/получать webhook именно для этого домена.
+### Django и Celery
+*   Telegram-действия (публикация задач, удаление сообщений, рассылка, назначение админов каналов, уведомления,
+    возврат Stars) выполняются ботом тенанта: `tenants/scoping.bot_token_for(tenant)` — токен тенанта или
+    глобальный, если у тенанта он не задан.
+*   `Webhook`, `GlobalWebhookLink`, `DefaultLink`, `MainFallbackLink`, `SocialMediaCredentials` выбираются через
+    `tenants/scoping.for_tenant_or_shared`: записи тенанта задачи + общие (`tenant=NULL`), чужие — никогда.
+*   `TENANT_SLUG` в `docker-compose.yml` кодом не используется.
 
 ### 🚀 Подробное руководство: Разворачивание нового инстанса
 
@@ -159,7 +169,7 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 1. Зайдите в админ-панель основного домена (например, `https://quiz-code.com/admin`) под учетной записью **Superuser**.
 2. Перейдите в раздел **Tenants -> Тенанты** и нажмите "Добавить тенант".
 3. Заполните данные нового инстанса:
-   - **`slug`**: `quiz-islam` (Обязательно! Это ключ привязки для Docker).
+   - **`slug`**: `quiz-islam` (идентификатор тенанта для команд и `BOT_DEFAULT_TENANT_SLUG`).
    - **`Name`**: `Quiz Islam`
    - **`domain`**: `quiz-islam.com` (Без `https://` и `www`)
    - **`mini_app_domain`**: `mini.quiz-islam.com`
@@ -176,21 +186,14 @@ class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 Поскольку трафик идет через Nginx, необходимо сконфигурировать `server` блоки так, чтобы Nginx перехватывал запросы для новых доменов и передавал их основному контейнеру `quiz_backend:8000` и `mini_app:8080`.
 *(Совет: Если вы используете Nginx Proxy Manager (NPM), просто добавьте новые Proxy Hosts для этих доменов и выпустите Let's Encrypt сертификаты).*
 
-#### Шаг 4: Запуск контейнеров бота и mini-app для нового тенанта
-Основной монолит `quiz_backend` **не нужно перезагружать** — он автоматически обслужит `quiz-islam.com`, вытягивая правильные данные с помощью `TenantMiddleware`. 
-
-Однако, скриптам Telegram бота и локальным фоновым процессам необходимо сообщить, для какого проекта они работают (так как у них нет HTTP hostname запроса). Для этого мы передаем `TENANT_SLUG`.
-
-На сервере можно запустить отдельные инстансы бота для нового тенанта:
+#### Шаг 4: Перезапуск бота
+Основной монолит `quiz_backend` и mini_app **не нужно перезагружать** — они определяют тенанта по домену
+(`TenantMiddleware`). Боту нужно подхватить новый `bot_token`: перезапустите контейнер бота —
+он запустит ботов всех активных тенантов в одном процессе.
 
 ```bash
-# Вариант запуска через Docker Compose с передачей переменной окружения
-export TENANT_SLUG=quiz-islam
-docker-compose up -d telegram_bot mini_app
+docker compose -f docker-compose.local-prod.yml restart telegram_bot
 ```
-*(При запуске контейнер `telegram_bot` считает переменную `TENANT_SLUG=quiz-islam`, подключится к общей базе PostgreSQL, вытащит свой уникальный `bot_token` и начнет обрабатывать сообщения для своего изолированного бота).*
-
-**Альтернатива**: В Production-среде вы можете продублировать блок `telegram_bot` в `docker-compose.yml` (назвав его `telegram_bot_islam`) и прямо там прописать `TENANT_SLUG=quiz-islam`, чтобы управлять всеми ботами в одном файле оркестрации.
 
 #### Шаг 5: Добавление контент-менеджеров
 1. Снова зайдите в `quiz-code.com/admin` (от имени Superuser).

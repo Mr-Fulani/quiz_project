@@ -59,10 +59,13 @@ docker compose down
 | `COINGATE_API_TOKEN` | да, если включён CoinGate | callback CoinGate проверяется запросом статуса заказа к API |
 | `SOCIAL_MEDIA_CALLBACK_SECRET` | нет | если задан — Make.com должен присылать его в заголовке `X-Callback-Secret` |
 | `TELEGRAM_INIT_DATA_MAX_AGE` | нет (86400) | срок действия initData Mini App, секунды |
+| `BOT_DEFAULT_TENANT_SLUG` | нет | какой тенант обслуживает глобальный `TELEGRAM_BOT_TOKEN`, если он не указан ни у одного тенанта (иначе — единственный тенант без своего токена) |
 | `CORS_ALLOWED_ORIGINS` (mini_app) | нет | дополнительные CORS-источники для FastAPI через запятую; по умолчанию чужим сайтам доступ закрыт |
 
-Также у каждого тенанта в админке должен быть заполнен `bot_token` — им проверяется подпись Mini App
-(при пустом поле используется глобальный `TELEGRAM_BOT_TOKEN`).
+Также у каждого тенанта в админке должен быть заполнен `bot_token` — им проверяется подпись Mini App,
+бот тенанта запускается в общем процессе бота и выполняет Telegram-действия сайта
+(при пустом поле используется глобальный `TELEGRAM_BOT_TOKEN`). После изменения `bot_token`
+перезапустите контейнер бота.
 
 ### Порты
 В `docker-compose.local-prod.yml` порты Postgres (5433), backend (8001), mini_app (8080) и бота (8002)
