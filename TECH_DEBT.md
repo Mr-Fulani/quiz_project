@@ -156,15 +156,20 @@
 Как сменить домен хранилища: `R2_PUBLIC_DOMAIN` в `.env` + старый домен в `STORAGE_LEGACY_DOMAINS`;
 данные в БД не трогать (там ключи файлов).
 
-- [ ] 🟡 Личные данные автора всё ещё в коде (включаются флагом тенанта `is_author_site`, не slug):
-      встроенный профиль в `blog/context_processors.py` (email, соцсети, ресурсы, тексты «обо мне»)
-      и SEO-тексты резюме/«обо мне»/контактов с «Anvar Sh.» в msgid. Ещё ссылки `Mr_Fulani` в письмах
-      (`donation/templates/...thank_you_email_*.html`, `templates/registration/password_reset_email*.html`),
-      `blog/templates/blog/resume.html`, `blog/management/commands/import_resume.py`. Лучше перенести
-      в «Данные владельца» (`blog.TenantInfo`).
+- [ ] 🟠 Mini App и бот: хардкод бота и бренда — `t.me/mr_proger_bot/quiz` (`mini_app/routers/pages.py`,
+      `static/js/share-topic.js`, `templates/profile.html`), «QUIZ-CODE» в приветствии (`profile.html`,
+      `services/localization.py`), тестовый telegram_id 975113235 / мок Mr_Fulani (`templates/base.html`,
+      `static/js/tasks.js`); в боте fallback-ссылки `t.me/tyt_python`/`t.me/proger_dude`
+      (`bot/services/default_link_service.py`, `task_service.py`, `handlers/admin_menu.py`).
+      Полный список с номерами строк — в заметках сессии (hardcode-audit-2026-10-19.md).
+- [ ] 🟢 Значения по умолчанию инфраструктуры с именами проекта: `R2_BUCKET_NAME='quiz-hub-prod'`
+      (`config/settings.py`, `bot/config.py`), `DB_NAME=fulani_quiz_db` (`bot/entrypoint.sh`). Убирать только
+      после проверки, что на сервере эти переменные заданы в `.env`, иначе сломается хранилище/БД.
+- [ ] 🟢 Моки с личным telegram_id 975113235 (`social_auth/views.py`, `blog/templates/blog/telegram_mock.html`),
+      `anonymous@quizproject.com` в `blog/views.py`; упоминания `mr_proger_bot`/`mr_fulani` в документации
+      (`SERVER_INSTRUCTIONS.md`, `markdown_post.md`, `PINTEREST_DATA_FORMAT.md`).
 - [ ] 🟡 `nginx/nginx-prod.conf` перечисляет домены (`server_name`, пути сертификатов) — при смене домена
       править вручную; `quiz-code.com` и мёртвые quiz-format/quiz-game можно убрать.
-- [ ] 🟢 Бренд по умолчанию «QuizHub»/`@quiz_code_hub` в SEO, когда тенант не определён.
 - [ ] 🟢 `TENANT_SLUG` в `docker-compose.yml` нигде не читается.
 
 ## ✅ Сделано (2026-10-18)
@@ -187,9 +192,15 @@
 
 ## ✅ Сделано (2026-10-19)
 
-- Привязки по slug тенанта убраны: автор, телефон, профили (SEO/JSON-LD), стиль картинок и общий логотип —
-  поля `Tenant` (`author_name`, `contact_phone`, `social_profiles`, `is_author_site`, `image_theme`,
-  `use_global_logo`); миграция `tenants/0004` перенесла прежние значения в quiz-code и iqro-forum.
+- Привязки по slug тенанта убраны: стиль картинок и общий логотип — поля `Tenant` (`image_theme`,
+  `use_global_logo`, миграция `tenants/0004`); автор, телефон и соцсети в SEO/JSON-LD — из «Данных владельца».
+- Личные данные убраны из кода: встроенный профиль (сайдбар, тексты главной/«обо мне», ресурсы) перенесён
+  миграцией `blog/0036` в «Данные владельца»/«Ресурсы платформы» quiz-code; SEO-тексты резюме/«обо мне»/контактов
+  строятся из имени и профессии владельца; письма (донат, сброс пароля) берут название, email поддержки и соцсети
+  из тенанта; резюме — без данных по умолчанию, `import_resume` читает JSON.
+- Бренд «QuizHub»/«Quiz Project» в шаблонах, OG-картинках и заголовках заменён названием сайта тенанта;
+  GTM — поле тенанта (миграция `tenants/0005` перенесла действовавший ID); бот — `tenant.bot_username`;
+  `EMAIL_ADMIN` из `.env`.
 
 - Исходящие вебхуки, `GlobalWebhookLink`, `DefaultLink`/`MainFallbackLink`, credentials соцсетей —
   только тенанта задачи (+ общие без тенанта); сводная отправка разбивается по тенантам.
