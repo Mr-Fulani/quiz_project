@@ -135,7 +135,6 @@
 - [ ] 🟠 В git: `node_modules/` (6667 файлов, удаление не закоммичено), `quiz_backend/staticfiles/` (1916),
       пользовательские `media/` (~300), `.coverage`, egg-info, `postEvent`, `temp_ru.po`, `project_tree.txt`.
       Сделать `git rm --cached` отдельным коммитом и дополнить `.gitignore`.
-- [ ] 🟠 `.gitignore`: правило `*/migrations/*.py` молча игнорирует новые миграции — убрать.
 - [ ] 🟡 ~90 устаревших `.md`-отчётов в корне (`FIX_*`, `URGENT_*`, `FINAL_*`, `SUCCESS_*`) и разовые скрипты;
       ценное (архитектура, интеграции) — в `docs/`.
 - [ ] 🟡 Неиспользуемые модули: `tasks/notification_service.py`, `tasks/utils/cache_utils.py`, `tasks/filters.py`,
@@ -199,3 +198,5 @@
 - SEO: `sitemap.xml` и `robots.txt` — домен тенанта из запроса (было: `Site #1` для всех) и только его объекты;
   `Disallow` с языковыми префиксами (`/ru/swagger/`, `/en/inbox/`…); `noindex` на профилях, статистике,
   личных сообщениях, чате, сбросе пароля (`NOINDEX_URL_NAMES` в `blog/context_processors.py`).
+- Проверено: правило `.gitignore` `*/migrations/*.py` действует только на каталоги верхнего уровня
+  (`backups/migrations`), миграции приложений `quiz_backend/*/migrations/` в git попадают — пункт снят.
