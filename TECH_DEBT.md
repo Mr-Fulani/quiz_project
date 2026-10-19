@@ -91,13 +91,8 @@
 - [ ] 🟠 mini_app вызывает `/api/subtopics/<id>/` дважды за загрузку страницы задач
       (`mini_app/routers/pages.py` `get_subtopic_detail` и `get_tasks_for_subtopic`); первый вызов без `level`
       грузит все задачи подтемы и почти выбрасывается. (N+1 внутри самого эндпоинта исправлен.)
-- [ ] 🟠 `blog/context_processors.py` `personal_info` — тяжёлая агрегация на каждой странице без кэша.
-- [ ] 🟠 `dynamic_seo_context` вызывает `connection.close()` (ломает `CONN_MAX_AGE`), лишние запросы;
-      в тестах логирует `name 'connection' is not defined` — проверить импорт.
 - [ ] 🟠 `config/settings_production.py` нигде не подключается — Redis-кэш и прочее оттуда в проде не действуют.
       Решить: удалить или подключить.
-- [ ] 🟠 JS mini_app не кэшируется: `location ~* \.js$` в nginx перебивает `/static/` (no-store), cache-buster
-      добавляет `force=time()`.
 - [ ] 🟠 `mini_app/templates/base.html`: ~1400 строк inline JS, Stripe/QR/ionicons синхронно на всех страницах.
 - [ ] 🟠 `blog/static/blog/js/font-awesome.min.js` (1.5 МБ) на каждой странице вместе с CSS-версией;
       highlight.js и GSAP глобально.
@@ -124,11 +119,12 @@
 ## 🗂 Админка
 
 - [ ] 🟠 Нельзя создать задачу сразу на N языках; `translation_group_id` readonly; инлайн перевода без `max_num=1`.
-- [ ] 🟠 В списке задач нет текста вопроса и поиска по нему (`translations__question`).
 - [ ] 🟠 Публикация в Telegram/соцсети и генерация картинок синхронно в запросе (`time.sleep`) → 504.
       Перевести в Celery по образцу генерации видео.
 - [ ] 🟡 Ссылка «Комментарий #N» ведёт на незарегистрированный `TaskComment` (404).
 - [ ] 🟡 `topics/admin.py`: превью через удалённый `allow_tags` (сырой HTML), счётчики N+1.
+- [ ] 🟡 `TenantFilteredAdminMixin` добавляет суперпользователю колонку `tenant` — в админках без
+      `select_related('tenant')` это запрос на каждую строку (в задачах исправлено).
 - [ ] 🟡 `autocomplete_fields` нигде; у задачи тема/подтема — raw_id.
 - [ ] 🟡 Возврат Stars, смена статуса доната без подтверждения; `amount`/`status` редактируемы.
 - [ ] 🟡 JSON-импорт: нет dry-run, проверки дублей, атомарности; сотни плашек сообщений.
@@ -193,3 +189,11 @@
   (`bot/tenancy.py`), новые записи получают тенант. Команда `assign_tenant_to_legacy_rows` для старых записей.
 - Django/Celery: публикация, удаление сообщений, рассылка, назначение админов, уведомления, возврат Stars —
   ботом тенанта (`tenants/scoping.bot_token_for`).
+- Удалена заглушка Telegram-вебхука в Django (`/api/webhooks/telegram/`): её `setWebhook` отключил бы polling бота.
+- SEO постов снова работает: `dynamic_seo_context` падал на `connection.close()` без импорта и молча отдавал
+  пустые meta; теперь фильтрует пост/проект по тенанту, имя сайта — из тенанта.
+- `personal_info` (на каждой странице сайта) кэшируется на 5 минут по тенанту/языку, сбрасывается при изменении
+  `TenantInfo`/`PlatformResource`; убраны отладочные логи.
+- Mini App: JS/CSS кэшируются браузером — версия в URL = хэш файла (раньше текущее время), nginx отдаёт `/static/`
+  с `?v` как immutable на год.
+- Админка задач: колонка с текстом вопроса, поиск по тексту вопроса; список без запросов на каждую строку.

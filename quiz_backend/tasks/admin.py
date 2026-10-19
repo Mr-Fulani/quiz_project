@@ -6,7 +6,9 @@ from django.contrib import admin, messages
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.utils.html import format_html, mark_safe
+from django.utils.html import format_html, mark_safe, strip_tags
+from django.utils.text import Truncator
+from django.db.models import Prefetch
 from django.utils import timezone
 from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport, SocialMediaPost, BackgroundMusic
 from .services.task_import_service import import_tasks_from_json
@@ -190,7 +192,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     change_list_template = 'admin/tasks/task_changelist.html'
     
     list_display = (
-        'id', 'topic', 'subtopic', 'get_language', 'difficulty',
+        'id', 'question_preview', 'topic', 'subtopic', 'get_language', 'difficulty',
         'publication_status_display', 'telegram_group_display',
         'error_status', 'create_date', 'has_image', 'has_video',
     )
@@ -198,7 +200,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         'published_telegram', 'published_website', 'published_mini_app',
         'tenant', 'difficulty', 'topic', 'subtopic', 'error', 'translations__language',
     )
-    search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link', 'translations__language')
+    search_fields = (
+        'id', 'translations__question', 'topic__name', 'subtopic__name',
+        'translation_group_id', 'external_link', 'translations__language',
+    )
     raw_id_fields = ('topic', 'subtopic', 'group', 'background_music')
     date_hierarchy = 'create_date'
     ordering = ('-create_date',)
@@ -356,7 +361,22 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def get_queryset(self, request):
         """Оптимизация запросов: предзагружаем переводы для отображения языка."""
         qs = super().get_queryset(request)
-        return qs.select_related('topic', 'subtopic', 'group').prefetch_related('translations')
+        return qs.select_related('tenant', 'topic', 'subtopic__topic', 'group').prefetch_related(
+            Prefetch('translations', queryset=TaskTranslation.objects.order_by('id'))
+        )
+
+    @staticmethod
+    def _list_translation(obj):
+        """Первый перевод из prefetch (translations.first() делал бы запрос на каждую строку списка)."""
+        return next(iter(obj.translations.all()), None)
+
+    def question_preview(self, obj):
+        """Начало текста вопроса — чтобы находить задачу в списке без открытия."""
+        translation = self._list_translation(obj)
+        if not translation:
+            return '—'
+        return Truncator(strip_tags(translation.question)).chars(80)
+    question_preview.short_description = 'Вопрос'
     
     def has_image(self, obj):
         """Проверка наличия изображения."""
@@ -379,7 +399,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     
     def get_language(self, obj):
         """Отображение языка задачи из перевода."""
-        translation = obj.translations.first()
+        translation = self._list_translation(obj)
         if translation:
             # Добавляем флаги для популярных языков
             flags = {
