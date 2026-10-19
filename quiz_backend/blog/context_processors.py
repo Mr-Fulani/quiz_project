@@ -30,20 +30,25 @@ def personal_info(request):
     Returns:
         dict: Контекст с данными личного кабинета.
     """
-    logger.info("=== DEBUG: personal_info processor called for request: %s", request.path)
+    from django.core.cache import cache
+
+    path = request.path.lower()
+    with_top_users = not (path.startswith('/en/quiz/') or path.startswith('/ru/quiz/') or path.startswith('/en/quizes/') or path.startswith('/ru/quizes/'))
+    tenant = getattr(request, 'tenant', None)
+    lang = getattr(request, 'LANGUAGE_CODE', None) or get_language() or 'en'
+    # Блок одинаков для всех посетителей сайта (тенант + язык): считаем раз в 5 минут, а не на каждой странице
+    cache_key = personal_info_cache_key(getattr(tenant, 'id', None), lang, with_top_users)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return {'personal_info': cached}
 
     try:
         # Проверяем, нужна ли top_users_data
         top_users_data = []
-        path = request.path.lower()
-        if not (path.startswith('/en/quiz/') or path.startswith('/ru/quiz/') or path.startswith('/en/quizes/') or path.startswith('/ru/quizes/')):
-            logger.info("=== DEBUG: top_users_data enabled for path: %s", path)
+        if with_top_users:
             # Оптимизированный запрос с агрегацией статистики
             # Сначала сортируем по количеству решенных задач, потом по рейтингу
-            # Получаем активного тенанта из middleware
-            tenant = getattr(request, 'tenant', None)
-            logger.info("=== DEBUG: Current resolved tenant: %s (Slug: %s)", tenant, getattr(tenant, 'slug', 'N/A'))
-            
+
             if tenant:
                 top_users = User.objects.annotate(
                     tasks_completed_count=Count('statistics', filter=Q(statistics__successful=True) & Q(statistics__task__tenant=tenant)),
@@ -73,9 +78,6 @@ def personal_info(request):
 
             for i, user in enumerate(top_users, 1):
                 try:
-                    # ПРИНУДИТЕЛЬНО обновляем объект из БД, чтобы получить свежие данные
-                    user.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
-                    
                     # Получаем количество квизов и баллы напрямую из аннотации
                     quizzes_count = getattr(user, 'tasks_completed_count', 0)
                     total_score = getattr(user, 'total_score_annotated', 0)
@@ -108,14 +110,10 @@ def personal_info(request):
                         'favorite_category': favorite_category
                     }
                     top_users_data.append(user_data)
-                    logger.info(f"=== DEBUG: User {user.username} stats - tasks: {getattr(user, 'tasks_completed_count', 0)}, score: {user.total_score}, avg: {avg_score}%")
                 except Exception as e:
                     logger.error(f"Error processing user {user.username}: {e}")
                     continue
-        else:
-            logger.info("=== DEBUG: top_users_data disabled for path: %s", path)
 
-        tenant = getattr(request, 'tenant', None)
         is_quiz_code = tenant is not None and tenant.slug == 'quiz-code'
 
         # Пытаемся получить динамические данные владельца
@@ -177,7 +175,6 @@ def personal_info(request):
             }
         elif dynamic_info:
             # Данные из новой модели TenantInfo
-            lang = getattr(request, 'LANGUAGE_CODE', 'en')
             personal_info_data = {
                 'name': getattr(dynamic_info, f'name_{lang}', dynamic_info.name_en),
                 'title': getattr(dynamic_info, f'title_{lang}', dynamic_info.title_en),
@@ -230,19 +227,36 @@ def personal_info(request):
                 'top_users': top_users_data
             }
 
-        logger.info("=== DEBUG: personal_info data prepared: %s", personal_info_data.keys())
+        cache.set(cache_key, personal_info_data, PERSONAL_INFO_CACHE_SECONDS)
         return {'personal_info': personal_info_data}
 
-    except Exception as e:
-        logger.error("=== DEBUG: Error in personal_info processor: %s", str(e))
+    except Exception:
+        logger.exception("Error in personal_info processor")
         return {'personal_info': {}}
+
+
+PERSONAL_INFO_CACHE_SECONDS = 300
+
+
+def personal_info_cache_key(tenant_id, lang, with_top_users):
+    return f"personal_info:{tenant_id}:{lang}:{int(bool(with_top_users))}"
+
+
+def clear_personal_info_cache(tenant_id):
+    """Сбросить кэш блока personal_info тенанта (вызывается сигналами при изменении данных)."""
+    from django.core.cache import cache
+    keys = [
+        personal_info_cache_key(tenant_id, lang_code, with_top)
+        for lang_code, _name in settings.LANGUAGES
+        for with_top in (True, False)
+    ]
+    cache.delete_many(keys)
 
 def unread_messages_count(request):
     """
     Контекстный процессор для количества непрочитанных сообщений пользователя.
     Объединяет логику подсчета сообщений из БД и Django messages framework.
     """
-    logger.info("=== DEBUG: unread_messages_count processor called for request: %s", request.path)
     if request.user.is_authenticated:
         # Сообщения из БД (модель Message)
         db_messages_count = request.user.get_unread_messages_count()
@@ -252,8 +266,6 @@ def unread_messages_count(request):
         django_messages_count = len(list(django_messages))
         
         total_count = db_messages_count + django_messages_count
-        logger.info("=== DEBUG: DB messages: %d, Django messages: %d, Total: %d", 
-                   db_messages_count, django_messages_count, total_count)
         return {'unread_messages_count': total_count}
     return {'unread_messages_count': 0}
 
@@ -279,13 +291,10 @@ def user_statistics(request):
         if stats is None:
             stats = request.user.get_statistics()
             cache.set(cache_key, stats, 300)  # 5 минут
-            logger.info("=== DEBUG: User statistics cached for user %s: %s", request.user.username, stats)
-        else:
-            logger.info("=== DEBUG: User statistics from cache for user %s: %s", request.user.username, stats)
-            
+
         return {'user_statistics': stats}
-    except Exception as e:
-        logger.error("=== DEBUG: Error in user_statistics processor: %s", str(e))
+    except Exception:
+        logger.exception("Error in user_statistics processor")
         return {
             'user_statistics': {
                 'solved_tasks': 0,
@@ -551,19 +560,7 @@ def analytics_context(request):
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
     pinterest_verification = getattr(settings, 'PINTEREST_VERIFICATION_CODE', '')
-    
-    # Отладочное логирование
-    logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
-    logger.info(f"=== DEBUG: analytics_context - GOOGLE_TAG_MANAGER_ID: '{gtm_id}' (type: {type(gtm_id).__name__})")
-    logger.info(f"=== DEBUG: analytics_context - YANDEX_METRICA_ID: '{yandex_id}'")
-    
-    # Проверяем переменные окружения напрямую
-    import os
-    env_ga_id = os.getenv('GOOGLE_ANALYTICS_ID', 'NOT_SET')
-    env_gtm_id = os.getenv('GOOGLE_TAG_MANAGER_ID', 'NOT_SET')
-    logger.info(f"=== DEBUG: analytics_context - env GOOGLE_ANALYTICS_ID: '{env_ga_id}'")
-    logger.info(f"=== DEBUG: analytics_context - env GOOGLE_TAG_MANAGER_ID: '{env_gtm_id}'")
-    
+
     return {
         'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
         'GOOGLE_TAG_MANAGER_ID': gtm_id,
@@ -627,9 +624,6 @@ def dynamic_seo_context(request):
     path = request.path
     host = request.get_host()
 
-    # ДОБАВЛЕНО: Отладочная информация
-    logger.info(f"=== DEBUG: dynamic_seo_context called for path: {path}, host: {host}")
-
     tenant = getattr(request, 'tenant', None)
     scheme = 'https' if request.is_secure() else 'http'
     
@@ -648,9 +642,6 @@ def dynamic_seo_context(request):
         base_url = f"{scheme}://{host}"
         is_mini_app = False
 
-    # ДОБАВЛЕНО: Отладочная информация
-    logger.info(f"=== DEBUG: base_url: {base_url}, is_mini_app: {is_mini_app}")
-
     try:
         # SEO для постов блога (включая share URL)
         if '/post/' in path or path.endswith('/post/') or '/share/post/' in path:
@@ -667,38 +658,14 @@ def dynamic_seo_context(request):
                 # Для обычного /ru/post/krutoj-promt-dlya-gpt/ берем последнюю часть
                 slug = path_parts[-1]
             
-            # ДОБАВЛЕНО: Отладочная информация
-            logger.info(f"=== DEBUG: Processing post with slug: {slug}")
-            
             if slug:
                 try:
-                    # ДОБАВЛЕНО: Принудительно обновляем кеш базы данных и транзакцию
-                    connection.close()
-                    logger.info(f"=== DEBUG: Database connection closed and reopened")
-                    
-                    # ДОБАВЛЕНО: Проверяем все посты с этим slug в новой транзакции
-                    with transaction.atomic():
-                        all_posts_with_slug = Post.objects.filter(slug=slug)
-                        logger.info(f"=== DEBUG: Found {all_posts_with_slug.count()} posts with slug '{slug}'")
-                        
-                        for post in all_posts_with_slug:
-                            logger.info(f"=== DEBUG: Post ID: {post.id}, Title: '{post.title}', Published: {post.published}")
-                        
-                        # Теперь ищем только опубликованные
-                        post = Post.objects.filter(slug=slug, published=True).select_related('category').prefetch_related('images').first()
-                        
-                        # ДОБАВЛЕНО: Отладочная информация
-                        if post:
-                            logger.info(f"=== DEBUG: Found published post: {post.title} (ID: {post.id})")
-                        else:
-                            logger.warning(f"=== DEBUG: No published post found for slug: {slug}")
-                            # ДОБАВЛЕНО: Проверяем, есть ли вообще посты с этим slug
-                            any_post = Post.objects.filter(slug=slug).first()
-                            if any_post:
-                                logger.warning(f"=== DEBUG: Post exists but not published: ID={any_post.id}, Title='{any_post.title}', Published={any_post.published}")
-                            else:
-                                logger.error(f"=== DEBUG: No post found at all for slug: {slug}")
-                    
+                    # Раньше здесь был connection.close() без импорта: NameError молча гасился,
+                    # и SEO-данные постов не формировались вовсе. Пост — только своего тенанта.
+                    post = Post.objects.filter(
+                        slug=slug, published=True, tenant=tenant
+                    ).select_related('category').prefetch_related('images').first()
+
                     if post:
                         # Используем custom meta fields или генерируем автоматически
                         # Очищаем HTML теги из контента для корректного отображения в превью
@@ -708,24 +675,7 @@ def dynamic_seo_context(request):
                         meta_description = post.meta_description or (clean_excerpt[:160] if clean_excerpt else f"Read {post.title} - {clean_content[:100]}...")
                         meta_keywords = post.meta_keywords or f"{post.title}, {post.category.name}, blog, programming, quiz"
 
-                        # ДОБАВЛЕНО: Отладочная информация для изображений
-                        main_image = post.get_main_image()
-                        logger.info(f"=== DEBUG: Main image: {main_image}")
-                        if main_image:
-                            logger.info(f"=== DEBUG: Main image photo: {main_image.photo}")
-                            logger.info(f"=== DEBUG: Main image photo URL: {main_image.photo.url if main_image.photo else 'None'}")
-                        else:
-                            logger.info(f"=== DEBUG: No main image found")
-                        
-                        # ДОБАВЛЕНО: Проверяем все изображения поста
-                        all_images = post.images.all()
-                        logger.info(f"=== DEBUG: Total images for post: {all_images.count()}")
-                        for i, img in enumerate(all_images):
-                            logger.info(f"=== DEBUG: Image {i+1}: photo={img.photo}, gif={img.gif}, video={img.video}, is_main={img.is_main}")
-                        
-                        # ДОБАВЛЕНО: Используем метод get_og_image_url() из модели
                         og_image = post.get_og_image_url()
-                        logger.info(f"=== DEBUG: OG image from get_og_image_url(): {og_image}")
 
                         # Формируем полный URL для OG изображения
                         # Для production всегда используем HTTPS
@@ -756,8 +706,6 @@ def dynamic_seo_context(request):
                             default_image_path = getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
                             og_image_final = f"{production_scheme}://{host}{default_image_path}"
                         
-                        logger.info(f"=== DEBUG: Final OG image URL: {og_image_final}")
-
                         # ИСПРАВЛЕНИЕ: Генерируем hreflang URLs правильно (без двойного языкового префикса)
                         current_path = request.path
                         # Убираем языковой префикс из пути
@@ -787,8 +735,9 @@ def dynamic_seo_context(request):
                         if default_domain in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
                         
+                        site_name = tenant.site_name if tenant and tenant.site_name else 'Quiz Project'
                         seo_data.update({
-                            'meta_title': f"{post.title} | Quiz Project Blog",
+                            'meta_title': f"{post.title} | {site_name}",
                             'meta_description': meta_description[:160],
                             'meta_keywords': meta_keywords,
                             'canonical_url': base_url + post_absolute_url,
@@ -817,12 +766,6 @@ def dynamic_seo_context(request):
                             'twitter_image': og_image_final,
                         })
 
-                        # ДОБАВЛЕНО: Отладочная информация
-                        logger.info(f"=== DEBUG: SEO data updated for post: {post.title}")
-                        logger.info(f"=== DEBUG: vk_title: {post.title}")
-                        logger.info(f"=== DEBUG: vk_description: {meta_description[:160]}")
-                        logger.info(f"=== DEBUG: vk_image: {og_image_final}")
-
                         # JSON-LD для статьи
                         article_data = {
                             "@context": "https://schema.org",
@@ -837,7 +780,7 @@ def dynamic_seo_context(request):
                             },
                             "publisher": {
                                 "@type": "Organization",
-                                "name": "Quiz Project",
+                                "name": site_name,
                                 "logo": {
                                     "@type": "ImageObject",
                                     "url": request.build_absolute_uri('/static/blog/images/logo.png')
@@ -853,29 +796,20 @@ def dynamic_seo_context(request):
 
                         seo_data['article_json_ld'] = json.dumps(article_data, ensure_ascii=False, indent=2)
                         
-                except Exception as e:
-                    logger.error(f"Error processing post SEO for {slug}: {e}")
-                    import traceback
-                    logger.error(f"=== DEBUG: Full traceback: {traceback.format_exc()}")
+                except Exception:
+                    logger.exception(f"Error processing post SEO for {slug}")
         
         # SEO для проектов портфолио
         elif '/project/' in path:
             from blog.models import Project
             slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
             
-            # ДОБАВЛЕНО: Отладочная информация
-            logger.info(f"=== DEBUG: Processing project with slug: {slug}")
-            
             if slug:
                 try:
-                    project = Project.objects.filter(slug=slug).select_related('category').prefetch_related('images').first()
-                    
-                    # ДОБАВЛЕНО: Отладочная информация
-                    if project:
-                        logger.info(f"=== DEBUG: Found project: {project.title}")
-                    else:
-                        logger.warning(f"=== DEBUG: Project not found for slug: {slug}")
-                    
+                    project = Project.objects.filter(
+                        slug=slug, tenant=tenant
+                    ).select_related('category').prefetch_related('images').first()
+
                     if project:
                         # Очищаем HTML теги из описания для корректного отображения в превью
                         clean_description = strip_tags(project.description) if project.description else ""
@@ -913,7 +847,6 @@ def dynamic_seo_context(request):
 
                         # ДОБАВЛЕНО: Отладочная информация для VK
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
-                        logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
 
                         # Формируем абсолютный URL для og:url (HTTPS для production)
                         project_absolute_url = project.get_absolute_url()
@@ -922,8 +855,9 @@ def dynamic_seo_context(request):
                         if 'quiz-code.com' in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
 
+                        site_name = tenant.site_name if tenant and tenant.site_name else 'Quiz Project'
                         seo_data.update({
-                            'meta_title': f"{project.title} | Portfolio - Quiz Project",
+                            'meta_title': f"{project.title} | Portfolio - {site_name}",
                             'meta_description': meta_description[:160],
                             'meta_keywords': meta_keywords,
                             'canonical_url': base_url + project_absolute_url,
@@ -943,9 +877,6 @@ def dynamic_seo_context(request):
                             'twitter_description': meta_description[:160],
                             'twitter_image': og_image_final,
                         })
-
-                        # ДОБАВЛЕНО: Отладочная информация
-                        logger.info(f"=== DEBUG: SEO data updated for project: {project.title}")
 
                         # JSON-LD для проекта
                         project_data = {
@@ -969,19 +900,11 @@ def dynamic_seo_context(request):
 
                         seo_data['project_json_ld'] = json.dumps(project_data, ensure_ascii=False, indent=2)
 
-                except Exception as e:
-                    logger.error(f"Error processing project SEO for {slug}: {e}")
-        else:
-            # ДОБАВЛЕНО: Отладочная информация
-            logger.info(f"=== DEBUG: Path {path} does not match post or project patterns")
+                except Exception:
+                    logger.exception(f"Error processing project SEO for {slug}")
 
-    except Exception as e:
-        logger.error(f"Error in dynamic_seo_context: {e}")
-        import traceback
-        logger.error(f"=== DEBUG: Full traceback: {traceback.format_exc()}")
-
-    # ДОБАВЛЕНО: Отладочная информация
-    logger.info(f"=== DEBUG: Final SEO data keys: {list(seo_data.keys())}")
+    except Exception:
+        logger.exception("Error in dynamic_seo_context")
 
     return {'dynamic_seo': seo_data}
 

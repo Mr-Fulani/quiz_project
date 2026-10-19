@@ -257,3 +257,17 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
     except Exception as e:
         logger.error(f"Ошибка при автоматической отправке поста '{instance.title}' в Telegram: {e}")
 
+
+
+# --- Сброс кэша блока personal_info (context_processors.personal_info) ---
+
+from django.db.models.signals import post_delete  # noqa: E402
+from .models import PlatformResource, TenantInfo  # noqa: E402
+
+
+@receiver([post_save, post_delete], sender=TenantInfo)
+@receiver([post_save, post_delete], sender=PlatformResource)
+def reset_personal_info_cache(sender, instance, **kwargs):
+    """Данные владельца и ресурсы тенанта изменились — сбросить кэш блока на страницах сайта."""
+    from .context_processors import clear_personal_info_cache
+    clear_personal_info_cache(instance.tenant_id)
