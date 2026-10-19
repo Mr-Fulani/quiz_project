@@ -55,3 +55,7 @@ quiz_backend/blog/static/blog/images/icons/
 # Docker
 quiz_backend/tmp/
 quiz_backend/tasks/static/tasks/background_music/
+
+# Дампы БД — никогда не коммитить (персональные данные)
+*.sql
+*.dump
