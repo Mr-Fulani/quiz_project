@@ -121,13 +121,13 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
                 from platforms.models import TelegramGroup
                 
                 try:
-                    # Получаем админа
-                    admin = TelegramAdmin.objects.get(telegram_id=user_obj.telegram_id)
-                    logger.info(f"Найден админ в Django: {admin.username} (Telegram ID: {user_obj.telegram_id})")
-                    
-                    # Получаем группу
+                    # Получаем группу (group_id глобально уникален) и админа в тенанте этой группы
                     group = TelegramGroup.objects.get(group_id=channel_obj.group_id)
                     logger.info(f"Найдена группа: {group.group_name}")
+
+                    # Получаем админа
+                    admin = TelegramAdmin.objects.get(telegram_id=user_obj.telegram_id, tenant=group.tenant)
+                    logger.info(f"Найден админ в Django: {admin.username} (Telegram ID: {user_obj.telegram_id})")
                     
                     # Проверяем все группы админа
                     admin_groups = admin.groups.all()
@@ -255,24 +255,25 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
                 from accounts.models import TelegramAdmin
                 from platforms.models import TelegramGroup
                 
-                # Получаем или создаем админа
+                # Получаем группу (group_id глобально уникален): админ создаётся в её тенанте
+                group = TelegramGroup.objects.get(group_id=channel_obj.group_id)
+                logger.info(f"Найдена группа: {group.group_name}")
+
+                # Получаем или создаем админа в тенанте канала
                 admin, created = TelegramAdmin.objects.get_or_create(
                     telegram_id=user_obj.telegram_id,
+                    tenant=group.tenant,
                     defaults={
                         'username': user.username or None,
                         'language': user.language_code or "ru",
                         'is_active': True
                     }
                 )
-                
+
                 if created:
                     logger.info(f"Создан новый админ в Django: {user.username} (Telegram ID: {user_obj.telegram_id})")
                 else:
                     logger.debug(f"Админ уже существует в Django: {user.username}")
-                
-                # Получаем группу
-                group = TelegramGroup.objects.get(group_id=channel_obj.group_id)
-                logger.info(f"Найдена группа: {group.group_name}")
                 
                 # Создаем связь через Django ORM
                 link, link_created = TelegramAdminGroup.objects.get_or_create(

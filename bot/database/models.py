@@ -13,6 +13,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class Tenant(Base):
+    """
+    Тенант (сайт). Таблица создаётся и редактируется Django (tenants.Tenant); бот только читает:
+    для каждого активного тенанта с bot_token запускается свой бот (см. bot/tenancy.py).
+    """
+    __tablename__ = 'tenants'
+
+    id = Column(BigInteger, primary_key=True)
+    slug = Column(String(100), nullable=False)
+    name = Column(String(255), nullable=False)
+    mini_app_domain = Column(String(255), nullable=True)
+    bot_token = Column(String(255), nullable=True)
+    bot_username = Column(String(100), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+
+class TenantScopedMixin:
+    """
+    Модель с колонкой tenant_id (создана Django). Все запросы бота к таким моделям автоматически
+    ограничиваются тенантом текущего бота, а новым записям тенант проставляется сам (bot/tenancy.py).
+    """
+    tenant_id = Column(BigInteger, nullable=True)
 
 
 # Промежуточная таблица для связи TelegramAdmin и TelegramGroup
@@ -25,7 +47,7 @@ telegramadmin_groups = Table(
 
 
 
-class TelegramAdmin(Base):
+class TelegramAdmin(TenantScopedMixin, Base):
     """
     Модель администратора Telegram-бота, синхронизированная с Django таблицей admins.
     """
@@ -49,7 +71,7 @@ class TelegramAdmin(Base):
 
 
 
-class TelegramGroup(Base):
+class TelegramGroup(TenantScopedMixin, Base):
     """
     Модель для хранения информации о Telegram-группах или каналах.
 
@@ -92,7 +114,7 @@ class TelegramGroup(Base):
 
 
 
-class Task(Base):
+class Task(TenantScopedMixin, Base):
     __tablename__ = 'tasks'
 
     id = Column(Integer, primary_key=True)
@@ -144,7 +166,7 @@ class TaskTranslation(Base):
 
 
 
-class TelegramUser(Base):
+class TelegramUser(TenantScopedMixin, Base):
     """
     Модель пользователя Telegram-бота, хранит данные о пользователях и их подписках.
     """
@@ -199,7 +221,7 @@ class TaskStatistics(Base):
 
 
 
-class Topic(Base):
+class Topic(TenantScopedMixin, Base):
     __tablename__ = 'topics'
 
     id = Column(Integer, primary_key=True)
@@ -236,7 +258,7 @@ class TaskPoll(Base):
     task = relationship('Task', back_populates='polls')
     translation = relationship('TaskTranslation')
 
-class Webhook(Base):
+class Webhook(TenantScopedMixin, Base):
     __tablename__ = 'webhooks'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -246,7 +268,7 @@ class Webhook(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=True)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=True)
 
-class DefaultLink(Base):
+class DefaultLink(TenantScopedMixin, Base):
     __tablename__ = 'default_links'
 
     id = Column(Integer, primary_key=True, index=True)
@@ -289,7 +311,7 @@ class UserChannelSubscription(Base):
 
 
 
-class MainFallbackLink(Base):
+class MainFallbackLink(TenantScopedMixin, Base):
     __tablename__ = 'main_fallback_links'
 
     id = Column(Integer, primary_key=True, index=True)
@@ -304,7 +326,7 @@ class MainFallbackLink(Base):
         return f"<MainFallbackLink(language={self.language}, link={self.link})>"
 
 
-class GlobalWebhookLink(Base):
+class GlobalWebhookLink(TenantScopedMixin, Base):
     """
     Модель для хранения глобальных ссылок, которые добавляются в вебхуки.
     Синхронизирована с Django моделью GlobalWebhookLink.
@@ -320,7 +342,7 @@ class GlobalWebhookLink(Base):
         return f"<GlobalWebhookLink(name={self.name}, url={self.url}, is_active={self.is_active})>"
 
 
-class FeedbackMessage(Base):
+class FeedbackMessage(TenantScopedMixin, Base):
     __tablename__ = 'feedback_messages'
 
     id = Column(Integer, primary_key=True)
@@ -339,7 +361,7 @@ class FeedbackMessage(Base):
         return f"<FeedbackMessage(user_id={self.user_id}, username={self.username}, message={self.message[:20]})>"
 
 
-class FeedbackReply(Base):
+class FeedbackReply(TenantScopedMixin, Base):
     """
     Модель для хранения ответов администраторов на сообщения поддержки.
     """

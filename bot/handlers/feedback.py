@@ -15,6 +15,7 @@ from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
 from bot.services.admin_service import IsAdminFilter
+from bot.tenancy import current_tenant_id
 from bot.states.admin_states import FeedbackStates
 from bot.utils.markdownV2 import escape_markdown, format_user_link
 
@@ -164,13 +165,14 @@ async def notify_admins_about_feedback(
         logger.info(f"📝 Начинаем создание записи уведомления в БД для feedback #{feedback.id}")
         try:
             # Используем правильный синтаксис для параметризованного запроса
+            # Сырой SQL не покрывается автофильтром тенанта — tenant_id указываем явно
             sql_query = text("""
-                INSERT INTO notifications 
-                (recipient_telegram_id, is_admin_notification, notification_type, title, message, 
-                 related_object_id, related_object_type, is_read, sent_to_telegram, created_at)
-                VALUES 
-                (NULL, :is_admin_notification, :notification_type, :title, :message, 
-                 :related_object_id, :related_object_type, :is_read, :sent_to_telegram, NOW())
+                INSERT INTO notifications
+                (recipient_telegram_id, is_admin_notification, notification_type, title, message,
+                 related_object_id, related_object_type, is_read, sent_to_telegram, created_at, tenant_id)
+                VALUES
+                (NULL, :is_admin_notification, :notification_type, :title, :message,
+                 :related_object_id, :related_object_type, :is_read, :sent_to_telegram, NOW(), :tenant_id)
             """)
             
             # Ограничиваем длину title и message для БД
@@ -185,7 +187,8 @@ async def notify_admins_about_feedback(
                 'related_object_id': feedback.id,
                 'related_object_type': 'feedback',
                 'is_read': False,
-                'sent_to_telegram': sent_count > 0
+                'sent_to_telegram': sent_count > 0,
+                'tenant_id': current_tenant_id.get(),
             }
             
             logger.error(f"🔴 DEBUG: Параметры для INSERT: notification_type={params['notification_type']}, related_object_id={params['related_object_id']}")

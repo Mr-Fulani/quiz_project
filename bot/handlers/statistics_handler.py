@@ -131,14 +131,18 @@ async def get_mini_app_users_count(db_session: AsyncSession, start_date: datetim
     """
     try:
         # Используем параметризованный запрос для безопасности
+        # Сырой SQL не покрывается автофильтром тенанта (bot/tenancy.py) — тенант указываем сами
+        from bot.tenancy import current_tenant_id
+        tenant_id = current_tenant_id.get()
         query = text("""
-            SELECT COUNT(*) 
-            FROM mini_app_users 
+            SELECT COUNT(*)
+            FROM mini_app_users
             WHERE created_at >= :start_date AND created_at <= :end_date
+              AND (CAST(:tenant_id AS BIGINT) IS NULL OR tenant_id = :tenant_id OR tenant_id IS NULL)
         """)
         result = await db_session.execute(
             query,
-            {"start_date": start_date, "end_date": end_date}
+            {"start_date": start_date, "end_date": end_date, "tenant_id": tenant_id}
         )
         count = result.scalar() or 0
         return count

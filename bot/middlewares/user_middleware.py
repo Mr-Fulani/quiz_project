@@ -65,10 +65,14 @@ class UserMiddleware(BaseMiddleware):
         logger.info(f"Проверка пользователя с telegram_id={telegram_id}")
 
         # Проверяем наличие в БД
+        # Запрос автоматически ограничен тенантом бота (bot/tenancy.py); своя запись — раньше
+        # старой общей (tenant_id IS NULL), поэтому first(), а не scalar_one_or_none()
         result = await db_session.execute(
-            select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
+            select(TelegramUser)
+            .where(TelegramUser.telegram_id == telegram_id)
+            .order_by(TelegramUser.tenant_id.is_(None))
         )
-        user_obj = result.scalar_one_or_none()
+        user_obj = result.scalars().first()
 
         if not user_obj:
             # Создаём новую запись

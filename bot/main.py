@@ -36,6 +36,7 @@ from bot.config import (
 )
 from database.database import Base
 from mini_app.config import WEBAPP_URL
+from bot.tenancy import TenantContextMiddleware, load_bot_tenants, register_bot
 import os
 
 # Настройка логирования
@@ -46,15 +47,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Инициализация публикационного бота
-try:
-    publication_bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    logger.info("✅ Публикационный бот инициализирован")
-except Exception as e:
-    logger.exception(f"❌ Ошибка при инициализации Публикационного бота: {e}")
-    exit(1)
+# Боты тенантов создаются в main() (по Tenant.bot_token из БД, см. bot/tenancy.py)
 
-# Инициализация диспетчера публикационного бота
+# Инициализация диспетчера публикационного бота (один на всех ботов)
 publication_storage = MemoryStorage()
 publication_dp = Dispatcher(storage=publication_storage)
 
@@ -66,6 +61,8 @@ async_session_maker = sessionmaker(engine, expire_on_commit=False, class_=AsyncS
 # Глобальная регистрация middleware (на все типы апдейтов):
 # dp.update.middleware(...) — в Aiogram 3.x применится к любому Update.
 # ------------------------------------------------------------------------
+# Тенант определяется первым: от него зависят все запросы к БД в остальных middleware и хендлерах
+publication_dp.update.outer_middleware(TenantContextMiddleware())
 publication_dp.update.middleware(DbSessionMiddleware(async_session_maker))
 publication_dp.update.middleware(UserMiddleware())
 
@@ -114,20 +111,17 @@ async def init_db():
     await engine.dispose()
     logger.info("✅ База данных инициализирована")
 
-async def delete_webhook():
+async def delete_webhook(bot: Bot):
     """
-    Удаляет вебхук публикационного бота, если он установлен.
-
-    Raises:
-        Exception: Если произошла ошибка при удалении вебхука.
+    Удаляет вебхук бота, если он установлен (бот работает через polling).
     """
     try:
-        await publication_bot.delete_webhook()
-        logger.info("✅ Вебхук публикационного бота успешно удалён")
+        await bot.delete_webhook()
+        logger.info(f"✅ Вебхук бота {bot.id} успешно удалён")
     except Exception as e:
-        logger.exception(f"❌ Ошибка при удалении вебхука публикационного бота: {e}")
+        logger.exception(f"❌ Ошибка при удалении вебхука бота {bot.id}: {e}")
 
-async def setup_telegram_menu(bot: Bot):
+async def setup_telegram_menu(bot: Bot, webapp_url: str = WEBAPP_URL):
     """
     Настраивает меню Telegram: очищает команды и устанавливает кнопку Web App.
     
@@ -145,8 +139,8 @@ async def setup_telegram_menu(bot: Bot):
     """
     await bot.set_my_commands([])
     
-    # Формируем URL для главной страницы мини-приложения
-    main_app_url = f"{WEBAPP_URL}/"
+    # Формируем URL для главной страницы мини-приложения (mini_app_domain тенанта бота)
+    main_app_url = f"{webapp_url.rstrip('/')}/"
     
     logger.info(f"🔗 Настройка меню Telegram с URL: {main_app_url}")
     
@@ -205,22 +199,46 @@ async def setup_telegram_menu(bot: Bot):
     logger.info("✅ Меню Telegram успешно настроено")
     logger.info(f"💡 Если кнопка не обновилась, перезапустите чат с ботом: /start")
 
-async def start_publication_bot():
+async def create_tenant_bots():
     """
-    Запускает публикационного бота в режиме polling.
+    Создаёт ботов всех активных тенантов (Tenant.bot_token) и глобального TELEGRAM_BOT_TOKEN,
+    регистрирует связь «бот → тенант» и настраивает каждому бота меню Mini App его тенанта.
+    """
+    pairs, tenants_by_id = await load_bot_tenants(async_session_maker, TELEGRAM_BOT_TOKEN)
+    bots = []
+    for token, tenant_id in pairs:
+        try:
+            bot = Bot(token=token)
+        except Exception as e:
+            logger.error(f"❌ Некорректный токен бота для тенанта {tenant_id}: {e}")
+            continue
+        register_bot(bot, tenant_id)
+        tenant = tenants_by_id.get(tenant_id)
+        webapp_url = f"https://{tenant.mini_app_domain}" if tenant and tenant.mini_app_domain else WEBAPP_URL
+        await delete_webhook(bot)
+        try:
+            await setup_telegram_menu(bot, webapp_url)
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось настроить меню бота {bot.id}: {e}")
+        logger.info(f"✅ Бот {bot.id} запущен для тенанта {tenant.slug if tenant else '— (без тенанта)'}")
+        bots.append(bot)
+    return bots
 
-    Raises:
-        Exception: Если произошла ошибка при запуске бота.
+
+async def start_publication_bot(bots):
+    """
+    Запускает ботов всех тенантов в режиме polling в одном диспетчере.
     """
     try:
-        logger.info("🚀 Запуск публикационного бота с поллингом...")
-        await publication_dp.start_polling(publication_bot)
+        logger.info(f"🚀 Запуск {len(bots)} бот(ов) с поллингом...")
+        await publication_dp.start_polling(*bots)
     except Exception as e:
-        logger.exception(f"❌ Ошибка при запуске публикационного бота: {e}")
+        logger.exception(f"❌ Ошибка при запуске ботов: {e}")
     finally:
         await asyncio.sleep(2)
-        await publication_bot.close()
-        logger.info("🛑 Публикационный бот остановлен")
+        for bot in bots:
+            await bot.session.close()
+        logger.info("🛑 Боты остановлены")
 
 async def main():
     """
@@ -233,14 +251,14 @@ async def main():
         # Инициализация базы данных
         await init_db()
 
-        # Удаление вебхука
-        await delete_webhook()
+        # Боты тенантов: вебхуки сброшены, меню настроены
+        bots = await create_tenant_bots()
+        if not bots:
+            logger.error("❌ Нет ни одного бота: задайте bot_token тенантам в админке или TELEGRAM_BOT_TOKEN")
+            return
 
-        # Настройка меню Telegram
-        await setup_telegram_menu(publication_bot)
-
-        # Запуск бота
-        await start_publication_bot()
+        # Запуск ботов
+        await start_publication_bot(bots)
     except Exception as e:
         logger.exception("❌ Ошибка в функции main")
     finally:
