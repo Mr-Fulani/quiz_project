@@ -69,7 +69,7 @@ services:
       - DB_HOST=postgres_db
       - DB_PORT=5432
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
@@ -416,7 +416,7 @@ services:
       - DB_NAME=${DB_NAME:-fulani_quiz_db}
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       # Настройки описания бота (опционально)
       # Если не установлены, используются существующие настройки из BotFather
       # Это предотвращает сброс настроек при каждом деплое

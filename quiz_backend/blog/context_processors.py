@@ -537,7 +537,8 @@ def analytics_context(request):
     Добавляет переменные аналитики и социальных сетей в контекст всех шаблонов
     """
     ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
-    gtm_id = settings.GOOGLE_TAG_MANAGER_ID or 'GTM-PXS2VSTT'  # Используем дефолт, если пусто
+    tenant = getattr(request, 'tenant', None)
+    gtm_id = (tenant.google_tag_manager_id if tenant else '') or settings.GOOGLE_TAG_MANAGER_ID
     yandex_id = settings.YANDEX_METRICA_ID
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
@@ -903,7 +904,8 @@ def telegram_settings(request):
     Добавляет настройки Telegram и DEBUG в контекст всех шаблонов.
     Токен бота в шаблоны не передаётся: он секретный и шаблонам не нужен.
     """
-    username = getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
+    tenant = getattr(request, 'tenant', None)
+    username = (tenant.bot_username if tenant else '') or getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
 
     return {
         'TELEGRAM_BOT_USERNAME': username,

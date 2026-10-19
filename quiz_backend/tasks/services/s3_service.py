@@ -46,7 +46,7 @@ def build_r2_key(
     Args:
         file_name:   имя файла (например, 'python_loops_en_42.png')
         file_type:   'images' | 'videos' | 'json'
-        tenant_slug: slug тенанта (например, 'quiz-code')
+        tenant_slug: slug тенанта
         topic_slug:  название темы (будет slugified, например 'Python 3' → 'python-3')
 
     Returns:

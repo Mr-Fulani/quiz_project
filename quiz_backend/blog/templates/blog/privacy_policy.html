@@ -15,9 +15,9 @@
                 <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}1. Введение{% else %}1. Introduction{% endif %}</h2>
                 <p>
                     {% if LANGUAGE_CODE == 'ru' %}
-                    Настоящая Политика конфиденциальности описывает, как QuizHub («мы», «наш» или «нас») собирает, использует и защищает вашу личную информацию при использовании нашего веб-сайта и услуг. Используя наши услуги, вы соглашаетесь на сбор и использование информации в соответствии с настоящей политикой.
+                    Настоящая Политика конфиденциальности описывает, как {{ og_site_name }} («мы», «наш» или «нас») собирает, использует и защищает вашу личную информацию при использовании нашего веб-сайта и услуг. Используя наши услуги, вы соглашаетесь на сбор и использование информации в соответствии с настоящей политикой.
                     {% else %}
-                    This Privacy Policy describes how QuizHub ('we', 'our', or 'us') collects, uses, and protects your personal information when you use our website and services. By using our services, you agree to the collection and use of information in accordance with this policy.
+                    This Privacy Policy describes how {{ og_site_name }} ('we', 'our', or 'us') collects, uses, and protects your personal information when you use our website and services. By using our services, you agree to the collection and use of information in accordance with this policy.
                     {% endif %}
                 </p>
             </div>
@@ -132,7 +132,7 @@
                     {% endif %}
                 </p>
                 <p>
-                    <strong>{% if LANGUAGE_CODE == 'ru' %}Email:{% else %}Email:{% endif %}</strong> fulani.dev@gmail.com<br>
+                    {% if request.tenant.contact_email %}<strong>Email:</strong> {{ request.tenant.contact_email }}<br>{% endif %}
                     <strong>{% if LANGUAGE_CODE == 'ru' %}Веб-сайт:{% else %}Website:{% endif %}</strong> <a href="{% url 'blog:contact' %}">{% if LANGUAGE_CODE == 'ru' %}Страница контактов{% else %}Contact Page{% endif %}</a>
                 </p>
             </div>

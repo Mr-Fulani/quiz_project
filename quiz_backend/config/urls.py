@@ -6,6 +6,7 @@ from django.contrib.auth.views import LogoutView
 from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.views import serve
 from django.shortcuts import render
+from django.utils.html import escape
 from django.urls import path, include, re_path
 from django.views.static import serve as static_serve
 from django.views.decorators.csrf import csrf_exempt
@@ -86,6 +87,8 @@ def root_with_verification(request):
         scheme = 'https' if request.is_secure() else 'http'
         host = request.get_host()
         canonical_url = f"{scheme}://{host}/en/"
+        tenant = getattr(request, 'tenant', None)
+        site_name = tenant.site_name if tenant else host
         
         # Проверяем User-Agent для определения типа клиента
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
@@ -101,7 +104,7 @@ def root_with_verification(request):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizHub - Programming Quizzes & Learning</title>
+    <title>{escape(site_name)}</title>
     <link rel="canonical" href="{canonical_url}">"""
         
         if yandex_verification:

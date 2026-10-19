@@ -5,8 +5,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% trans "Page Not Found - 404" %} | QuizHub</title>
-  <meta name="description" content="{% trans 'The page you are looking for could not be found. Return to QuizHub homepage or explore our programming quizzes and tutorials.' %}">
+  <title>{% trans "Page Not Found - 404" %} | {{ og_site_name }}</title>
+  <meta name="description" content="{% blocktrans with site_name=og_site_name %}The page you are looking for could not be found. Return to {{ site_name }} homepage or explore our programming quizzes and tutorials.{% endblocktrans %}">
   <meta name="robots" content="noindex, follow">
   
   <!-- Добавляем favicon -->

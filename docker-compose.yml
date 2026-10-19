@@ -44,7 +44,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres_db:5432/${DB_NAME}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       - NGROK_HOST=${NGROK_HOST}
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/quiz_project
@@ -110,7 +110,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=5432
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       - NGROK_HOST=${NGROK_HOST}
       - REDIS_URL=redis://redis_cache:6379/1
       - CELERY_BROKER_URL=redis://redis_cache:6379/0

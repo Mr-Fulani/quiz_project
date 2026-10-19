@@ -605,8 +605,8 @@ EMAIL_USE_SSL = EMAIL_PORT_INT == 465
 EMAIL_USE_TLS = EMAIL_PORT_INT == 587
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
-EMAIL_ADMIN = ['fulani.dev@gmail.com']
-# EMAIL_ADMIN = [os.getenv('SERVER_EMAIL')]
+# Получатели служебных писем (через запятую); по умолчанию SERVER_EMAIL
+EMAIL_ADMIN = [e.strip() for e in os.getenv('EMAIL_ADMIN', SERVER_EMAIL or '').split(',') if e.strip()]
 
 
 
@@ -615,7 +615,7 @@ EMAIL_ADMIN = ['fulani.dev@gmail.com']
 
 # Analytics settings
 GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
-GOOGLE_TAG_MANAGER_ID = os.getenv('GOOGLE_TAG_MANAGER_ID', 'GTM-PXS2VSTT')  # Google Tag Manager ID
+GOOGLE_TAG_MANAGER_ID = os.getenv('GOOGLE_TAG_MANAGER_ID', '')  # fallback, если у тенанта не задан google_tag_manager_id
 YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', '')  # Замените на ваш ID
 YANDEX_VERIFICATION_CODE = os.getenv('YANDEX_VERIFICATION_CODE', '')  # Код верификации Яндекс для подтверждения прав на сайт
 YANDEX_ZEN_VERIFICATION_CODE = os.getenv('YANDEX_ZEN_VERIFICATION_CODE', '')  # Код верификации Яндекс Дзен
@@ -664,17 +664,13 @@ SITE_NAME = os.getenv('SITE_NAME', 'Quiz Platform')       # fallback, если T
 SITE_DESCRIPTION = os.getenv('SITE_DESCRIPTION', '')      # fallback
 SITE_URL = os.getenv('SITE_URL', '')  # fallback, если тенант не определён (адрес сайта — tenant.site_url)
 
-# Social Media Handles (замените на ваши реальные)
-TWITTER_HANDLE = '@quiz_code_hub'
-TWITTER_CREATOR = '@mr_fulani'
-
 # SEO Settings
 DEFAULT_META_DESCRIPTION = 'Master programming with interactive quizzes and tutorials. Learn Python, JavaScript, Go, Java, C# through practical coding challenges.'
 DEFAULT_META_KEYWORDS = 'programming quiz, coding challenges, Python tutorial, JavaScript learning, programming education'
 
 # Telegram Settings
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
+TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', '')  # fallback, бот тенанта — tenant.bot_username
 
 # Google OAuth settings
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
@@ -687,7 +683,7 @@ TELEGRAM_INIT_DATA_MAX_AGE = int(os.getenv('TELEGRAM_INIT_DATA_MAX_AGE', str(24 
 
 # Social Auth Settings
 SOCIAL_AUTH_TELEGRAM_ENABLED = True
-SOCIAL_AUTH_TELEGRAM_BOT_NAME = os.getenv('TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
+SOCIAL_AUTH_TELEGRAM_BOT_NAME = TELEGRAM_BOT_USERNAME
 
 # Cloudflare R2 / AWS S3 Settings
 # Поддержка переключения между R2 и S3 через флаг USE_R2_STORAGE

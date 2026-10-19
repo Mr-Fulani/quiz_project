@@ -235,7 +235,8 @@ class Post(models.Model):
                 title=self.title,
                 category=self.category.name if self.category else 'Blog',
                 slug=self.slug,
-                content_type='post'
+                content_type='post',
+                brand=self.tenant.site_name if self.tenant else '',
             )
             return og_url
         except Exception as e:
@@ -472,7 +473,8 @@ class Project(models.Model):
                 title=self.title,
                 category='Portfolio',
                 slug=self.slug,
-                content_type='project'
+                content_type='project',
+                brand=self.tenant.site_name if self.tenant else '',
             )
             return og_url
         except Exception as e:

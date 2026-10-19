@@ -161,3 +161,53 @@ class OwnerInfoInContextTests(TestCase):
         data = personal_info(self.request_for(tenant))['personal_info']
 
         self.assertEqual(data['home_text'], ['Only bio.'])
+
+
+gtm_migration = importlib.import_module('tenants.migrations.0005_tenant_google_tag_manager_id')
+
+
+@override_settings(ALLOWED_HOSTS=['*'], GOOGLE_TAG_MANAGER_ID='GTM-ENV', TELEGRAM_BOT_USERNAME='env_bot')
+class TenantAnalyticsAndBotTests(TestCase):
+    """GTM и бот берутся из тенанта, .env — только запасной вариант."""
+
+    def request_for(self, tenant):
+        request = RequestFactory().get('/', HTTP_HOST=tenant.domain)
+        request.tenant = tenant
+        return request
+
+    def test_gtm_from_tenant_then_env(self):
+        from blog.context_processors import analytics_context
+        tenant = make_tenant('gtm-a', google_tag_manager_id='GTM-TENANT')
+        self.assertEqual(analytics_context(self.request_for(tenant))['GOOGLE_TAG_MANAGER_ID'], 'GTM-TENANT')
+        tenant.google_tag_manager_id = ''
+        self.assertEqual(analytics_context(self.request_for(tenant))['GOOGLE_TAG_MANAGER_ID'], 'GTM-ENV')
+
+    def test_gtm_migration_keeps_effective_value(self):
+        tenant = make_tenant('gtm-b')
+        with patch.dict('os.environ', {'GOOGLE_TAG_MANAGER_ID': ''}):
+            gtm_migration.fill_gtm(apps, None)
+        tenant.refresh_from_db()
+        self.assertEqual(tenant.google_tag_manager_id, 'GTM-PXS2VSTT')
+        with patch.dict('os.environ', {'GOOGLE_TAG_MANAGER_ID': 'GTM-PROD'}):
+            gtm_migration.fill_gtm(apps, None)
+        tenant.refresh_from_db()
+        self.assertEqual(tenant.google_tag_manager_id, 'GTM-PROD')
+
+    def test_bot_username_from_tenant_then_env(self):
+        from blog.context_processors import telegram_settings
+        tenant = make_tenant('bot-a', bot_username='tenant_bot')
+        self.assertEqual(telegram_settings(self.request_for(tenant))['TELEGRAM_BOT_USERNAME'], 'tenant_bot')
+        tenant.bot_username = ''
+        self.assertEqual(telegram_settings(self.request_for(tenant))['TELEGRAM_BOT_USERNAME'], 'env_bot')
+
+    def test_seo_brand_is_tenant_site_name(self):
+        tenant = make_tenant('brand-a')
+        with translation.override('en'):
+            context = seo_context(self.request_for(tenant))
+        self.assertEqual(context['og_site_name'], 'brand-a')
+        self.assertIn('brand-a', context['meta_copyright'])
+        self.assertNotIn('QuizHub', json_dump(context))
+
+
+def json_dump(context):
+    return ' '.join(str(v) for v in context.values())

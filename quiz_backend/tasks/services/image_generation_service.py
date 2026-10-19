@@ -662,7 +662,7 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
             logo = Image.open(logo_path).convert("RGBA")
             fixed_logo_size = (200, 200)
             logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
-            # Помещаем логотип в правый верхний угол (как в quiz-code)
+            # Помещаем логотип в правый верхний угол (как в стиле code)
             logo_x = WIDTH - logo.width - border_padding - 20
             logo_y = border_padding + 20
             image.paste(logo, (logo_x, logo_y), logo)

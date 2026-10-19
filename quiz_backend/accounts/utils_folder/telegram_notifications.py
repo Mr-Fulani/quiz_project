@@ -194,7 +194,7 @@ def get_comment_deep_link(comment_id: int, tenant=None) -> str:
     
     # 2. Фоллбэк на настройки
     if not bot_username:
-        bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
+        bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
     
     deep_link = f"https://t.me/{bot_username}?startapp=comment_{comment_id}"
     logger.debug(f"🔗 Сформирован deep link для комментария {comment_id}: {deep_link}")

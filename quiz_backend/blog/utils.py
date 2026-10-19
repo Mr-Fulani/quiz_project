@@ -7,7 +7,7 @@ import textwrap
 import io
 
 
-def generate_og_image(title, category, width=1200, height=630):
+def generate_og_image(title, category, width=1200, height=630, brand=''):
     """
     Генерирует динамическую Open Graph картинку для поста/проекта.
     """
@@ -67,13 +67,14 @@ def generate_og_image(title, category, width=1200, height=630):
                 fill='white'
             )
         
-        # Добавляем логотип QuizHub внизу
-        draw.text(
-            (50, height - 80),
-            'QuizHub',
-            font=category_font,
-            fill='#ffd700'
-        )
+        # Название сайта тенанта внизу
+        if brand:
+            draw.text(
+                (50, height - 80),
+                brand,
+                font=category_font,
+                fill='#ffd700'
+            )
         
         # Сохраняем в BytesIO
         output = io.BytesIO()
@@ -87,11 +88,11 @@ def generate_og_image(title, category, width=1200, height=630):
         return None
 
 
-def save_og_image(title, category, slug, content_type='post'):
+def save_og_image(title, category, slug, content_type='post', brand=''):
     """
     Генерирует и сохраняет OG изображение в медиа директорию.
     """
-    image_data = generate_og_image(title, category)
+    image_data = generate_og_image(title, category, brand=brand)
     if not image_data:
         return None
     

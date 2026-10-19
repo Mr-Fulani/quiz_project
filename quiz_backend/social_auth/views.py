@@ -1546,9 +1546,9 @@ def telegram_oauth_redirect(request):
         #
         # Для работы Telegram авторизации ОБЯЗАТЕЛЬНО нужно:
         # 1. Открыть @BotFather в Telegram
-        # 2. Выбрать бота @mr_proger_bot
+        # 2. Выбрать бота тенанта
         # 3. Выполнить команду: /setdomain
-        # 4. Указать домен: quiz-code.com (БЕЗ https://)
+        # 4. Указать домен тенанта (БЕЗ https://)
         #
         # Без этого Telegram НЕ БУДЕТ передавать данные авторизации!
         #

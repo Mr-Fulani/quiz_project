@@ -38,7 +38,7 @@ class TenantAdmin(admin.ModelAdmin):
             'fields': ('image_theme', 'use_global_logo')
         }),
         ('🔍 SEO', {
-            'fields': ('default_language', 'meta_keywords'),
+            'fields': ('default_language', 'meta_keywords', 'google_tag_manager_id'),
             'classes': ('collapse',)
         }),
         ('📅 Мета', {

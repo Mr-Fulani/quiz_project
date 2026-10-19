@@ -8,7 +8,7 @@
 class TelegramAuth {
     constructor(options = {}) {
         this.options = {
-            botName: options.botName || 'QuizHubBot',
+            botName: options.botName || '',
             requestAccess: options.requestAccess || true,
             lang: options.lang || 'en',
             usePic: options.usePic || true,
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('telegram-login-widget');
     if (container) {
         window.telegramAuth = new TelegramAuth({
-            botName: 'mr_proger_bot', // Имя вашего бота
+            botName: container.dataset.botName, // username бота тенанта из data-bot-name
             lang: document.documentElement.lang || 'en'
         });
     }

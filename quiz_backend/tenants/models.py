@@ -25,26 +25,26 @@ class Tenant(models.Model):
     slug = models.SlugField(
         unique=True,
         max_length=100,
-        help_text=_('Уникальный идентификатор тенанта (например: quiz-code). '
+        help_text=_('Уникальный идентификатор тенанта (например: my-quiz). '
                     'Используется в URL и в docker-compose переменных.')
     )
     name = models.CharField(
         max_length=255,
-        help_text=_('Отображаемое название платформы (например: Quiz Code)')
+        help_text=_('Отображаемое название платформы (например: My Quiz)')
     )
 
     # ── Домены ─────────────────────────────────────────────────────────────────
     domain = models.CharField(
         max_length=255,
         unique=True,
-        help_text=_('Основной домен сайта (например: quiz-code.com). Без www и https.')
+        help_text=_('Основной домен сайта (например: example.com). Без www и https.')
     )
     mini_app_domain = models.CharField(
         max_length=255,
         unique=True,
         blank=True,
         null=True,
-        help_text=_('Домен мини-аппа (например: mini.quiz-code.com). Без https.')
+        help_text=_('Домен мини-аппа (например: mini.example.com). Без https.')
     )
 
     # ── Telegram Бот ───────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ class Tenant(models.Model):
     bot_username = models.CharField(
         max_length=100,
         blank=True,
-        help_text=_('Username бота без @ (например: mr_proger_bot)')
+        help_text=_('Username бота без @ (например: my_quiz_bot)')
     )
 
     # ── Брендинг ───────────────────────────────────────────────────────────────
@@ -112,6 +112,13 @@ class Tenant(models.Model):
     meta_keywords = models.TextField(
         blank=True,
         help_text=_('Ключевые слова для SEO через запятую')
+    )
+
+    # ── Аналитика ──────────────────────────────────────────────────────────────
+    google_tag_manager_id = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text=_('ID контейнера Google Tag Manager (GTM-XXXXXXX). Если пусто — из GOOGLE_TAG_MANAGER_ID в .env.')
     )
 
     # ── Статус ─────────────────────────────────────────────────────────────────
