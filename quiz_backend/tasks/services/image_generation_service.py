@@ -841,3 +841,36 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
     except Exception as e:
         logger.error(f"Ошибка при генерации изображения: {e}")
         return None
+
+
+def get_tenant_logo_path(tenant) -> Optional[str]:
+    """
+    Возвращает путь к логотипу тенанта для генерации изображений.
+    Для quiz-code возвращает None, чтобы использовался глобальный логотип.
+    """
+    if not tenant:
+        return None
+
+    # Для quiz-code оставляем глобальный логотип без изменений
+    if tenant.slug == 'quiz-code':
+        return None
+
+    # Для остальных тенантов возвращаем путь к загруженному файлу, если он есть
+    if tenant.logo:
+        try:
+            logo_path = tenant.logo.path
+            exists = os.path.exists(logo_path)
+            logger.info(f"🔍 [Logo Debug] Тенант: {tenant.slug}, Логотип в БД: {tenant.logo.name}, Путь: {logo_path}, Существует: {exists}")
+            if exists:
+                return logo_path
+            # Если файл не найден, попробуем поискать его относительно MEDIA_ROOT вручную
+            # Иногда .path может возвращать странные пути в контейнерах
+            fallback_path = os.path.join(settings.MEDIA_ROOT, tenant.logo.name)
+            if os.path.exists(fallback_path):
+                logger.info(f"🔍 [Logo Debug] Файл найден по запасному пути: {fallback_path}")
+                return fallback_path
+            logger.error(f"❌ [Logo Debug] Файл логотипа не найден на диске: {logo_path}")
+        except Exception as e:
+            logger.error(f"❌ [Logo Debug] Ошибка при получении пути логотипа: {e}")
+
+    return None

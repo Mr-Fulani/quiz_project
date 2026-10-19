@@ -1,6 +1,4 @@
 import os
-import random
-import time
 from django import forms
 from django.contrib import admin, messages
 from django.urls import path, reverse
@@ -14,10 +12,9 @@ from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTask
 from .services.task_import_service import import_tasks_from_json
 from accounts.models import MiniAppUser
 from .services.s3_service import delete_image_from_s3
-from .services.telegram_service import publish_task_to_telegram, delete_message
+from .services.telegram_service import delete_message
 from tenants.scoping import bot_token_for
-from .services.image_generation_service import generate_image_for_task
-from .services.s3_service import upload_image_to_s3
+from .services.image_generation_service import get_tenant_logo_path
 from webhooks.services import send_webhooks_for_task, send_webhooks_for_bulk_tasks
 import uuid
 import logging
@@ -209,18 +206,6 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     ordering = ('-create_date',)
     list_per_page = 20
     
-    def _pause_between_task_publications(self, request, task_id):
-        """
-        Вставляет случайную паузу между публикациями задач (чтобы не воспринималось как спам).
-        """
-        pause_seconds = random.randint(3, 6)
-        time.sleep(pause_seconds)
-        self.message_user(
-            request,
-            f"⏸️ Пауза {pause_seconds} сек перед следующей задачей (последняя: {task_id})",
-            messages.INFO
-        )
-
     def _get_tenant_logo_path(self, request):
         """
         Возвращает путь к логотипу текущего тенанта для генерации изображений.
@@ -230,31 +215,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         if not tenant:
             logger.warning("🔍 [Logo Debug] Тенант не найден в request")
             return None
-        
-        # Для quiz-code оставляем глобальный логотип без изменений
-        if tenant.slug == 'quiz-code':
-            return None
-            
-        # Для остальных тенантов возвращаем путь к загруженному файлу, если он есть
-        if tenant.logo:
-            try:
-                logo_path = tenant.logo.path
-                exists = os.path.exists(logo_path)
-                logger.info(f"🔍 [Logo Debug] Тенант: {tenant.slug}, Логотип в БД: {tenant.logo.name}, Путь: {logo_path}, Существует: {exists}")
-                if exists:
-                    return logo_path
-                else:
-                    # Если файл не найден, попробуем поискать его относительно MEDIA_ROOT вручную
-                    # Иногда .path может возвращать странные пути в контейнерах
-                    fallback_path = os.path.join(settings.MEDIA_ROOT, tenant.logo.name)
-                    if os.path.exists(fallback_path):
-                        logger.info(f"🔍 [Logo Debug] Файл найден по запасному пути: {fallback_path}")
-                        return fallback_path
-                    logger.error(f"❌ [Logo Debug] Файл логотипа не найден на диске: {logo_path}")
-            except Exception as e:
-                logger.error(f"❌ [Logo Debug] Ошибка при получении пути логотипа: {e}")
-            
-        return None
+        return get_tenant_logo_path(tenant)
 
     fieldsets = (
         ('📚 Основная информация', {
@@ -1247,359 +1208,48 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     @admin.action(description='Опубликовать выбранные задачи в Telegram')
     def publish_to_telegram(self, request, queryset):
         """
-        Публикует выбранные задачи в Telegram с детальными логами.
+        Ставит в очередь Celery публикацию выбранных задач в Telegram.
         Автоматически находит и публикует все связанные переводы по translation_group_id.
+        Публикация (с генерацией недостающих изображений и паузами между задачами) идёт
+        в воркере: tasks.tasks.publish_tasks_to_telegram_async.
         """
-        from platforms.models import TelegramGroup
-        
+        from .tasks import publish_tasks_to_telegram_async
+
         # Собираем все translation_group_id
         translation_group_ids = set(
             queryset.values_list('translation_group_id', flat=True)
         )
-        
+
         # Находим все связанные задачи
-        all_related_tasks = Task.objects.filter(
+        all_related_tasks = list(Task.objects.filter(
             translation_group_id__in=translation_group_ids
-        ).select_related('topic', 'subtopic', 'group').prefetch_related('translations')
-        
-        # Группируем задачи по языкам для информирования
-        tasks_by_language = {}
-        for task in all_related_tasks:
-            translation = task.translations.first()
-            if translation:
-                lang = translation.language.upper()
-                if lang not in tasks_by_language:
-                    tasks_by_language[lang] = []
-                tasks_by_language[lang].append(task)
-        
-        total_tasks = all_related_tasks.count()
-        selected_count = queryset.count()
-        
-        # Информируем пользователя о масштабе операции
+        ).prefetch_related('translations'))
+
+        languages = sorted({
+            translation.language.upper()
+            for task in all_related_tasks
+            for translation in task.translations.all()[:1]
+        })
+
+        celery_task = publish_tasks_to_telegram_async.delay([task.id for task in all_related_tasks])
+
         self.message_user(
             request,
-            f"📊 Выбрано задач: {selected_count}",
-            messages.INFO
+            f"📤 Поставлено в очередь {len(all_related_tasks)} задач на публикацию в Telegram "
+            f"(выбрано: {queryset.count()}, языки: {', '.join(languages)}). Celery task: {celery_task.id}",
+            messages.SUCCESS
         )
         self.message_user(
             request,
-            f"🌍 Найдено связанных переводов: {total_tasks} задач на языках: {', '.join(sorted(tasks_by_language.keys()))}",
+            "💡 Публикация идёт в фоне с паузами между задачами; результат — в статусах задач и логах Celery",
             messages.INFO
         )
-        self.message_user(request, "=" * 60, messages.INFO)
-        
-        published_count = 0
-        errors = []
-        published_by_language = {}
-        published_tasks = []
-        
-        for task in all_related_tasks:
-            try:
-                # Получаем ВСЕ переводы задачи
-                translations = task.translations.all()
-                if not translations:
-                    error_msg = f"Задача {task.id}: отсутствуют переводы"
-                    errors.append(error_msg)
-                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                    logger.warning(f"Пропуск задачи {task.id}: нет переводов")
-                    continue
 
-                # Автоматическая генерация изображения, если его нет (используем логику из generate_images)
-                if not task.image_url:
-                    # Получаем первый перевод для генерации
-                    first_translation = translations.first()
-                    if not first_translation:
-                        error_msg = f"Задача {task.id}: нет переводов для генерации изображения"
-                        errors.append(error_msg)
-                        self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                        logger.error(f"Ошибка генерации изображения для задачи {task.id}: нет переводов")
-                        continue
-
-                    topic_name = task.topic.name if task.topic else 'python'
-                    
-                    self.message_user(
-                        request,
-                        f"🎨 Генерация изображения для задачи {task.id} (язык: {topic_name})...",
-                        messages.INFO
-                    )
-                    logger.info(f"Генерация изображения для задачи {task.id} (язык: {topic_name})")
-                    
-                    try:
-                        # Генерируем изображение с темой по умолчанию для тенанта
-                        tenant = getattr(request, 'tenant', None)
-                        image_theme = 'islamic' if tenant and tenant.slug == 'iqro-forum' else 'code'
-                        image_logo_path = self._get_tenant_logo_path(request)
-                        image = generate_image_for_task(
-                            first_translation.question, 
-                            topic_name, 
-                            theme=image_theme,
-                            custom_logo_path=image_logo_path
-                        )
-                        
-                        if image:
-                            # Формируем имя файла в формате, как в боте (используем логику из generate_images)
-                            language_code = first_translation.language or "unknown"
-                            subtopic_name = task.subtopic.name if task.subtopic else 'general'
-                            image_name = f"{task.topic.name}_{subtopic_name}_{language_code}_{task.id}.png"
-                            image_name = image_name.replace(" ", "_").lower()
-                            
-                            self.message_user(request, f"☁️ Загрузка в S3: {image_name}...", messages.INFO)
-                            
-                            image_url = upload_image_to_s3(image, image_name)
-                            
-                            if image_url:
-                                task.image_url = image_url
-                                task.error = False  # Сбрасываем ошибку если генерация успешна
-                                task.save(update_fields=['image_url', 'error'])
-                                self.message_user(request, f"✅ Задача {task.id}: изображение загружено в S3", messages.SUCCESS)
-                                self.message_user(request, f"   URL: {image_url}", messages.INFO)
-                                logger.info(f"✅ Изображение успешно сгенерировано для задачи {task.id}")
-                            else:
-                                task.error = True
-                                task.save(update_fields=['error'])
-                                error_msg = f"Задача {task.id}: не удалось загрузить в S3"
-                                errors.append(error_msg)
-                                self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                                continue
-                        else:
-                            task.error = True
-                            task.save(update_fields=['error'])
-                            error_msg = f"Задача {task.id}: не удалось сгенерировать изображение"
-                            errors.append(error_msg)
-                            self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                            continue
-                    except Exception as e:
-                        task.error = True
-                        task.save(update_fields=['error'])
-                        error_msg = f"Задача {task.id}: {str(e)}"
-                        errors.append(error_msg)
-                        self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                        logger.error(f"Исключение при генерации изображения для задачи {task.id}: {e}", exc_info=True)
-                        continue
-
-                # Публикуем каждый перевод в свой канал
-                task_published_any_language = False
-                for translation in translations:
-                    language = translation.language.upper()
-
-                    telegram_group = TelegramGroup.objects.filter(
-                        topic_id=task.topic,
-                        language=translation.language
-                    ).first()
-
-                    if not telegram_group:
-                        error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language} (topic_id={task.topic.id if task.topic else None})"
-                        errors.append(error_msg)
-                        self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                        logger.warning(f"Пропуск задачи {task.id} ({language}): не найдена TelegramGroup для topic_id={task.topic.id if task.topic else None}, language={translation.language}")
-                        continue
-
-                    self.message_user(
-                        request,
-                        f"🚀 Публикуем задачу {task.id} ({language}) в канал {telegram_group.group_name}...",
-                        messages.INFO
-                    )
-
-                    result = publish_task_to_telegram(
-                        task=task,
-                        translation=translation,
-                        telegram_group=telegram_group
-                    )
-
-                    if result.get('detailed_logs'):
-                        for log in result['detailed_logs']:
-                            if log.startswith('✅') or log.startswith('🎉'):
-                                self.message_user(request, log, messages.SUCCESS)
-                            elif log.startswith('🚀') or log.startswith('📷') or log.startswith('📝') or log.startswith('📊') or log.startswith('🔗'):
-                                self.message_user(request, log, messages.INFO)
-                            elif log.startswith('⚠️'):
-                                self.message_user(request, log, messages.WARNING)
-                            elif log.startswith('❌'):
-                                self.message_user(request, log, messages.ERROR)
-                            else:
-                                self.message_user(request, log, messages.INFO)
-
-                    if result['success']:
-                        task_published_any_language = True
-                        if language not in published_by_language:
-                            published_by_language[language] = 0
-                        published_by_language[language] += 1
-                    else:
-                        error_details = ', '.join(result['errors'])
-                        errors.append(f"Задача {task.id} ({language}): {error_details}")
-                        self.message_user(request, f"❌ Задача {task.id} ({language}): {error_details}", messages.ERROR)
-
-                if task_published_any_language:
-                    task.published = True
-                    task.published_telegram = True
-                    task.published_website = True
-                    task.published_mini_app = True
-                    task.publish_date = timezone.now()
-                    task.error = False
-                    update_fields = ['published', 'published_telegram', 'published_website', 'published_mini_app', 'publish_date', 'error']
-                    if not task.message_id:
-                        update_fields.append('message_id')
-                    if not task.group:
-                        update_fields.append('group')
-                    task.save(update_fields=update_fields)
-                    published_count += 1
-                    published_tasks.append(task)
-                else:
-                    task.error = True
-                    task.save(update_fields=['error'])
-                    errors.append(f"Задача {task.id}: не удалось опубликовать ни один перевод")
-                    self.message_user(request, f"❌ Задача {task.id}: не удалось опубликовать ни один перевод", messages.ERROR)
-
-            except Exception as e:
-                task.error = True
-                task.save(update_fields=['error'])
-                error_msg = f"Задача {task.id}: {str(e)}"
-                errors.append(error_msg)
-                self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                logger.error(f"Исключение при публикации задачи {task.id}: {e}", exc_info=True)
-            finally:
-                self._pause_between_task_publications(request, task.id)
-        
-        # Итоговое сообщение
-        self.message_user(request, "=" * 60, messages.INFO)
-
-        if published_tasks:
-            # Обновляем задачи из БД, чтобы подтянуть `TaskPoll`
-            published_task_ids = [task.id for task in published_tasks]
-            refreshed_tasks = list(Task.objects.filter(id__in=published_task_ids).prefetch_related('translations__taskpoll_set'))
-
-            try:
-                # Получаем admin_chat_id для уведомлений о результатах
-                admin_chat_id = None
-                try:
-                    from accounts.models import TelegramAdmin
-                    admin = TelegramAdmin.objects.filter(is_active=True).first()
-                    if admin:
-                        admin_chat_id = str(admin.telegram_id)
-                except Exception:
-                    pass  # Не критично, если не найдется
-
-                # Анализируем активные вебхуки для определения стратегии генерации видео
-                from webhooks.models import Webhook
-                from config.tasks import generate_video_for_task_async
-
-                active_webhooks = list(Webhook.objects.filter(is_active=True))
-                webhook_types = set(webhook.webhook_type for webhook in active_webhooks)
-
-                # Определяем стратегию генерации видео
-                needs_video_generation = bool(webhook_types.intersection({'russian_only', 'english_only'}))
-
-                if not active_webhooks:
-                    # Нет активных вебхуков - просто публикуем без генерации видео
-                    self.message_user(
-                        request,
-                        f"✅ Задачи опубликованы. Нет активных вебхуков - генерация видео пропущена",
-                        messages.SUCCESS
-                    )
-                elif not needs_video_generation:
-                    # Только regular вебхуки - отправляем без видео
-                    from config.tasks import send_webhooks_async
-                    webhook_task = send_webhooks_async.delay(
-                        task_ids=[task.id for task in refreshed_tasks],
-                        webhook_type_filter=None,
-                        admin_chat_id=admin_chat_id,
-                        include_video=False
-                    )
-                    self.message_user(
-                        request,
-                        f"🛰️ Regular вебхуки отправлены без видео (ID: {webhook_task.id})",
-                        messages.SUCCESS
-                    )
-                else:
-                    # Есть языковые вебхуки - генерируем видео для нужных языков
-                    languages_to_generate = set()
-
-                    if 'russian_only' in webhook_types:
-                        languages_to_generate.add('ru')
-                    if 'english_only' in webhook_types:
-                        languages_to_generate.add('en')
-
-                    # Генерируем видео для каждого нужного языка
-                    for task in refreshed_tasks:
-                        # Отмечаем какие языки планируются к генерации
-                        task.video_generation_progress = {lang: False for lang in languages_to_generate}
-                        task.save(update_fields=['video_generation_progress'])
-
-                        for language in languages_to_generate:
-                            translation = task.translations.filter(language=language).first()
-                            if translation:
-                                # Запускаем генерацию видео для этого языка
-                                generate_video_for_task_async.delay(
-                                    task_id=task.id,
-                                    task_question=translation.question,
-                                    topic_name=task.topic.name,
-                                    subtopic_name=task.subtopic.name if task.subtopic else None,
-                                    difficulty=task.difficulty,
-                                    admin_chat_id=admin_chat_id,
-                                    video_language=language,  # Передаем язык для видео
-                                    expected_languages=list(languages_to_generate)  # Передаем все ожидаемые языки как список
-                                )
-
-                    video_count = len(refreshed_tasks) * len(languages_to_generate)
-                    self.message_user(
-                        request,
-                        f"🎬 Запущена генерация {video_count} видео для языков: {', '.join(languages_to_generate)}",
-                        messages.SUCCESS
-                    )
-                    self.message_user(
-                        request,
-                        f"🛰️ Вебхуки будут отправлены с видео после завершения генерации",
-                        messages.INFO
-                    )
-
-                if admin_chat_id:
-                    self.message_user(
-                        request,
-                        "📨 Результаты будут отправлены в Telegram",
-                        messages.INFO
-                    )
-                else:
-                    self.message_user(
-                        request,
-                        "ℹ️ Настройте Telegram админа для получения уведомлений о результатах",
-                        messages.WARNING
-                    )
-
-            except Exception as exc:
-                logger.exception("Ошибка при отправке сводного вебхука: %s", exc)
-                self.message_user(
-                    request,
-                    f"❌ Ошибка при отправке сводного вебхука: {exc}",
-                    messages.ERROR
-                )
-
-        if published_count > 0:
-            # Формируем информацию по языкам
-            lang_stats = ", ".join([f"{lang}: {count}" for lang, count in sorted(published_by_language.items())])
-            
-            self.message_user(
-                request,
-                f"🎉 УСПЕШНО: Опубликовано {published_count} задач из {total_tasks}",
-                messages.SUCCESS
-            )
-            self.message_user(
-                request,
-                f"📊 По языкам: {lang_stats}",
-                messages.SUCCESS
-            )
-        
-        if errors:
-            self.message_user(
-                request,
-                f"⚠️ Ошибок: {len(errors)} из {total_tasks}",
-                messages.WARNING
-            )
-    
     @admin.action(description='Сгенерировать изображения для выбранных задач')
     @admin.action(description='🎨 Сгенерировать изображения')
     def generate_images(self, request, queryset):
         """
-        Генерирует изображения для выбранных задач.
+        Генерирует изображения для выбранных задач (в фоне, через Celery).
         Сначала показывает промежуточную страницу выбора темы.
         """
         # Если тема еще не выбрана, показываем страницу подтверждения
@@ -1610,79 +1260,19 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
             })
 
-        # Тема выбрана, приступаем к генерации
+        from .tasks import generate_task_images_async
+
+        # Тема выбрана, ставим генерацию в очередь
         image_theme = request.POST.get('image_theme', 'code')
-        generated_count = 0
-        skipped_count = 0
-        errors = []
-        total_tasks = queryset.count()
-        
-        self.message_user(request, f"📊 Начинаем генерацию изображений ({image_theme}) для {total_tasks} задач...", messages.INFO)
-        
-        for task in queryset:
-            # Получаем первый перевод для генерации
-            translation = task.translations.first()
-            if not translation:
-                error_msg = f"Задача {task.id}: отсутствуют переводы"
-                errors.append(error_msg)
-                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                continue
-            
-            try:
-                topic_name = task.topic.name if task.topic else 'python'
-                
-                self.message_user(request, f"🎨 Генерация изображения для задачи {task.id} (тема: {image_theme})...", messages.INFO)
-                
-                # Получаем путь к логотипу тенанта
-                image_logo_path = self._get_tenant_logo_path(request)
-                
-                # Генерируем изображение с выбранной темой и логотипом
-                image = generate_image_for_task(
-                    translation.question, 
-                    topic_name, 
-                    theme=image_theme,
-                    custom_logo_path=image_logo_path
-                )
-                
-                if image:
-                    # Формируем имя файла в формате, как в боте
-                    language_code = translation.language or "unknown"
-                    subtopic_name = task.subtopic.name if task.subtopic else 'general'
-                    image_name = f"{task.topic.name}_{subtopic_name}_{language_code}_{task.id}.png"
-                    image_name = image_name.replace(" ", "_").lower()
-                    
-                    self.message_user(request, f"☁️ Загрузка в S3: {image_name}...", messages.INFO)
-                    
-                    image_url = upload_image_to_s3(image, image_name)
-                    
-                    if image_url:
-                        task.image_url = image_url
-                        task.error = False
-                        task.save(update_fields=['image_url', 'error'])
-                        generated_count += 1
-                        self.message_user(request, f"✅ Задача {task.id}: изображение загружено в S3", messages.SUCCESS)
-                    else:
-                        task.error = True
-                        task.save(update_fields=['error'])
-                        error_msg = f"Задача {task.id}: не удалось загрузить в S3"
-                        errors.append(error_msg)
-                        self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                else:
-                    task.error = True
-                    task.save(update_fields=['error'])
-                    error_msg = f"Задача {task.id}: не удалось сгенерировать изображение"
-                    errors.append(error_msg)
-                    self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-            except Exception as e:
-                task.error = True
-                task.save(update_fields=['error'])
-                error_msg = f"Задача {task.id}: {str(e)}"
-                errors.append(error_msg)
-                self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-        
-        # Итоговое сообщение
-        self.message_user(request, "=" * 60, messages.INFO)
-        self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
+        task_ids = list(queryset.values_list('id', flat=True))
+        celery_task = generate_task_images_async.delay(task_ids, image_theme)
+
+        self.message_user(
+            request,
+            f"🎨 Поставлено в очередь {len(task_ids)} задач на генерацию изображений ({image_theme}). Celery task: {celery_task.id}",
+            messages.SUCCESS
+        )
+        self.message_user(request, "💡 Изображения появятся у задач после обработки в фоне", messages.INFO)
     
     @admin.action(description='🎬 Сгенерировать видео')
     def generate_videos(self, request, queryset):
@@ -1763,167 +1353,31 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     @admin.action(description='📱 Опубликовать во все соцсети')
     def publish_to_all_social_networks(self, request, queryset):
         """
-        Публикует выбранные задачи во все активные социальные сети.
+        Ставит в очередь публикацию выбранных задач во все активные социальные сети.
         Работает через API (Pinterest, Дзен, Facebook) и webhook (Instagram, TikTok, YouTube).
         """
-        from .services.social_media_service import publish_to_social_media
-        
-        total_tasks = queryset.count()
-        published_tasks = 0
-        
-        self.message_user(
-            request,
-            f"📊 Начинаем публикацию {total_tasks} задач во все социальные сети...",
-            messages.INFO
-        )
-        
-        for task in queryset:
-            try:
-                # Проверяем наличие изображения
-                if not task.image_url:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет изображения, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Получаем перевод
-                translation = task.translations.first()
-                if not translation:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Публикуем
-                result = publish_to_social_media(task, translation)
-                
-                if result['success'] > 0:
-                    published_tasks += 1
-                    # Обновляем статус задачи
-                    task.published = True
-                    if not task.publish_date:
-                        task.publish_date = timezone.now()
-                    task.save(update_fields=['published', 'publish_date'])
-
-                    self.message_user(
-                        request,
-                        f"✅ Задача {task.id}: опубликовано в {result['success']}/{result['total']} платформ",
-                        messages.SUCCESS
-                    )
-                else:
-                    self.message_user(
-                        request,
-                        f"❌ Задача {task.id}: не удалось опубликовать ни в одной платформе",
-                        messages.ERROR
-                    )
-                
-            except Exception as e:
-                logger.error(f"Ошибка публикации задачи {task.id}: {e}", exc_info=True)
-                self.message_user(
-                    request,
-                    f"❌ Задача {task.id}: ошибка - {str(e)}",
-                    messages.ERROR
-                )
-        
-        # Итоговое сообщение
-        self.message_user(
-            request,
-            f"🎉 Готово! Опубликовано {published_tasks} из {total_tasks} задач",
-            messages.SUCCESS if published_tasks > 0 else messages.WARNING
-        )
+        self._enqueue_social_publication(request, queryset, None, 'все соцсети')
     
+    def _enqueue_social_publication(self, request, queryset, platform, platform_name, require_video=False):
+        """
+        Ставит в очередь Celery публикацию задач в соцсети (tasks.tasks.publish_tasks_to_social_async).
+        """
+        from .tasks import publish_tasks_to_social_async
+
+        task_ids = list(queryset.values_list('id', flat=True))
+        celery_task = publish_tasks_to_social_async.delay(task_ids, platform=platform, require_video=require_video)
+        self.message_user(
+            request,
+            f"📤 Поставлено в очередь {len(task_ids)} задач на публикацию в {platform_name}. Celery task: {celery_task.id}",
+            messages.SUCCESS
+        )
+        self.message_user(request, "💡 Результат — в статусах задач и логах Celery", messages.INFO)
+
     def _publish_to_platform_action(self, request, queryset, platform: str, platform_name: str):
         """
         Вспомогательная функция для публикации в конкретную платформу.
         """
-        from .services.social_media_service import publish_to_platform
-        
-        total_tasks = queryset.count()
-        published_tasks = 0
-        
-        self.message_user(
-            request,
-            f"📊 Начинаем публикацию {total_tasks} задач в {platform_name}...",
-            messages.INFO
-        )
-        
-        for task in queryset:
-            try:
-                # Проверяем наличие изображения
-                if not task.image_url:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет изображения, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Получаем перевод
-                translation = task.translations.first()
-                if not translation:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Публикуем в конкретную платформу
-                result = publish_to_platform(task, translation, platform)
-                
-                if result.get('success'):
-                    published_tasks += 1
-                    # Обновляем статус задачи
-                    task.published = True
-                    if not task.publish_date:
-                        task.publish_date = timezone.now()
-                    task.save(update_fields=['published', 'publish_date'])
-
-                    status = result.get('status', 'published')
-                    if status == 'already_published':
-                        self.message_user(
-                            request,
-                            f"ℹ️ Задача {task.id}: уже опубликована в {platform_name}",
-                            messages.INFO
-                        )
-                    elif status == 'sent_to_webhook':
-                        self.message_user(
-                            request,
-                            f"✅ Задача {task.id}: отправлена в {platform_name} через webhook",
-                            messages.SUCCESS
-                        )
-                    else:
-                        post_url = result.get('post_url', '')
-                        self.message_user(
-                            request,
-                            f"✅ Задача {task.id}: опубликована в {platform_name}" + (f" - {post_url}" if post_url else ""),
-                            messages.SUCCESS
-                        )
-                else:
-                    error = result.get('error', 'Неизвестная ошибка')
-                    self.message_user(
-                        request,
-                        f"❌ Задача {task.id}: ошибка публикации в {platform_name} - {error}",
-                        messages.ERROR
-                    )
-                    
-            except Exception as e:
-                logger.error(f"Ошибка публикации задачи {task.id} в {platform_name}: {e}", exc_info=True)
-                self.message_user(
-                    request,
-                    f"❌ Задача {task.id}: ошибка публикации в {platform_name} - {str(e)}",
-                    messages.ERROR
-                )
-        
-        self.message_user(
-            request,
-            f"📊 Публикация в {platform_name} завершена: {published_tasks}/{total_tasks} задач опубликовано",
-            messages.SUCCESS if published_tasks > 0 else messages.WARNING
-        )
+        self._enqueue_social_publication(request, queryset, platform, platform_name)
     
     @admin.action(description='📌 Опубликовать в Pinterest')
     def publish_to_pinterest(self, request, queryset):
@@ -1980,81 +1434,8 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         """
         Публикует Reels в Instagram с автоматическим кросспостингом в Facebook и добавлением в Stories.
         """
-        from .services.social_media_service import publish_to_platform
-        
-        total_tasks = queryset.count()
-        published_tasks = 0
-        
-        self.message_user(
-            request,
-            f"📊 Начинаем публикацию {total_tasks} задач в Instagram Reels с автоматическим репостом...",
-            messages.INFO
-        )
-        
-        for task in queryset:
-            try:
-                # Проверяем наличие видео
-                if not task.video_url:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет видео, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Получаем перевод
-                translation = task.translations.first()
-                if not translation:
-                    self.message_user(
-                        request,
-                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
-                        messages.WARNING
-                    )
-                    continue
-                
-                # Публикуем в Instagram Reels (с автоматическим кросспостингом)
-                result = publish_to_platform(task, translation, 'instagram_reels')
-                
-                if result.get('success'):
-                    published_tasks += 1
-                    # Обновляем статус задачи
-                    task.published = True
-                    if not task.publish_date:
-                        task.publish_date = timezone.now()
-                    task.save(update_fields=['published', 'publish_date'])
-                    post_url = result.get('post_url', '')
-                    facebook_id = result.get('facebook_post_id')
-                    story_id = result.get('instagram_story_id')
-                    
-                    msg = f"✅ Задача {task.id}: опубликована в Instagram Reels"
-                    if post_url:
-                        msg += f" - {post_url}"
-                    if facebook_id:
-                        msg += f" | Facebook Reels: {facebook_id}"
-                    if story_id:
-                        msg += f" | Instagram Story: {story_id}"
-                    
-                    self.message_user(request, msg, messages.SUCCESS)
-                else:
-                    error = result.get('error', 'Неизвестная ошибка')
-                    self.message_user(
-                        request,
-                        f"❌ Задача {task.id}: ошибка - {error}",
-                        messages.ERROR
-                    )
-                    
-            except Exception as e:
-                logger.error(f"Ошибка публикации задачи {task.id}: {e}", exc_info=True)
-                self.message_user(
-                    request,
-                    f"❌ Задача {task.id}: ошибка - {str(e)[:100]}",
-                    messages.ERROR
-                )
-        
-        self.message_user(
-            request,
-            f"🎉 Готово! Опубликовано {published_tasks} из {total_tasks} задач",
-            messages.SUCCESS if published_tasks > 0 else messages.WARNING
+        self._enqueue_social_publication(
+            request, queryset, 'instagram_reels', 'Instagram Reels (с автоматическим репостом)', require_video=True
         )
     
     @admin.action(description='Снять флаг ошибки')

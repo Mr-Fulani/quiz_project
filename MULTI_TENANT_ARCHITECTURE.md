@@ -157,6 +157,8 @@ python manage.py assign_tenant_to_legacy_rows --slug it-dev --apply    # зап�
 *   Telegram-действия (публикация задач, удаление сообщений, рассылка, назначение админов каналов, уведомления,
     возврат Stars) выполняются ботом тенанта: `tenants/scoping.bot_token_for(tenant)` — токен тенанта или
     глобальный, если у тенанта он не задан.
+*   Публикация задач из админки (Telegram, соцсети) и генерация картинок идут в Celery (`tasks/tasks.py`):
+    воркер берёт тенанта из самой задачи (бот, логотип, тема картинки), а не из запроса.
 *   `Webhook`, `GlobalWebhookLink`, `DefaultLink`, `MainFallbackLink`, `SocialMediaCredentials` выбираются через
     `tenants/scoping.for_tenant_or_shared`: записи тенанта задачи + общие (`tenant=NULL`), чужие — никогда.
 *   `TENANT_SLUG` в `docker-compose.yml` кодом не используется.
