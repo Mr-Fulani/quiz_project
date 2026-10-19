@@ -22,6 +22,17 @@
 }
 
 /**
+ * Текст вопроса над картинкой (виден пользователям и поисковикам)
+ */
+.task-question {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0 0 10px;
+    overflow-wrap: anywhere;
+}
+
+/**
  * Контейнер изображения или кода
  */
 .task-image {

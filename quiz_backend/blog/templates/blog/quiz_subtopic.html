@@ -22,9 +22,15 @@
                  data-source-link="{{ task.translation.source_link|default:''|escape }}"
                  data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.url_key subtopic=subtopic.url_slug task_id=task.id %}"
                  {% if task.is_solved %}data-solved="true"{% endif %}>
+                {% if task.translation.question %}
+                    {# Текст вопроса в HTML: раньше он был только на картинке и не индексировался #}
+                    <h2 class="task-question">{{ task.translation.question|linebreaksbr }}</h2>
+                {% endif %}
                 {% if task.image_url %}
                     <div class="task-image">
-                        <img src="{{ task.image_url|safe_url }}" alt="Task {{ task.id }} question">
+                        <img src="{{ task.image_url|safe_url }}"
+                             alt="{% if task.translation.question %}{{ task.translation.question|striptags|truncatechars:150 }}{% else %}Task {{ task.id }} question{% endif %}"
+                             loading="lazy">
                     </div>
                 {% else %}
                     <p>{% trans "Image is missing." %}</p>

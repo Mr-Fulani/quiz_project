@@ -326,10 +326,34 @@ class SEORobotsTestCase(TransactionTestCase):
                            f"Страница подтемы квиза недоступна для {user_agent}")
             
             subtopic_slug = slugify(self.subtopic.name)
-            self._check_canonical_url(response, 
+            self._check_canonical_url(response,
                                     f'/en/quiz/{self.topic.name.lower()}/{subtopic_slug}/easy/')
             self._check_hreflang_tags(response)
-    
+
+    def test_quiz_question_text_is_in_html(self):
+        """
+        Тест: текст вопроса есть в HTML (раньше вопрос был только на картинке).
+        """
+        if not self.subtopic:
+            self.skipTest("Subtopic модель не доступна")
+        from tasks.models import TaskTranslation
+        task = Task.objects.create(
+            tenant=self.tenant, topic=self.topic, subtopic=self.subtopic,
+            difficulty='easy', published=True, image_url='https://example.com/q.png'
+        )
+        TaskTranslation.objects.create(
+            task=task, language='en', question='What does len([1, 2, 3]) return?',
+            answers=['3', '2', '1'], correct_answer='3'
+        )
+        response = self.client.get(
+            f'/en/quiz/{self.topic.name.lower()}/{slugify(self.subtopic.name)}/easy/',
+            HTTP_USER_AGENT='Googlebot'
+        )
+        content = response.content.decode()
+        self.assertIn('class="task-question"', content)
+        self.assertIn('What does len([1, 2, 3]) return?', content)
+        self.assertIn('alt="What does len([1, 2, 3]) return?"', content)
+
     def test_robots_txt_is_accessible(self):
         """
         Тест: Роботы могут получить доступ к robots.txt.
