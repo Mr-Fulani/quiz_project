@@ -156,12 +156,6 @@
 Как сменить домен хранилища: `R2_PUBLIC_DOMAIN` в `.env` + старый домен в `STORAGE_LEGACY_DOMAINS`;
 данные в БД не трогать (там ключи файлов).
 
-- [ ] 🟠 Mini App и бот: хардкод бота и бренда — `t.me/mr_proger_bot/quiz` (`mini_app/routers/pages.py`,
-      `static/js/share-topic.js`, `templates/profile.html`), «QUIZ-CODE» в приветствии (`profile.html`,
-      `services/localization.py`), тестовый telegram_id 975113235 / мок Mr_Fulani (`templates/base.html`,
-      `static/js/tasks.js`); в боте fallback-ссылки `t.me/tyt_python`/`t.me/proger_dude`
-      (`bot/services/default_link_service.py`, `task_service.py`, `handlers/admin_menu.py`).
-      Полный список с номерами строк — в заметках сессии (hardcode-audit-2026-10-19.md).
 - [ ] 🟢 Значения по умолчанию инфраструктуры с именами проекта: `R2_BUCKET_NAME='quiz-hub-prod'`
       (`config/settings.py`, `bot/config.py`), `DB_NAME=fulani_quiz_db` (`bot/entrypoint.sh`). Убирать только
       после проверки, что на сервере эти переменные заданы в `.env`, иначе сломается хранилище/БД.
@@ -236,3 +230,8 @@
 - Админка задач: публикация в Telegram (с генерацией недостающих картинок, паузами 3–6 с между задачами,
   вебхуками/видео после), публикация в соцсети и генерация картинок — в Celery (`tasks/tasks.py`, очередь
   `celery`); экшен только ставит задачу в очередь, результат — в полях задач и логах воркера. Больше нет 504.
+- Mini App и бот без хардкода бота и бренда: ссылки `t.me/<бот>/<mini app>`, кнопка «Открыть в Telegram» и
+  приветствие профиля — из тенанта (`/api/tenant/` отдаёт `bot_link`, `mini_app_link`; новое поле тенанта
+  `mini_app_short_name`, миграция `tenants/0006`, для существующих — `quiz`). Тестовый telegram_id для браузера —
+  из `DEV_TEST_TELEGRAM_ID` (env мини-аппа). Стандартная ссылка «Узнать больше» в боте — сайт тенанта, иначе
+  `DEFAULT_FALLBACK_LINK` из env бота.
