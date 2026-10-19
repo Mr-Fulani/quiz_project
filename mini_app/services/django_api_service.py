@@ -6,6 +6,7 @@ import httpx
 import json
 from typing import List, Dict, Optional, Any
 from core.config import settings
+from core.telegram_auth import INIT_DATA_HEADER, request_init_data
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,13 @@ class DjangoAPIService:
         # Добавляем заголовок Host для внутренних запросов между контейнерами
         if headers is None:
             headers = {}
-        
+
+        # Подписанный initData текущего запроса (GET страниц) — Django по нему отдаёт
+        # приватные данные и прогресс пользователя
+        init_data = request_init_data.get()
+        if init_data and INIT_DATA_HEADER not in headers:
+            headers[INIT_DATA_HEADER] = init_data
+
         # Если запрос идет напрямую к Django (quiz_backend:8000), 
         # нужно убедиться, что передается правильный домен.
         # В Multi-Tenant архитектуре FastAPI передает реальный host (например, mini.quiz-islam.com).

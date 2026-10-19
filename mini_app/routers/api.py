@@ -9,7 +9,10 @@ from pydantic import BaseModel, Field, ValidationError
 
 from core.config import settings
 from core.telegram_auth import (
+    INIT_DATA_COOKIE,
+    INIT_DATA_COOKIE_MAX_AGE,
     INIT_DATA_HEADER,
+    init_data_for_read,
     ensure_same_user,
     optional_telegram_user,
     verified_telegram_user,
@@ -42,7 +45,8 @@ def get_proxy_headers(request: Request):
         'Host': host
     }
 
-    init_data = request.headers.get(INIT_DATA_HEADER)
+    # Заголовок, а для GET — также httpOnly-cookie (см. core/telegram_auth.py)
+    init_data = init_data_for_read(request)
     if init_data:
         headers[INIT_DATA_HEADER] = init_data
 
@@ -93,12 +97,10 @@ async def verify_init_data(request: Request):
             raise HTTPException(status_code=502, detail="Backend service failed to process profile.")
             
         logger.info(f"Профиль для telegram_id: {user_info['telegram_id']} успешно получен/создан.")
-        logger.info(f"Возвращаемые данные профиля: {profile_data}")
-        logger.info(f"🔍 ВОЗВРАЩАЕМЫЙ TELEGRAM_ID: {profile_data.get('telegram_id', 'NOT_FOUND')}")
-        logger.info(f"Тип profile_data: {type(profile_data)}")
-        logger.info(f"Avatar в profile_data: {profile_data.get('avatar') if isinstance(profile_data, dict) else 'Not a dict'}")
-        logger.info(f"Тип avatar в profile_data: {type(profile_data.get('avatar')) if isinstance(profile_data, dict) else 'N/A'}")
-        # Устанавливаем cookie с telegram_id, чтобы страницы могли рендерить прогресс сервер-сайд
+        # Cookie для серверного рендера страниц:
+        # - telegram_id — только подсказка «чей прогресс показать» (Django ему не доверяет);
+        # - tg_init_data — подписанный initData (httpOnly), по нему Django проверяет пользователя
+        #   при GET-запросах страниц, где заголовок передать нельзя.
         resp = JSONResponse(content=profile_data)
         try:
             tg_id_value = str(profile_data.get('telegram_id') or user_info['telegram_id'])
@@ -109,9 +111,16 @@ async def verify_init_data(request: Request):
                 httponly=False,
                 samesite="lax"
             )
-            logger.info(f"Cookie telegram_id set: {tg_id_value}")
+            resp.set_cookie(
+                key=INIT_DATA_COOKIE,
+                value=init_data_str,
+                max_age=INIT_DATA_COOKIE_MAX_AGE,
+                httponly=True,
+                secure=(request.headers.get('x-forwarded-proto') or request.url.scheme) == 'https',
+                samesite="lax"
+            )
         except Exception as cookie_err:
-            logger.warning(f"Failed to set telegram_id cookie: {cookie_err}")
+            logger.warning(f"Failed to set auth cookies: {cookie_err}")
         return resp
 
     except HTTPException:

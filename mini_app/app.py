@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import api as api_router
 from routers import pages as pages_router
 from middleware.language_middleware import LanguageMiddleware
+from core.telegram_auth import init_data_for_read, request_init_data
 from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
 
 # Создаём экземпляр FastAPI (debug=False: трейсбеки не отдаются клиенту)
@@ -21,6 +22,16 @@ logger = logging.getLogger(__name__)
 
 # Добавляем middleware для языка (должен быть первым)
 app.add_middleware(LanguageMiddleware)
+
+
+@app.middleware("http")
+async def bind_init_data(request, call_next):
+    """Подписанный initData текущего запроса — для пересылки в Django при серверном рендере."""
+    token = request_init_data.set(init_data_for_read(request))
+    try:
+        return await call_next(request)
+    finally:
+        request_init_data.reset(token)
 
 # CORS: мини-апп работает на своём домене (same-origin), поэтому чужим сайтам доступ
 # не открываем. Дополнительные источники — через CORS_ALLOWED_ORIGINS (через запятую).

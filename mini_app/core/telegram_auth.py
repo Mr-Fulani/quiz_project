@@ -7,11 +7,17 @@
 
 telegram_id из URL, тела или query-параметров клиента не считается доказательством
 личности — используйте только пользователя из verified_telegram_user.
+
+Для серверного рендера страниц (навигация не несёт заголовков) initData после
+/api/verify-init-data хранится в httpOnly-cookie tg_init_data. Для GET-запросов
+страниц он попадает в contextvar и автоматически пересылается в Django
+(DjangoAPIService._make_request). Запись по-прежнему требует заголовок.
 """
 
 import hashlib
 import logging
 import time
+from contextvars import ContextVar
 from typing import Optional
 
 import httpx
@@ -22,10 +28,28 @@ from core.config import settings
 logger = logging.getLogger(__name__)
 
 INIT_DATA_HEADER = 'X-Telegram-Init-Data'
+INIT_DATA_COOKIE = 'tg_init_data'
+INIT_DATA_COOKIE_MAX_AGE = 24 * 60 * 60  # совпадает с TELEGRAM_INIT_DATA_MAX_AGE в Django
 VERIFY_ENDPOINT = '/api/accounts/miniapp-users/auth/verify/'
 _CACHE_TTL_SECONDS = 300
 _CACHE_MAX_SIZE = 10000
 _verified_cache: dict = {}
+
+# initData текущего GET-запроса (заголовок или cookie) — для серверных вызовов Django
+request_init_data: ContextVar[Optional[str]] = ContextVar('request_init_data', default=None)
+
+
+def init_data_for_read(request: Request) -> Optional[str]:
+    """
+    initData для чтения: заголовок, а для GET — также cookie.
+    Cookie не используется для изменяющих запросов (защита от CSRF).
+    """
+    header_value = request.headers.get(INIT_DATA_HEADER)
+    if header_value:
+        return header_value
+    if request.method in ('GET', 'HEAD'):
+        return request.cookies.get(INIT_DATA_COOKIE)
+    return None
 
 
 def tenant_host_headers(request: Request) -> dict:
