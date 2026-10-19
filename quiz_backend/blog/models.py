@@ -568,6 +568,18 @@ class ProjectImage(models.Model):
                     img.save(self.gif.path, quality=85, optimize=True)
 
 
+def message_attachment_upload_to(instance, filename):
+    """
+    Путь вложения личного сообщения: случайное имя вместо исходного, чтобы файл нельзя
+    было угадать по дате и имени. Исходное имя хранится в MessageAttachment.filename.
+    Раздача — только через blog:download_attachment (nginx отдаёт напрямую лишь по X-Accel-Redirect).
+    """
+    import uuid
+
+    extension = os.path.splitext(filename)[1].lower()[:10]
+    return f"message_attachments/{timezone.now():%Y/%m/%d}/{uuid.uuid4().hex}{extension}"
+
+
 class MessageAttachment(models.Model):
     """Модель вложений для сообщений."""
     message = models.ForeignKey(
@@ -577,7 +589,7 @@ class MessageAttachment(models.Model):
         verbose_name="Сообщение"
     )
     file = models.FileField(
-        upload_to="message_attachments/%Y/%m/%d/",
+        upload_to=message_attachment_upload_to,
         verbose_name="Файл"
     )
     filename = models.CharField(max_length=255, verbose_name="Имя файла")
@@ -594,6 +606,14 @@ class MessageAttachment(models.Model):
         """Возвращает строковое представление вложения."""
         message_id = self.message.id if self.message else "None"
         return f"Attachment {self.filename} for message {message_id}"
+
+    def get_download_url(self, inline=False):
+        """
+        Ссылка на вложение через проверяющий доступ view (не file.url: прямой путь
+        к файлу в /media/ закрыт). inline=True — для превью картинок.
+        """
+        url = reverse('blog:download_attachment', args=[self.id])
+        return f"{url}?inline=1" if inline else url
 
     def save(self, *args, **kwargs):
         """

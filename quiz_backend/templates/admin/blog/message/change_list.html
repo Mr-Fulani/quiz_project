@@ -249,10 +249,10 @@
                                         {% for attachment in result.attachments.all %}
                                             <div class="attachment-item">
                                                 {% if attachment.file %}
-                                                    <a href="{{ attachment.file.url }}" target="_blank" title="{{ attachment.filename }}" style="color: #007bff;">
+                                                    <a href="{{ attachment.get_download_url }}" target="_blank" title="{{ attachment.filename }}" style="color: #007bff;">
                                                         {% with attachment.filename|lower as lower_filename %}
                                                             {% if lower_filename|slice:"-4:" in ".jpg,.png,.gif" or lower_filename|slice:"-5:" in ".jpeg,.webp" %}
-                                                                <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}">
+                                                                <img src="{{ attachment.get_download_url }}" alt="{{ attachment.filename }}">
                                                             {% else %}
                                                                 <img src="{% static 'admin/img/icon-unknown.svg' %}" alt="file" class="icon">
                                                                 {{ attachment.filename }}

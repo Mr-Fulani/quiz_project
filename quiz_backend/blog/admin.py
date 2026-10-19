@@ -404,13 +404,12 @@ class MessageAttachmentInline(admin.TabularInline):
             return '-'
         try:
             file_ext = (obj.filename.lower().split('.')[-1] if obj.filename else '').strip()
-            logger.info(f"Rendering preview for attachment ID {obj.id}, filename={obj.filename}, ext={file_ext}, url={obj.file.url}")
             if file_ext in ['jpg', 'jpeg', 'png', 'gif']:
                 return format_html(
                     '<a href="{url}" target="_blank"><img src="{url}" class="attachment-preview" alt="{name}"/></a>',
-                    url=obj.file.url, name=obj.filename or 'Image'
+                    url=obj.get_download_url(inline=True), name=obj.filename or 'Image'
                 )
-            return format_html('<a href="{url}" target="_blank">{name}</a>', url=obj.file.url, name=obj.filename or 'File')
+            return format_html('<a href="{url}" target="_blank">{name}</a>', url=obj.get_download_url(), name=obj.filename or 'File')
         except Exception as e:
             logger.error(f"Error rendering file preview for attachment {obj.id}: {str(e)}")
             return '-'
@@ -425,11 +424,7 @@ class MessageAttachmentInline(admin.TabularInline):
         Returns:
             QuerySet: Список вложений.
         """
-        qs = super().get_queryset(request)
-        logger.info(f"Fetching attachments for message, count: {qs.count()}")
-        for obj in qs:
-            logger.info(f"Attachment for message {obj.message_id}: ID={obj.id}, filename={obj.filename}, URL={obj.file.url}")
-        return qs
+        return super().get_queryset(request)
 
 
 

@@ -24,7 +24,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
+from django.http import JsonResponse, FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -2484,7 +2484,7 @@ def get_conversation(request, recipient_username):
             {
                 'id': att.id,
                 'filename': att.filename,
-                'url': att.file.url,
+                'url': att.get_download_url(inline=True),
                 'is_image': att.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))
             }
             for att in message.attachments.all()
@@ -2509,17 +2509,36 @@ def download_attachment(request, attachment_id):
     """
     Скачивает вложение из сообщения.
 
-    Проверяет, что пользователь — отправитель или получатель сообщения, и возвращает файл.
-    Требует авторизации.
+    Проверяет, что пользователь — отправитель или получатель сообщения (или staff его тенанта,
+    или суперпользователь), и возвращает файл. Требует авторизации.
+
+    В продакшене файл отдаёт nginx по X-Accel-Redirect из internal-локации /protected-media/;
+    прямой путь /media/message_attachments/ закрыт. В DEBUG файл отдаёт Django.
+    ?inline=1 — показать в браузере (превью картинок), иначе — скачать.
     """
+    from django.utils.http import content_disposition_header
+
     attachment = get_object_or_404(MessageAttachment, id=attachment_id)
     message = attachment.message
+    user = request.user
 
-    if request.user not in [message.sender, message.recipient]:
+    is_participant = user in [message.sender, message.recipient]
+    is_tenant_staff = user.is_staff and message.tenant_id is not None and message.tenant_id == getattr(user, 'tenant_id', None)
+    if not (is_participant or user.is_superuser or is_tenant_staff):
         raise PermissionDenied
 
-    response = FileResponse(attachment.file)
-    response['Content-Disposition'] = f'attachment; filename="{attachment.filename}"'
+    as_attachment = request.GET.get('inline') != '1'
+    disposition = content_disposition_header(as_attachment, attachment.filename or os.path.basename(attachment.file.name))
+
+    if settings.DEBUG:
+        response = FileResponse(attachment.file)
+    else:
+        response = HttpResponse()
+        response['X-Accel-Redirect'] = f"/protected-media/{attachment.file.name}"
+        response['Content-Type'] = ''  # тип определит nginx по расширению
+    response['Content-Disposition'] = disposition
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Cache-Control'] = 'private, no-store'
     return response
 
 

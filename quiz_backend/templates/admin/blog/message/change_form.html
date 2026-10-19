@@ -58,11 +58,11 @@
                         {% if attachment.file %}
                             {% with attachment.filename|lower as lower_filename %}
                                 {% if lower_filename|slice:"-4:" == ".jpg" or lower_filename|slice:"-5:" == ".jpeg" or lower_filename|slice:"-4:" == ".png" or lower_filename|slice:"-4:" == ".gif" or lower_filename|slice:"-5:" == ".webp" %}
-                                    <a href="{{ attachment.file.url }}" target="_blank" title="{{ attachment.filename }}">
-                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="attachment-preview">
+                                    <a href="{{ attachment.get_download_url }}" target="_blank" title="{{ attachment.filename }}">
+                                        <img src="{{ attachment.get_download_url }}" alt="{{ attachment.filename }}" class="attachment-preview">
                                     </a>
                                 {% else %}
-                                    <a href="{{ attachment.file.url }}" target="_blank" style="text-decoration: none; color: #007bff;">
+                                    <a href="{{ attachment.get_download_url }}" target="_blank" style="text-decoration: none; color: #007bff;">
                                         <img src="{% static 'admin/img/icon-unknown.svg' %}" alt="file" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
                                         {{ attachment.filename }}
                                     </a>
