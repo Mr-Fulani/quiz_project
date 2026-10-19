@@ -16,15 +16,10 @@
 Ваши средства уже направлены на развитие проекта. Следите за обновлениями в наших социальных сетях!
 
 📱 НАШИ СОЦИАЛЬНЫЕ СЕТИ:
-Telegram: https://t.me/Mr_Fulani
-VK: https://vk.com/development_hub  
-YouTube: https://www.youtube.com/@Mr_Fulani
-Instagram: https://www.instagram.com/fulani_developer
-TikTok: https://www.tiktok.com/@fulani_developer
-Facebook: https://www.facebook.com/badr.commerce.3
-
+{% for link in social_links %}{{ link.title }}: {{ link.url }}
+{% endfor %}
 ---
-Quiz Project Team
-Если у вас есть вопросы, свяжитесь с нами: fulani.dev@gmail.com
+{{ site_name }}
+{% if support_email %}Если у вас есть вопросы, свяжитесь с нами: {{ support_email }}{% endif %}
 
 Это автоматическое письмо. Пожалуйста, не отвечайте на него. 

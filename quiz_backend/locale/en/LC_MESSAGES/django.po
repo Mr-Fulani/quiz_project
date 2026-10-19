@@ -1499,11 +1499,6 @@ msgstr ""
 msgid "Hard"
 msgstr ""
 
-#: blog/views.py:1149
-#, python-format
-msgid "%(subtopic_name)s Difficulty Levels — Quiz Project"
-msgstr ""
-
 #: blog/views.py:1150
 #, python-format
 msgid "Choose difficulty levels for %(subtopic_name)s quizzes."
@@ -2561,14 +2556,6 @@ msgstr ""
 msgid "Hello"
 msgstr ""
 
-#: templates/registration/password_reset_email.html:31
-#: templates/registration/password_reset_email_backup.html:211
-#: templates/registration/password_reset_email_backup.txt:4
-#: templates/registration/password_reset_email_simple.html:11
-msgid ""
-"We received a request to reset your password for your Quiz Project account."
-msgstr ""
-
 #: templates/registration/password_reset_email.html:32
 #: templates/registration/password_reset_email_backup.html:212
 msgid "If you made this request, click the button below to set a new password:"
@@ -2636,13 +2623,6 @@ msgstr ""
 #: templates/registration/password_reset_email_backup.html:248
 #: templates/registration/password_reset_email_backup.txt:22
 msgid "Contact Support"
-msgstr ""
-
-#: templates/registration/password_reset_email.html:82
-#: templates/registration/password_reset_email_backup.html:258
-#: templates/registration/password_reset_email_backup.txt:30
-msgid ""
-"This email was sent from Quiz Project. Please do not reply to this email."
 msgstr ""
 
 #: templates/registration/password_reset_email.html:83
@@ -2781,4 +2761,16 @@ msgstr ""
 #: blog/context_processors.py
 #, python-format
 msgid "Get in touch with %(name)s for collaboration, projects and questions."
+msgstr ""
+
+#, python-format
+msgid "We received a request to reset your password for your %(site_name)s account."
+msgstr ""
+
+#, python-format
+msgid "This email was sent from %(site_name)s. Please do not reply to this email."
+msgstr ""
+
+#, python-format
+msgid "%(subtopic_name)s Difficulty Levels — %(site_name)s"
 msgstr ""

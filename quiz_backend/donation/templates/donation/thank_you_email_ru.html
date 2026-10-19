@@ -187,27 +187,21 @@
                 <p style="margin-bottom: 0;">Ваши средства уже направлены на развитие проекта. Следите за обновлениями в наших социальных сетях!</p>
             </div>
             
+            {% if social_links %}
             <div class="social-links">
                 <p>Подписывайтесь на наши социальные сети:</p>
                 <div style="margin: 10px 0;">
-                    <a href="https://t.me/Mr_Fulani" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #0088cc; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📱 Telegram</a>
-                    <a href="https://vk.com/development_hub" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #4680c2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📘 VK</a>
-                </div>
-                <div style="margin: 10px 0;">
-                    <a href="https://www.youtube.com/@Mr_Fulani" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #ff0000; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🎥 YouTube</a>
-                    <a href="https://www.instagram.com/fulani_developer" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #e4405f; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📷 Instagram</a>
-                </div>
-                <div style="margin: 10px 0;">
-                    <a href="https://www.tiktok.com/@fulani_developer" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #000000; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🎵 TikTok</a>
-                    <a href="https://www.facebook.com/badr.commerce.3" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #1877f2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">👤 Facebook</a>
+                    {% for link in social_links %}<a href="{{ link.url }}" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #4680c2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ link.title }}</a>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
         
         <!-- Footer -->
         <div class="footer">
-            <p><strong>Quiz Project Team</strong></p>
-            <p>Если у вас есть вопросы, свяжитесь с нами: fulani.dev@gmail.com</p>
+            <p><strong>{{ site_name }}</strong></p>
+            {% if support_email %}<p>Если у вас есть вопросы, свяжитесь с нами: {{ support_email }}</p>{% endif %}
             <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">
                 Это автоматическое письмо. Пожалуйста, не отвечайте на него.
             </p>

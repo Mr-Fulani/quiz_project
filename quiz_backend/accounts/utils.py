@@ -7,6 +7,8 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 import logging
 
+from tenants.branding import email_branding
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +28,7 @@ def send_password_reset_email(request, user, uidb64, token):
             'token': token,
             'protocol': protocol,
             'domain': domain,
+            **email_branding(getattr(request, 'tenant', None)),
         }
         
         # Рендерим текстовую и HTML версии
@@ -34,7 +37,7 @@ def send_password_reset_email(request, user, uidb64, token):
         
         # Создаем multipart email
         email = EmailMultiAlternatives(
-            subject='🔐 Password Reset - Quiz Project',
+            subject=f"🔐 Password Reset - {context['site_name'] or domain}",
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[user.email]

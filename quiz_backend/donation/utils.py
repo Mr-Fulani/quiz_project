@@ -173,14 +173,19 @@ def send_donation_thank_you_email(donation):
     # Определяем язык пользователя
     language = detect_user_language(donation)
     
+    from tenants.branding import email_branding
+
+    branding = email_branding(donation.tenant, language)
+    suffix = f" - {branding['site_name']}" if branding['site_name'] else ''
+
     # Устанавливаем тему письма в зависимости от языка
     if language == 'ru':
-        subject = f'🎉 Спасибо за ваш донат! - Quiz Project'
+        subject = f'🎉 Спасибо за ваш донат!{suffix}'
     else:
-        subject = f'🎉 Thank you for your donation! - Quiz Project'
+        subject = f'🎉 Thank you for your donation!{suffix}'
     
     # Контекст для шаблонов
-    context = {'donation': donation}
+    context = {'donation': donation, **branding}
     
     # Генерируем текстовую и HTML версии в зависимости от языка
     text_template = f'donation/thank_you_email_{language}.txt'
@@ -213,7 +218,7 @@ def send_donation_thank_you_email(donation):
             html_content = render_to_string('donation/thank_you_email_ru.html', context)
             
             email = EmailMultiAlternatives(
-                subject=f'🎉 Спасибо за ваш донат! - Quiz Project',
+                subject=f'🎉 Спасибо за ваш донат!{suffix}',
                 body=text_content,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[donation.email]

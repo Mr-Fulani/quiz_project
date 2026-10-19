@@ -1672,7 +1672,10 @@ def quiz_difficulty(request, quiz_type, subtopic):
                 if crumb.get('url')  # Пропускаем элементы без URL
             ]
         },
-        'meta_title': _('%(subtopic_name)s Difficulty Levels — Quiz Project') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_title': _('%(subtopic_name)s Difficulty Levels — %(site_name)s') % {
+            'subtopic_name': subtopic_obj.localized_name,
+            'site_name': request.tenant.site_name if getattr(request, 'tenant', None) else request.get_host(),
+        },  # Изменено: приведено к стилю quiz_subtopic
         'meta_description': _('Choose difficulty levels for %(subtopic_name)s quizzes.') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
         'meta_keywords': _('%(subtopic_name)s, difficulty levels, quizzes, programming') % {'subtopic_name': subtopic_obj.localized_name},  # Изменено: приведено к стилю quiz_subtopic
     }
