@@ -31,7 +31,8 @@ def _supported_language_code(requested: str) -> str:
 
 
 def _build_site_task_url(task: Task, translation_language: str) -> str:
-    site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
+    from tenants.scoping import site_url_for
+    site_url = site_url_for(task.tenant)
     if not site_url.startswith('http'):
         site_url = f'https://{site_url}'
 

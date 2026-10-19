@@ -208,16 +208,18 @@
                 <span data-translate="or">{{ translations.get('or', 'или') }}</span>
             </div>
             
+            {% if site_url %}
             <div class="invitation-option">
                 <div class="option-icon website-icon">
                     <i class="fas fa-globe"></i>
                 </div>
                 <h3 class="option-title" data-translate="register_on_website">{{ translations.get('register_on_website', 'Зарегистрироваться на сайте') }}</h3>
                 <p class="option-description" data-translate="website_option_description">{{ translations.get('website_option_description', 'Создайте аккаунт на нашем сайте и получите доступ к аналогичному функционалу') }}</p>
-                <a href="https://quiz-code.com/{{ current_language }}/?open_register=true" target="_blank" class="option-button website-button" data-translate="go_to_website">
+                <a href="{{ site_url }}/{{ current_language }}/?open_register=true" target="_blank" class="option-button website-button" data-translate="go_to_website">
                     {{ translations.get('go_to_website', 'Перейти на сайт') }}
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

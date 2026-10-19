@@ -37,6 +37,8 @@ _verified_cache: dict = {}
 
 # initData текущего GET-запроса (заголовок или cookie) — для серверных вызовов Django
 request_init_data: ContextVar[Optional[str]] = ContextVar('request_init_data', default=None)
+# Хост и схема текущего запроса — по ним Django определяет тенанта при серверных вызовах
+request_host_headers: ContextVar[Optional[dict]] = ContextVar('request_host_headers', default=None)
 
 
 def init_data_for_read(request: Request) -> Optional[str]:

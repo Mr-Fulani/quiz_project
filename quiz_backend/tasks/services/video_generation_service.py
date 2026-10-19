@@ -22,6 +22,7 @@ from pygments.formatters import ImageFormatter
 from pygments.styles import get_style_by_name
 from django.conf import settings
 from django.core.files.storage import default_storage
+from tenants.scoping import site_url_for
 
 # Импортируем функции из image_generation_service для переиспользования
 from .image_generation_service import (
@@ -1077,7 +1078,12 @@ def generate_video_for_task(
                         # Для английского капитализируем сложность
                         difficulty_text = difficulty.title() if video_language == 'en' else difficulty
                         task_details += f"\n🎯 {labels['difficulty']}: {difficulty_text}"
-                    task_details += f"\n🔗 URL: https://mini.quiz-code.com"
+                    from tasks.models import Task as TaskModel
+                    task_row = TaskModel.objects.filter(id=task_id).select_related('tenant').first() if task_id else None
+                    task_tenant = task_row.tenant if task_row else None
+                    mini_url = (task_tenant.mini_app_url if task_tenant else None) or site_url_for(task_tenant)
+                    if mini_url:
+                        task_details += f"\n🔗 URL: {mini_url}"
 
                     # Генерируем хэштеги
                     hashtags = ["code", "quizes", "programming", "coding", "learntocode"]

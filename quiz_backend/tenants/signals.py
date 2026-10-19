@@ -11,7 +11,9 @@ def _clear_cache():
     """Сбрасывает кэш тенантов в middleware."""
     try:
         from tenants.middleware import clear_tenant_cache
+        from tenants.origins import clear_tenant_hosts_cache
         clear_tenant_cache()
+        clear_tenant_hosts_cache()
         logger.info('[Tenants] Tenant cache cleared after model change.')
     except Exception as e:
         logger.error(f'[Tenants] Failed to clear tenant cache: {e}')

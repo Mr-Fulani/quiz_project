@@ -110,7 +110,7 @@ class PostAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         """
         from platforms.services import send_telegram_post_sync
         from django.conf import settings
-        from django.contrib.sites.models import Site
+        from tenants.scoping import site_url_for
         from blog.utils import html_to_telegram_text, truncate_telegram_text
         
         success_count = 0
@@ -132,11 +132,7 @@ class PostAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 # Получаем URL поста
                 post_url = post.get_absolute_url()
                 if post_url:
-                    try:
-                        site = Site.objects.get_current()
-                        full_url = f"https://{site.domain}{post_url}"
-                    except:
-                        full_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{post_url}"
+                    full_url = f"{site_url_for(post.tenant)}{post_url}"
                 else:
                     full_url = None
                 

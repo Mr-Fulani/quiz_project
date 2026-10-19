@@ -21,8 +21,10 @@ PINTEREST_CLIENT_SECRET = os.getenv('PINTEREST_CLIENT_SECRET', '')  # Из .env 
 if settings.DEBUG:
     PINTEREST_REDIRECT_URI = os.getenv('PINTEREST_REDIRECT_URI', 'http://localhost:8001/auth/pinterest/callback/')
 else:
-    # Для продакшена используем реальный домен
-    PINTEREST_REDIRECT_URI = os.getenv('PINTEREST_REDIRECT_URI', 'https://quiz-code.com/auth/pinterest/callback/')
+    # Для продакшена — из .env или из PUBLIC_URL (домен сайта в коде не задаётся)
+    PINTEREST_REDIRECT_URI = os.getenv('PINTEREST_REDIRECT_URI') or (
+        f"{(settings.PUBLIC_URL or '').rstrip('/')}/auth/pinterest/callback/" if settings.PUBLIC_URL else ''
+    )
 PINTEREST_OAUTH_BASE_URL = 'https://www.pinterest.com/oauth'
 # Для Trial доступа используем Sandbox API для token exchange
 _USE_SANDBOX = os.getenv('PINTEREST_USE_SANDBOX', 'true').lower() == 'true'

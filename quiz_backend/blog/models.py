@@ -993,14 +993,13 @@ class PageVideo(models.Model):
             
             # Для мобильных используем youtube.com с enablejsapi для предотвращения ошибки 153
             if for_mobile:
-                # Получаем origin из настроек
-                origin = getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')
-                if not origin.startswith(('http://', 'https://')):
-                    origin = f"https://{origin}"
-                
+                # origin — сайт тенанта видео
+                from tenants.scoping import site_url_for
+                origin = site_url_for(self.tenant)
+
                 params = [
                     "enablejsapi=1",
-                    f"origin={quote(origin, safe='')}",
+                    *([f"origin={quote(origin, safe='')}"] if origin else []),
                     "autoplay=1",
                     "mute=1",
                     "rel=0",

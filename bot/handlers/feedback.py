@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
+from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin, Tenant
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
 from bot.services.admin_service import IsAdminFilter
@@ -72,27 +72,16 @@ async def notify_admins_about_feedback(
             logger.warning("⚠️ Нет активных админов для отправки уведомления о feedback")
             return
         
-        # Получаем базовый URL для ссылки на админку
-        base_url = os.getenv('SITE_URL', 'https://quiz-code.com')
-        # Убираем поддомены если есть
-        if 'mini.' in base_url:
-            base_url = base_url.replace('mini.', '')
-        
+        # Ссылки — на сайт и мини-апп тенанта обращения (домены задаются в тенанте, не в коде)
+        tenant = await db_session.get(Tenant, feedback.tenant_id) if feedback.tenant_id else None
+        site_base_url = f"https://{tenant.domain}" if tenant and tenant.domain else os.getenv('SITE_URL', '').rstrip('/')
+        mini_app_base_url = f"https://{tenant.mini_app_domain}" if tenant and tenant.mini_app_domain else site_base_url
+
         # Формируем ссылку на feedback в админке Django
         admin_path = f"/admin/feedback/feedbackmessage/{feedback.id}/change/"
-        admin_url = f"{base_url}{admin_path}"
-        
+        admin_url = f"{site_base_url}{admin_path}"
+
         # Формируем URL mini app для открытия feedback в приложении
-        mini_app_base_url = os.getenv('SITE_URL', 'https://quiz-code.com')
-        # Убеждаемся, что есть поддомен mini.
-        if 'mini.' not in mini_app_base_url:
-            if 'quiz-code.com' in mini_app_base_url:
-                mini_app_base_url = mini_app_base_url.replace('quiz-code.com', 'mini.quiz-code.com')
-            else:
-                # Для других доменов добавляем mini. в начало
-                if '://' in mini_app_base_url:
-                    parts = mini_app_base_url.split('://', 1)
-                    mini_app_base_url = f"{parts[0]}://mini.{parts[1]}"
         mini_app_url = f"{mini_app_base_url}/?startapp=feedback_{feedback.id}"
         
         # Формируем информацию о пользователе

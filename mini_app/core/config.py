@@ -33,7 +33,8 @@ class Settings(BaseSettings):
     # Домен мини-аппа — используется как X-Forwarded-Host в запросах к Django
     # чтобы TenantMiddleware мог найти тенанта по mini_app_domain
     # Должен совпадать с полем mini_app_domain в записи Tenant в Django Admin
-    MINI_APP_DOMAIN: str = os.getenv('MINI_APP_DOMAIN', 'mini.quiz-code.com')
+    # Только для вызовов Django вне запроса пользователя; обычно хост берётся из запроса
+    MINI_APP_DOMAIN: str = os.getenv('MINI_APP_DOMAIN', '')
 
     class Config:
         env_file = ".env"

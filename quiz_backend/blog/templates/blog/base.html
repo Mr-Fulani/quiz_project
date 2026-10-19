@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 {% load static i18n blog_tags %}
 {% get_current_language as language %}
-<html lang="{{ language }}">
+<html lang="{{ language }}" data-site-domain="{{ request.tenant.domain|default:'' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1039,7 +1039,7 @@
     // Обработка postMessage от iframe виджета (на случай если виджет использует postMessage вместо прямого вызова)
     window.addEventListener('message', function(event) {
         // Обрабатываем сообщение от страницы успешной авторизации (telegram_auth_success.html)
-        // Это сообщение приходит с того же origin (quiz-code.com), поэтому проверяем его первым
+        // Это сообщение приходит с того же origin (домен сайта), поэтому проверяем его первым
         if (event.data && event.data.type === 'TELEGRAM_AUTH_SUCCESS') {
             console.log('✅ ============================================');
             console.log('✅ ПОЛУЧЕНО СООБЩЕНИЕ ОБ УСПЕШНОЙ АВТОРИЗАЦИИ!');
@@ -1409,7 +1409,7 @@
                         } catch (e) {
                                         console.error('  - ❌ Ошибка при парсинге URL iframe:', e);
                                     }
-                                } else if (newIframeUrl.includes('return_to') && newIframeUrl.includes('quiz-code.com')) {
+                                } else if (newIframeUrl.includes('return_to') && newIframeUrl.includes(window.location.hostname)) {
                                     // Проверяем, содержит ли URL return_to с данными в query параметрах
                                     console.log('  - URL содержит return_to, проверяем наличие данных...');
                                     try {

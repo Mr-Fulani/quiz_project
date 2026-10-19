@@ -6,7 +6,7 @@ import httpx
 import json
 from typing import List, Dict, Optional, Any
 from core.config import settings
-from core.telegram_auth import INIT_DATA_HEADER, request_init_data
+from core.telegram_auth import INIT_DATA_HEADER, request_host_headers, request_init_data
 
 logger = logging.getLogger(__name__)
 
@@ -31,30 +31,23 @@ class DjangoAPIService:
         if init_data and INIT_DATA_HEADER not in headers:
             headers[INIT_DATA_HEADER] = init_data
 
-        # Если запрос идет напрямую к Django (quiz_backend:8000), 
-        # нужно убедиться, что передается правильный домен.
-        # В Multi-Tenant архитектуре FastAPI передает реальный host (например, mini.quiz-islam.com).
-        # Если host не передан, используем fallback из настроек.
+        # Django определяет тенанта по хосту: передаём хост текущего запроса мини-аппа,
+        # а MINI_APP_DOMAIN из .env — только если запроса нет (фоновые вызовы).
+        incoming = request_host_headers.get() or {}
+        fallback_host = incoming.get('X-Forwarded-Host') or getattr(settings, 'MINI_APP_DOMAIN', None)
         if 'quiz_backend:8000' in self.base_url:
-            if 'X-Forwarded-Host' not in headers:
-                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
-                headers['X-Forwarded-Host'] = mini_app_domain
-            if 'Host' not in headers:
-                headers['Host'] = headers.get('X-Forwarded-Host')
+            if 'X-Forwarded-Host' not in headers and fallback_host:
+                headers['X-Forwarded-Host'] = fallback_host
+            if 'Host' not in headers and headers.get('X-Forwarded-Host'):
+                headers['Host'] = headers['X-Forwarded-Host']
             
             headers['X-Forwarded-Proto'] = headers.get('X-Forwarded-Proto', 'https')
         
         # Если запрос идет через nginx, добавляем правильные заголовки
         # для корректной работы с Django API
         elif ('nginx_local:8080' in self.base_url or 'nginx:80' in self.base_url) and 'X-Forwarded-Host' not in headers:
-            if 'nginx_local:8080' in self.base_url:
-                # Локальная разработка с ngrok
-                headers['X-Forwarded-Host'] = '77273f38044f.ngrok-free.app'
-                headers['X-Forwarded-Proto'] = 'https'
-            elif 'nginx:80' in self.base_url:
-                # Продакшен конфигурация
-                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
-                headers['X-Forwarded-Host'] = mini_app_domain
+            if fallback_host:
+                headers['X-Forwarded-Host'] = fallback_host
                 headers['X-Forwarded-Proto'] = 'https'
         
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
@@ -152,6 +145,14 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
             return None
     
+    async def get_current_tenant(self) -> Optional[Dict[str, Any]]:
+        """Публичные данные тенанта текущего запроса (домен сайта, название)."""
+        try:
+            return await self._make_request("GET", "/api/tenant/")
+        except Exception as e:
+            logger.warning(f"Не удалось получить данные тенанта: {e}")
+            return None
+
     async def get_comment_detail(self, comment_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о комментарии для deep link"""
         headers = {}

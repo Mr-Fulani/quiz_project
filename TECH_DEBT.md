@@ -149,6 +149,22 @@
 
 ---
 
+## 🌐 Домены и привязки к проектам
+
+Как сменить домен сайта: в админке поменять `domain`/`mini_app_domain` тенанта (CORS/CSRF и ссылки
+подхватят сами), затем nginx (`server_name`, сертификаты) и при необходимости `ALLOWED_HOSTS` в `.env`.
+Как сменить домен хранилища: `R2_PUBLIC_DOMAIN` в `.env` + старый домен в `STORAGE_LEGACY_DOMAINS`;
+данные в БД не трогать (там ключи файлов).
+
+- [ ] 🟠 Привязки по slug тенанта (`tenant.slug == 'quiz-code'`, ~19 мест): автор «Anvar Sh.», телефон,
+      соцсети в SEO/JSON-LD (`blog/context_processors.py`), выбор стиля картинок
+      (`tasks/services/image_generation_service.py`, `tasks/tasks.py`), шаблоны админки импорта/генерации.
+      Нужны поля тенанта (автор, телефон, профили) вместо проверки slug.
+- [ ] 🟡 `nginx/nginx-prod.conf` перечисляет домены (`server_name`, пути сертификатов) — при смене домена
+      править вручную; `quiz-code.com` и мёртвые quiz-format/quiz-game можно убрать.
+- [ ] 🟢 Бренд по умолчанию «QuizHub»/`@quiz_code_hub` в SEO, когда тенант не определён.
+- [ ] 🟢 `TENANT_SLUG` в `docker-compose.yml` нигде не читается.
+
 ## ✅ Сделано (2026-10-18)
 
 - Тенант определяется только по Host/X-Forwarded-Host; nginx обнуляет подделываемые заголовки; порты — 127.0.0.1.

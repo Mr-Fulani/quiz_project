@@ -327,8 +327,9 @@ def seo_context(request):
     scheme = 'https' if request.is_secure() else 'http'
     
     # Получаем данные тенанта или используем значения по умолчанию
-    default_domain = tenant.domain if tenant else 'quiz-code.com'
-    default_mini_domain = tenant.mini_app_domain if tenant else 'mini.quiz-code.com'
+    # Без тенанта — домен из запроса (домены сайтов задаются в тенантах, не в коде)
+    default_domain = tenant.domain if tenant else request.get_host().split(':')[0]
+    default_mini_domain = tenant.mini_app_domain if tenant else None
     site_name = tenant.site_name if tenant else 'QuizHub'
     site_desc = tenant.site_description if tenant and tenant.site_description else _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.')
     meta_kws = tenant.meta_keywords if tenant and tenant.meta_keywords else _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding')
@@ -639,8 +640,9 @@ def dynamic_seo_context(request):
     tenant = getattr(request, 'tenant', None)
     scheme = 'https' if request.is_secure() else 'http'
     
-    default_domain = tenant.domain if tenant else 'quiz-code.com'
-    default_mini_domain = tenant.mini_app_domain if tenant else 'mini.quiz-code.com'
+    # Без тенанта — домен из запроса (домены сайтов задаются в тенантах, не в коде)
+    default_domain = tenant.domain if tenant else request.get_host().split(':')[0]
+    default_mini_domain = tenant.mini_app_domain if tenant else None
 
     # Для production доменов всегда используем HTTPS
     if host in [default_domain, f'www.{default_domain}']:
@@ -691,7 +693,7 @@ def dynamic_seo_context(request):
 
                         # Формируем полный URL для OG изображения
                         # Для production всегда используем HTTPS
-                        production_scheme = 'https' if host in ['quiz-code.com', 'www.quiz-code.com'] else scheme
+                        production_scheme = 'https' if host in [default_domain, f'www.{default_domain}'] else scheme
                         
                         if og_image:
                             # Если URL уже полный (начинается с http), используем как есть, но заменяем на HTTPS для production
@@ -858,13 +860,13 @@ def dynamic_seo_context(request):
                             og_image_final = f"{production_scheme}://{host}{og_image_with_version}"
 
                         # ДОБАВЛЕНО: Отладочная информация для VK
-                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
+                        vk_image_url = f"{base_url}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
 
                         # Формируем абсолютный URL для og:url (HTTPS для production)
                         project_absolute_url = project.get_absolute_url()
                         og_url_final = f"{base_url}{project_absolute_url}"
                         # Убеждаемся, что для production используется HTTPS
-                        if 'quiz-code.com' in og_url_final and og_url_final.startswith('http://'):
+                        if default_domain in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
 
                         site_name = tenant.site_name if tenant and tenant.site_name else 'Quiz Project'

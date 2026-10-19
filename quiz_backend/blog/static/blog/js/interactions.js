@@ -483,8 +483,9 @@ class ContentInteractions {
                 }
             }
             
-            // Заменяем домен на production
-            let vkUrl = originalUrl.replace(urlObj.hostname, 'quiz-code.com');
+            // Заменяем домен на основной домен сайта (из тенанта, см. data-site-domain)
+            const siteDomain = document.documentElement.dataset.siteDomain || urlObj.hostname;
+            let vkUrl = originalUrl.replace(urlObj.hostname, siteDomain);
             vkUrl = vkUrl.replace(urlObj.pathname, path);
             
             // Убеждаемся, что URL использует HTTPS
@@ -506,8 +507,9 @@ class ContentInteractions {
         try {
             const urlObj = new URL(originalUrl);
             
-            // Заменяем домен на production, но сохраняем оригинальный путь
-            let linkedInUrl = originalUrl.replace(urlObj.hostname, 'quiz-code.com');
+            // Заменяем домен на основной домен сайта, но сохраняем оригинальный путь
+            const siteDomain = document.documentElement.dataset.siteDomain || urlObj.hostname;
+            let linkedInUrl = originalUrl.replace(urlObj.hostname, siteDomain);
             
             // Убеждаемся, что URL использует HTTPS
             if (linkedInUrl.startsWith('http://')) {

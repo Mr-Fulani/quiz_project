@@ -66,14 +66,9 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
         # Получаем URL поста
         post_url = instance.get_absolute_url()
         if post_url:
-            # Строим полный URL
-            from django.contrib.sites.models import Site
-            try:
-                site = Site.objects.get_current()
-                full_url = f"https://{site.domain}{post_url}"
-            except:
-                # Fallback на настройки
-                full_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{post_url}"
+            # Полный URL — на сайте тенанта поста
+            from tenants.scoping import site_url_for
+            full_url = f"{site_url_for(instance.tenant)}{post_url}"
         else:
             full_url = None
         

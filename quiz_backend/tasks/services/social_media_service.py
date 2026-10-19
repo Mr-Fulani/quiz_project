@@ -584,8 +584,9 @@ def _publish_to_pinterest(task, translation, creds, social_post) -> Dict:
     elif not description:
         description = ""
     
-    # Ссылка всегда на mini.quiz-code.com
-    link = "https://mini.quiz-code.com"
+    # Ссылка на мини-апп тенанта задачи (или его сайт)
+    from tenants.scoping import site_url_for
+    link = (task.tenant.mini_app_url if task.tenant else None) or site_url_for(task.tenant)
     
     # Создаем пин
     pin_data = api.create_pin(

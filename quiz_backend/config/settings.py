@@ -68,17 +68,8 @@ else:
             ALLOWED_HOSTS.append('nginx_local:8080')
         logger.info(f"ALLOWED_HOSTS from env: {ALLOWED_HOSTS}")
     else:
-        # Фоллбэк только с твоими хостами
-        ALLOWED_HOSTS = [
-            'quiz-code.com',
-            'www.quiz-code.com',
-            'mini.quiz-code.com',
-            'localhost',
-            '45.14.247.175',  # IP-адрес сервера
-            '45.14.247.175:8001',  # IP-адрес сервера с портом
-            'quiz_backend',   # Внутренний хост контейнера
-            'quiz_backend:8000'  # Внутренний хост контейнера с портом
-        ]
+        # Домены сайтов задаются в .env (ALLOWED_HOSTS) и в тенантах, не в коде
+        ALLOWED_HOSTS = ['localhost', 'quiz_backend', 'quiz_backend:8000']
         logger.warning(f"ALLOWED_HOSTS env var not found, using fallback: {ALLOWED_HOSTS}")
 
 # Добавляем хост ngrok для локальной разработки и тестирования
@@ -95,8 +86,8 @@ if not PUBLIC_URL and DEBUG:
     # В режиме разработки используем ngrok или localhost
     PUBLIC_URL = f"https://{NGROK_HOST}" if NGROK_HOST else "http://localhost:8001"
 elif not PUBLIC_URL:
-    # В продакшене используем основной домен
-    PUBLIC_URL = "https://quiz-code.com"
+    # В продакшене адрес сайта берётся из тенанта (tenant.site_url); PUBLIC_URL — только из .env
+    PUBLIC_URL = ''
 
 # Константы для отправки вебхуков
 WEBHOOK_TIMEOUT = int(os.getenv('WEBHOOK_TIMEOUT', '30'))
@@ -104,11 +95,8 @@ WEBHOOK_RETRIES = int(os.getenv('WEBHOOK_RETRIES', '3'))
 WEBHOOK_RETRY_DELAY = int(os.getenv('WEBHOOK_RETRY_DELAY', '2'))
 
 # Настройки для работы за прокси-сервером (Nginx)
-CSRF_TRUSTED_ORIGINS = [
-    'https://quiz-code.com',
-    'https://www.quiz-code.com',
-    'https://mini.quiz-code.com',
-]
+# Домены тенантов доверенные автоматически (tenants/origins.py); дополнительные — CSRF_TRUSTED_ORIGINS в .env
+CSRF_TRUSTED_ORIGINS = []
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -232,7 +220,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',  # Возвращаем обратно
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'tenants.origins.TenantCsrfViewMiddleware',   # CSRF + доверие доменам тенантов
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -483,36 +471,18 @@ if DEBUG:
 else:
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
-    # Для продакшена лучше указать конкретные доверенные источники
-    CSRF_TRUSTED_ORIGINS = [
-        'https://quiz-code.com',
-        'https://www.quiz-code.com', 
-        'https://mini.quiz-code.com',
-        'https://quiz-format.com',
-        'https://www.quiz-format.com',
-        'https://mini.quiz-format.com',
-        'https://quiz-game.co',
-        'https://www.quiz-game.co',
-        'https://mini.quiz-game.co'
-    ]
-    # Добавляем дополнительные из env если есть
+    # Домены активных тенантов доверенные автоматически (tenants/origins.py);
+    # дополнительные источники — из env
+    CSRF_TRUSTED_ORIGINS = []
     env_origins = os.getenv('CSRF_TRUSTED_ORIGINS', '')
     if env_origins:
         CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in env_origins.split(',') if o.strip()])
     CORS_ALLOW_ALL_ORIGINS = False
+    # Домены активных тенантов разрешены автоматически (tenants/origins.py, сигнал corsheaders)
     CORS_ALLOWED_ORIGINS = [
         'https://oauth.telegram.org',
         'https://telegram.org',
         'https://core.telegram.org',
-        'https://quiz-code.com',
-        'https://www.quiz-code.com', 
-        'https://mini.quiz-code.com',
-        'https://quiz-format.com',
-        'https://www.quiz-format.com',
-        'https://mini.quiz-format.com',
-        'https://quiz-game.co',
-        'https://www.quiz-game.co',
-        'https://mini.quiz-game.co'
     ]
     # Добавляем дополнительные из env если есть
     env_cors = os.getenv("CORS_ALLOWED_ORIGINS", "")
@@ -692,7 +662,7 @@ BROWSER_RETRY_COUNT = int(os.getenv('BROWSER_RETRY_COUNT', '3'))
 SITE_ID = 1
 SITE_NAME = os.getenv('SITE_NAME', 'Quiz Platform')       # fallback, если Tenant не найден
 SITE_DESCRIPTION = os.getenv('SITE_DESCRIPTION', '')      # fallback
-SITE_URL = os.getenv('SITE_URL', 'https://quiz-code.com') # fallback
+SITE_URL = os.getenv('SITE_URL', '')  # fallback, если тенант не определён (адрес сайта — tenant.site_url)
 
 # Social Media Handles (замените на ваши реальные)
 TWITTER_HANDLE = '@quiz_code_hub'
@@ -775,6 +745,10 @@ else:
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
     AWS_PUBLIC_MEDIA_DOMAIN = os.getenv('AWS_PUBLIC_MEDIA_DOMAIN', AWS_S3_CUSTOM_DOMAIN)
     R2_ENVIRONMENT_PREFIX = None
+
+# Прежние публичные домены хранилища (через запятую): ссылки на них при сохранении сводятся к ключу
+# файла, а отдаются уже с текущим доменом. Нужно после смены R2_PUBLIC_DOMAIN.
+STORAGE_LEGACY_DOMAINS = [d.strip() for d in os.getenv('STORAGE_LEGACY_DOMAINS', '').split(',') if d.strip()]
 
 # Logo path for image generation
 LOGO_PATH = os.path.join(MEDIA_ROOT, 'logos/logo.png')

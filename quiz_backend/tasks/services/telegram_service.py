@@ -885,7 +885,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                     site_url = task.tenant.site_url
                 
                 if not site_url:
-                    site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
+                    site_url = getattr(settings, 'SITE_URL', '')
 
                 if site_url and not site_url.startswith('http'):
                     site_url = f'https://{site_url}'

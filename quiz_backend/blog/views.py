@@ -43,6 +43,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
+from tenants.scoping import site_host
 
 
 from .mixins import BreadcrumbsMixin
@@ -782,12 +783,9 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
         # Исправляем canonical URL для использования основного домена
         host = self.request.get_host()
         scheme = 'https' if self.request.is_secure() else 'http'
-        if host == 'mini.quiz-code.com':
-            # Для mini app используем основной домен в canonical
-            base_domain = 'quiz-code.com'
-            canonical_url = current_url.replace(host, base_domain)
-        else:
-            canonical_url = current_url
+        # Для мини-аппа в canonical — основной домен тенанта
+        base_domain = site_host(self.request)
+        canonical_url = current_url.replace(host, base_domain) if base_domain != host else current_url
         
         # Генерируем hreflang URLs для всех языков
         # ИСПРАВЛЕНИЕ: используем request.path как базовый путь и заменяем языковой префикс
@@ -806,11 +804,6 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
             if current_path.startswith(lang_prefix):
                 path_without_lang = current_path[len(lang_prefix)-1:]  # -1 чтобы сохранить начальный /
                 break
-        
-        if host == 'mini.quiz-code.com':
-            base_domain = 'quiz-code.com'
-        else:
-            base_domain = host
         
         # Генерируем URL для каждого языка
         for lang_code, _ in settings.LANGUAGES:
@@ -886,12 +879,9 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
         # Исправляем canonical URL для использования основного домена
         host = self.request.get_host()
         scheme = 'https' if self.request.is_secure() else 'http'
-        if host == 'mini.quiz-code.com':
-            # Для mini app используем основной домен в canonical
-            base_domain = 'quiz-code.com'
-            canonical_url = current_url.replace(host, base_domain)
-        else:
-            canonical_url = current_url
+        # Для мини-аппа в canonical — основной домен тенанта
+        base_domain = site_host(self.request)
+        canonical_url = current_url.replace(host, base_domain) if base_domain != host else current_url
         
         # Генерируем hreflang URLs для всех языков
         from django.conf import settings
@@ -905,10 +895,6 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
             with translation.override(lang_code):
                 try:
                     lang_url = reverse('blog:project_detail', kwargs={'slug': project.slug})
-                    if host == 'mini.quiz-code.com':
-                        base_domain = 'quiz-code.com'
-                    else:
-                        base_domain = host
                     full_lang_url = f"{scheme}://{base_domain}/{lang_prefix}{lang_url}"
                     if lang_prefix == 'en':
                         hreflang_en = full_lang_url

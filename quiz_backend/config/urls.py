@@ -31,6 +31,7 @@ from donation.views import (
 )
 from social_auth.views import TelegramAuthView
 from webhooks.pinterest_oauth import pinterest_oauth_authorize, pinterest_oauth_callback
+from tenants import views as tenant_views
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap, SubtopicSitemap, TaskImageSitemap
 from django.template.response import TemplateResponse
@@ -280,6 +281,7 @@ urlpatterns = [
     path('set-language/', custom_set_language, name='custom_set_language'),
     path('health/', health_check, name='health_check'),  # Health check endpoint
     path('api/debug-tenant/', debug_tenant, name='debug_tenant'),  # Диагностика тенанта
+    path('api/tenant/', tenant_views.current_tenant, name='current_tenant'),  # Публичные данные тенанта
     
     # SEO файлы (вне языковых паттернов)
     path('robots.txt', robots_txt_view, name='robots_txt'),

@@ -4,6 +4,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q
 from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin, MiniAppUser, TelegramUser, UserAvatar
+from tenants.scoping import public_host
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class ProfileSerializer(serializers.ModelSerializer):
                     host = host_header
                 else:
                     # Fallback для продакшена
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
                 
                 scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{avatar_url}"
@@ -353,7 +354,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
                     host = host_header
                 else:
                     # Fallback для продакшена
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
                 
                 scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{image_url}"
@@ -421,7 +422,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
                     host = host_header
                 else:
                     # Fallback для продакшена
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
                 
                 scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{avatar_url}"
@@ -448,7 +449,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
                 elif host_header and not host_header.startswith('localhost'):
                     host = host_header
                 else:
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
 
                 scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{image_url}"
@@ -784,7 +785,7 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                     final_url = f"{scheme}://{host}{avatar_url}"
                 else:
                     # Fallback для продакшена
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
                     scheme = 'https'
                     final_url = f"{scheme}://{host}{avatar_url}"
 
@@ -827,7 +828,7 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                         scheme = request.headers.get('X-Forwarded-Proto', 'https')
                         return f"{scheme}://{host}{avatar_url}"
                     else:
-                        host = 'mini.quiz-code.com'
+                        host = public_host(request)
                         scheme = 'https'
                         return f"{scheme}://{host}{avatar_url}"
                 return avatar_url
@@ -1009,7 +1010,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
                     final_url = f"{scheme}://{host}{avatar_url}"
                 else:
                     # Fallback для продакшена
-                    host = 'mini.quiz-code.com'
+                    host = public_host(request)
                     scheme = 'https'
                     final_url = f"{scheme}://{host}{avatar_url}"
                 

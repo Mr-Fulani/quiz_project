@@ -62,7 +62,7 @@ def get_base_url(request=None, tenant=None):
         tenant: Объект тенанта (опционально)
         
     Returns:
-        str: Базовый URL (например, https://quiz-code.com или https://xxx.ngrok-free.dev)
+        str: Базовый URL (например, https://example.com или https://xxx.ngrok-free.dev)
     """
     # 1. Если передан тенант, используем его основной домен
     if tenant:
@@ -117,8 +117,9 @@ def get_base_url(request=None, tenant=None):
             return f"{scheme}://{host}"
         except Exception as e:
             logger.warning(f"⚠️ Ошибка получения URL из request: {e}")
-            
-    return "https://quiz-code.com"
+
+    # Домен сайта задаётся в тенанте или PUBLIC_URL в .env, не в коде
+    return (getattr(settings, 'PUBLIC_URL', '') or '').rstrip('/')
 
 
 def get_mini_app_url(request=None, tenant=None):

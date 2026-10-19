@@ -159,9 +159,11 @@ async def profile(
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
-    
+    tenant = await django_api_service.get_current_tenant() or {}
+
     return templates.TemplateResponse("profile.html", {
         "request": request,
+        "site_url": tenant.get('site_url'),
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
