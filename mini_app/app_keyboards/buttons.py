@@ -13,7 +13,7 @@
 #         [
 #             InlineKeyboardButton(
 #                 text="Открыть мини-приложение",
-#                 web_app=WebAppInfo(url="https://quiz-code.com")
+#                 web_app=WebAppInfo(url=settings.MINI_APP_BASE_URL)
 #             )
 #         ]
 #     ]

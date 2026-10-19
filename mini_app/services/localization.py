@@ -342,7 +342,7 @@ class LocalizationService:
         "share_topic_with_friends": "Share this topic with your friends!",
         
         # Экран приглашения
-        "welcome_to_miniapp": "Welcome to QUIZ-CODE!",
+        "welcome_to_miniapp": "Welcome to {site_name}!",
         "miniapp_requires_telegram": "To use the mini app, you need to open it through the Telegram bot.",
         "login_via_telegram": "Login via Telegram",
         "telegram_option_description": "Open the mini app through the Telegram bot to access all features",
@@ -685,7 +685,7 @@ class LocalizationService:
         "share_topic_with_friends": "Поделитесь этой темой с друзьями!",
         
         # Экран приглашения
-        "welcome_to_miniapp": "Добро пожаловать в QUIZ-CODE!",
+        "welcome_to_miniapp": "Добро пожаловать в {site_name}!",
         "miniapp_requires_telegram": "Для использования мини-приложения необходимо открыть его через Telegram бота.",
         "login_via_telegram": "Войти через Telegram",
         "telegram_option_description": "Откройте мини-приложение через Telegram бота для доступа ко всем функциям",

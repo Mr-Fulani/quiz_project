@@ -114,7 +114,10 @@ class LocalizationService {
         const translateElements = document.querySelectorAll('[data-translate]');
         translateElements.forEach(element => {
             const key = element.getAttribute('data-translate');
-            const translation = this.getText(key);
+            let translation = this.getText(key);
+            if (translation && element.dataset.siteName) {
+                translation = translation.replace('{site_name}', element.dataset.siteName);
+            }
             if (translation && element.textContent !== translation) {
                 element.textContent = translation;
                 updatedCount++;

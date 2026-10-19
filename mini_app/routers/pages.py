@@ -20,6 +20,12 @@ def get_request_language(request: Request, explicit_lang: str | None = None) -> 
     """Возвращает язык текущего запроса без опоры на глобальное mutable-состояние."""
     return explicit_lang or getattr(request.state, 'language', None) or request.cookies.get('selected_language') or localization_service.default_language
 
+
+def telegram_app_link(tenant: dict, base_url: str, start_param: str | None = None) -> str:
+    """Ссылка на Mini App тенанта в Telegram; если бот у тенанта не задан — на сам сайт мини-аппа."""
+    link = tenant.get('mini_app_link') or f"{base_url.rstrip('/')}/"
+    return f"{link}?startapp={start_param}" if start_param else link
+
 @router.get("/", response_class=HTMLResponse)
 async def index(
     request: Request, 
@@ -164,6 +170,8 @@ async def profile(
     return templates.TemplateResponse("profile.html", {
         "request": request,
         "site_url": tenant.get('site_url'),
+        "site_name": tenant.get('site_name') or app_settings.APP_NAME,
+        "bot_link": tenant.get('bot_link'),
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
@@ -649,7 +657,8 @@ async def share_topic_preview(request: Request, topic_id: int):
     from_app = request.query_params.get('from', '') == 'app'
     
     # URL для редиректа в бота (прямая ссылка на мини-апп)
-    bot_url = f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
+    tenant = await django_api_service.get_current_tenant() or {}
+    bot_url = telegram_app_link(tenant, share_base_url, f"topic_{topic_id}")
     
     # URL для шаринга БЕЗ параметра from=app (для внешних ссылок)
     share_url = f"{share_base_url}/share/topic/{topic_id}?lang={language}"
@@ -729,7 +738,8 @@ async def share_app_preview(request: Request):
     from_app = request.query_params.get('from', '') == 'app'
     
     # URL для редиректа в бота (прямая ссылка на мини-апп)
-    bot_url = "https://t.me/mr_proger_bot/quiz"
+    tenant = await django_api_service.get_current_tenant() or {}
+    bot_url = telegram_app_link(tenant, share_base_url)
     
     # URL для шаринга БЕЗ параметра from=app (для внешних ссылок)
     share_url = f"{share_base_url}/share/app?lang={language}"
@@ -741,8 +751,9 @@ async def share_app_preview(request: Request):
     image_url = f"{share_base_url.rstrip('/')}/{image_path}"
     
     # Название и описание приложения с локализацией
-    app_title_ru = "Quiz Mini App - Образовательное приложение"
-    app_title_en = "Quiz Mini App - Educational App"
+    site_name = tenant.get('site_name') or app_settings.APP_NAME
+    app_title_ru = f"{site_name} - Образовательное приложение"
+    app_title_en = f"{site_name} - Educational App"
     app_description_ru = "Изучайте различные темы через интерактивные квизы. Проходите тесты, получайте достижения и развивайте свои навыки!"
     app_description_en = "Learn various topics through interactive quizzes. Take tests, earn achievements and develop your skills!"
     

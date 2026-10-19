@@ -1,7 +1,5 @@
 class ShareTopic {
     constructor() {
-        this.botUsername = 'mr_proger_bot'; // Имя вашего бота
-        this.appName = 'quiz'; // Название вашего Mini App
         // Простая статическая локализация
         this._t = {
             en: {
