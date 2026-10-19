@@ -34,9 +34,6 @@ class TenantAdmin(admin.ModelAdmin):
         ('🎨 Брендинг', {
             'fields': ('site_name', 'site_description', 'theme_color', 'logo')
         }),
-        ('👤 Автор и контакты', {
-            'fields': ('author_name', 'contact_phone', 'social_profiles', 'is_author_site')
-        }),
         ('🖼 Картинки задач', {
             'fields': ('image_theme', 'use_global_logo')
         }),

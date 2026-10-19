@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from django.conf import settings
 from django.utils import timezone
@@ -11,10 +12,44 @@ from django.urls import reverse, translate_url
 from django.utils.translation import get_language, gettext as _
 from tasks.models import TaskStatistics
 
-from blog.models import MarqueeText
+from blog.models import MarqueeText, TenantInfo
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def _paragraphs(text):
+    """Делит текст из админки на абзацы по пустым строкам."""
+    return [p.strip() for p in re.split(r'\n\s*\n', text or '') if p.strip()]
+
+
+def owner_info(tenant):
+    """«Данные владельца» тенанта (blog.TenantInfo) или None."""
+    if tenant is None:
+        return None
+    return TenantInfo.objects.filter(tenant=tenant).first()
+
+
+def request_owner_info(request):
+    """owner_info для тенанта запроса; один запрос к БД на HTTP-запрос."""
+    if not hasattr(request, '_owner_info'):
+        request._owner_info = owner_info(getattr(request, 'tenant', None))
+    return request._owner_info
+
+
+def owner_text(info, field, lang):
+    """Языковое поле «Данных владельца» (name_ru/name_en и т.п.) с запасным английским."""
+    if info is None:
+        return ''
+    return getattr(info, f'{field}_{lang}', None) or getattr(info, f'{field}_en')
+
+
+def owner_profile_urls(info):
+    """Ссылки на профили владельца для JSON-LD sameAs."""
+    if info is None:
+        return []
+    fields = ('youtube', 'telegram', 'instagram', 'github', 'linkedin', 'facebook', 'vkontakte', 'tiktok', 'yandex_zen')
+    return [getattr(info, f) for f in fields if (getattr(info, f) or '').startswith(('http://', 'https://'))]
 
 
 def personal_info(request):
@@ -114,67 +149,12 @@ def personal_info(request):
                     logger.error(f"Error processing user {user.username}: {e}")
                     continue
 
-        is_author_site = tenant is not None and tenant.is_author_site
+        dynamic_info = owner_info(tenant)
 
-        # Пытаемся получить динамические данные владельца
-        try:
-            from .models import TenantInfo
-            dynamic_info = TenantInfo.objects.filter(tenant=tenant).first()
-        except Exception:
-            dynamic_info = None
-
-        if is_author_site and not dynamic_info:
-            # Старый хардкод только для основного тенанта и если нет динамики
-            personal_info_data = {
-                'name': 'Anvar Sh.',
-                'title': 'Web Developer',
-                'email': 'fulani.dev@gmail.com',
-                'phone': '+90 (552) 582-1497',
-                'birthday': 'October 1, 1986',
-                'location': 'Istanbul, Turkey',
-                'avatar': 'blog/images/avatar/my-avatar.webp',
-                'social_links': {
-                    'facebook': 'https://www.facebook.com/Mr.Fulani.Developer/',
-                    'telegram': 'https://t.me/Mr_Fulani',
-                    'whatsapp': 'whatsapp://send?phone=05525821497',
-                    'instagram': 'https://www.instagram.com/fulani_developer',
-                    'github': 'https://github.com/Mr-Fulani',
-                    'linkedin': 'https://www.linkedin.com/in/mr-fulani/',
-                },
-                'resources': [
-                    {
-                        'title': getattr(res, 'title_en', res.title_ru),
-                        'description': getattr(res, 'description_en', res.description_ru),
-                        'url': res.url,
-                        'icon_svg': res.icon_svg,
-                        'icon_image': res.icon_image.url if res.icon_image else None,
-                        'icon_url': res.icon_image.url if res.icon_image else None,
-                        'name': getattr(res, 'title_en', res.title_ru)
-                    } for res in tenant.resources_list.filter(is_active=True).order_by('order')
-                ] if tenant and tenant.resources_list.filter(is_active=True).exists() else [
-                    {'title': 'YouTube', 'name': 'YouTube', 'description': 'Educational videos', 'url': 'https://www.youtube.com/@Mr_Fulani', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/yt.svg', 'icon': '/static/blog/images/icons/yt.svg'},
-                    {'title': 'Telegram', 'name': 'Telegram', 'description': 'Developer community', 'url': 'https://t.me/+Gh7xasVaKwdlMTY0', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/tg.svg', 'icon': '/static/blog/images/icons/tg.svg'},
-                    {'title': 'VKontakte', 'name': 'VKontakte', 'description': 'Social updates', 'url': 'https://vk.com/development_hub', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/vk-logo.svg', 'icon': '/static/blog/images/icons/vk-logo.svg'},
-                    {'title': _('Yandex Zen'), 'name': _('Yandex Zen'), 'description': 'Articles', 'url': 'https://dzen.ru/id/692b2112399a32774d42939f', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/zen.svg', 'icon': '/static/blog/images/icons/zen.svg'},
-                    {'title': 'Instagram', 'name': 'Instagram', 'description': 'Photos', 'url': 'https://www.instagram.com/fulani_developer', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/inst.svg', 'icon': '/static/blog/images/icons/inst.svg'},
-                    {'title': 'TikTok', 'name': 'TikTok', 'description': 'Short clips', 'url': 'https://www.tiktok.com/@fulani_developer', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/tiktok.svg', 'icon': '/static/blog/images/icons/tiktok.svg'}
-                ],
-                'about_text': [
-                    _("I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."),
-                    _("I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."),
-                    _("This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."),
-                    _("Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution.")
-                ],
-                'home_text': [
-                    _("Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."),
-                    _("On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."),
-                    _("We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."),
-                    _("Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth.")
-                ],
-                'top_users': top_users_data
-            }
-        elif dynamic_info:
+        if dynamic_info:
             # Данные из новой модели TenantInfo
+            bio = getattr(dynamic_info, f'bio_{lang}', None) or dynamic_info.bio_en
+            home_text = getattr(dynamic_info, f'home_text_{lang}', None) or dynamic_info.home_text_en
             personal_info_data = {
                 'name': getattr(dynamic_info, f'name_{lang}', dynamic_info.name_en),
                 'title': getattr(dynamic_info, f'title_{lang}', dynamic_info.title_en),
@@ -205,12 +185,8 @@ def personal_info(request):
                         'icon_image': res.icon_image.url if res.icon_image else None,
                     } for res in dynamic_info.tenant.resources_list.filter(is_active=True).order_by('order')
                 ],
-                'about_text': [
-                    getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) if getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) else tenant.site_description
-                ],
-                'home_text': [
-                    getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) if getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) else tenant.site_description
-                ],
+                'about_text': _paragraphs(bio) or [tenant.site_description],
+                'home_text': _paragraphs(home_text) or _paragraphs(bio) or [tenant.site_description],
                 'top_users': top_users_data
             }
             # Чистим пустые социальные ссылки (resources теперь список, его чистить не нужно)
@@ -330,13 +306,15 @@ def seo_context(request):
     # Без тенанта — домен из запроса (домены сайтов задаются в тенантах, не в коде)
     default_domain = tenant.domain if tenant else request.get_host().split(':')[0]
     default_mini_domain = tenant.mini_app_domain if tenant else None
-    site_name = tenant.site_name if tenant else 'QuizHub'
+    site_name = tenant.site_name if tenant else request.get_host().split(':')[0]
     site_desc = tenant.site_description if tenant and tenant.site_description else _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.')
     meta_kws = tenant.meta_keywords if tenant and tenant.meta_keywords else _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding')
-    twitter_site = f"@{tenant.bot_username}" if tenant and tenant.bot_username else '@quiz_code_hub'
-    author_name = (tenant.author_name if tenant else '') or 'Developer'
-    social_profile_urls = tenant.social_profile_urls if tenant else []
-    is_author_site = tenant is not None and tenant.is_author_site
+    twitter_site = f"@{tenant.bot_username}" if tenant and tenant.bot_username else ''
+    owner = request_owner_info(request)
+    owner_name = owner_text(owner, 'name', language)
+    owner_title = owner_text(owner, 'title', language)
+    author_name = owner_name or site_name
+    social_profile_urls = owner_profile_urls(owner)
 
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
     if host == default_mini_domain:
@@ -372,13 +350,13 @@ def seo_context(request):
         # Добавляем Twitter Card данные
         'twitter_card': 'summary_large_image',
         'twitter_site': twitter_site,  # замените на ваш Twitter handle
-        'twitter_creator': '@mr_fulani',   # замените на ваш Twitter handle
+        'twitter_creator': twitter_site,
         'twitter_title': f"{site_name} - Interactive Quizzes",
         'twitter_description': site_desc[:160],
         'twitter_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         # Добавляем дополнительные мета теги
         'meta_author': author_name,
-        'meta_copyright': f'© {timezone.now().year} QuizHub. All rights reserved.',
+        'meta_copyright': f'© {timezone.now().year} {site_name}. All rights reserved.',
         'meta_rating': 'general',
         'meta_distribution': 'global',
         'meta_revisit_after': '7 days',
@@ -394,15 +372,15 @@ def seo_context(request):
 
     # Специфичные SEO данные для разных страниц
     if path == reverse('blog:resume'):
-        if is_author_site:
+        if owner_name:
             seo_data.update({
-                'meta_title': _('Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React'),
-                'meta_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies. View my professional resume and portfolio.'),
-                'meta_keywords': _('full stack developer, Python developer, Django developer, React developer, web developer resume, portfolio'),
-                'og_title': _('Anvar Sh. - Full Stack Web Developer Resume'),
-                'og_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies.'),
-                'twitter_title': _('Anvar Sh. - Full Stack Developer Resume'),
-                'twitter_description': _('Experienced developer specializing in Python, Django, React, and modern web technologies.'),
+                'meta_title': _('%(name)s - %(title)s: resume and portfolio') % {'name': owner_name, 'title': owner_title},
+                'meta_description': _('Resume and portfolio of %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
+                'meta_keywords': _('resume, portfolio, web developer'),
+                'og_title': _('%(name)s - Resume') % {'name': owner_name},
+                'og_description': _('Resume and portfolio of %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
+                'twitter_title': _('%(name)s - Resume') % {'name': owner_name},
+                'twitter_description': _('Resume and portfolio of %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
             })
         else:
             seo_data.update({
@@ -421,15 +399,15 @@ def seo_context(request):
             'og_type': 'profile',
         })
     elif path == reverse('blog:about'):
-        if is_author_site:
+        if owner_name:
             seo_data.update({
-                'meta_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
-                'meta_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor creating educational content and powerful web applications.'),
-                'meta_keywords': _('about developer, programming instructor, web developer story, coding mentor, educational content creator'),
-                'og_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
-                'og_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor.'),
-                'twitter_title': _('About Anvar Sh. - Web Developer'),
-                'twitter_description': _('Passionate web developer and programming instructor creating educational content.'),
+                'meta_title': _('About %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'meta_description': _('Learn more about %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
+                'meta_keywords': _('about uns, mission, platform'),
+                'og_title': _('About %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'og_description': _('Learn more about %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
+                'twitter_title': _('About %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'twitter_description': _('Learn more about %(name)s, %(title)s.') % {'name': owner_name, 'title': owner_title},
             })
         else:
             seo_data.update({
@@ -448,15 +426,15 @@ def seo_context(request):
             'og_type': 'profile',
         })
     elif path == reverse('blog:contact'):
-        if is_author_site:
+        if owner_name:
             seo_data.update({
-                'meta_title': _('Contact Anvar Sh. - Web Development Services & Collaboration'),
-                'meta_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation. Available for freelance projects.'),
-                'meta_keywords': _('contact developer, web development services, freelance developer, programming consultation, collaboration'),
-                'og_title': _('Contact Anvar Sh. - Web Development Services'),
-                'og_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation.'),
-                'twitter_title': _('Contact Anvar Sh. - Web Development Services'),
-                'twitter_description': _('Get in touch for web development services and collaboration opportunities.'),
+                'meta_title': _('Contact %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'meta_description': _('Get in touch with %(name)s for collaboration, projects and questions.') % {'name': owner_name},
+                'meta_keywords': _('contact, support, inquiry'),
+                'og_title': _('Contact %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'og_description': _('Get in touch with %(name)s for collaboration, projects and questions.') % {'name': owner_name},
+                'twitter_title': _('Contact %(name)s - %(title)s') % {'name': owner_name, 'title': owner_title},
+                'twitter_description': _('Get in touch with %(name)s for collaboration, projects and questions.') % {'name': owner_name},
             })
         else:
             seo_data.update({
@@ -505,12 +483,11 @@ def seo_context(request):
         "@type": "Organization",
         "name": site_name,
         "url": request.build_absolute_uri('/'),
-        "logo": request.build_absolute_uri('/static/blog/images/logo.png'),
-        "foundingDate": "2024",
+        "logo": request.build_absolute_uri(tenant.logo.url if tenant and tenant.logo else '/static/blog/images/logo.png'),
         "description": seo_data['meta_description'],
         "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": tenant.contact_phone if tenant else "",
+            "telephone": owner.phone if owner else "",
             "contactType": "customer service",
             "availableLanguage": ["English", "Russian"]
         },
@@ -635,7 +612,8 @@ def dynamic_seo_context(request):
     # Без тенанта — домен из запроса (домены сайтов задаются в тенантах, не в коде)
     default_domain = tenant.domain if tenant else request.get_host().split(':')[0]
     default_mini_domain = tenant.mini_app_domain if tenant else None
-    author_name = (tenant.author_name if tenant else '') or 'Developer'
+    site_name = tenant.site_name if tenant and tenant.site_name else default_domain
+    author_name = owner_text(request_owner_info(request), 'name', get_language() or 'en') or site_name
 
     # Для production доменов всегда используем HTTPS
     if host in [default_domain, f'www.{default_domain}']:
@@ -742,7 +720,6 @@ def dynamic_seo_context(request):
                         if default_domain in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
                         
-                        site_name = tenant.site_name if tenant and tenant.site_name else 'Quiz Project'
                         seo_data.update({
                             'meta_title': f"{post.title} | {site_name}",
                             'meta_description': meta_description[:160],
@@ -790,7 +767,7 @@ def dynamic_seo_context(request):
                                 "name": site_name,
                                 "logo": {
                                     "@type": "ImageObject",
-                                    "url": request.build_absolute_uri('/static/blog/images/logo.png')
+                                    "url": request.build_absolute_uri(tenant.logo.url if tenant and tenant.logo else '/static/blog/images/logo.png')
                                 }
                             },
                             "datePublished": (post.published_at or post.created_at).isoformat(),
@@ -862,7 +839,6 @@ def dynamic_seo_context(request):
                         if default_domain in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
 
-                        site_name = tenant.site_name if tenant and tenant.site_name else 'Quiz Project'
                         seo_data.update({
                             'meta_title': f"{project.title} | Portfolio - {site_name}",
                             'meta_description': meta_description[:160],

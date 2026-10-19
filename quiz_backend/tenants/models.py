@@ -11,8 +11,8 @@ class Tenant(models.Model):
     Каждый тенант представляет собой независимую копию платформы
     со своим доменом, ботом, темами, вопросами и пользователями.
     
-    Всё, что отличает тенанты (автор, контакты, стиль картинок), хранится
-    в полях модели — код не должен сравнивать slug с конкретными значениями.
+    Всё, что отличает тенанты, хранится в данных (поля тенанта, «Данные владельца»
+    в blog.TenantInfo) — код не должен сравнивать slug с конкретными значениями.
     """
 
     class Meta:
@@ -85,27 +85,6 @@ class Tenant(models.Model):
         help_text=_('Логотип тенанта')
     )
 
-    # ── Автор и контакты (SEO, JSON-LD) ────────────────────────────────────────
-    author_name = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text=_('Имя автора для meta author и JSON-LD. Если пусто — «Developer».')
-    )
-    contact_phone = models.CharField(
-        max_length=50,
-        blank=True,
-        help_text=_('Контактный телефон организации для JSON-LD (например: +90-552-582-1497)')
-    )
-    social_profiles = models.TextField(
-        blank=True,
-        help_text=_('Ссылки на профили в соцсетях для JSON-LD sameAs, по одной на строку')
-    )
-    is_author_site = models.BooleanField(
-        default=False,
-        help_text=_('Сайт-портфолио автора: SEO-тексты резюме/«обо мне»/контактов от имени автора '
-                    'и встроенный профиль в сайдбаре, если не заполнены «Данные владельца».')
-    )
-
     # ── Картинки задач ─────────────────────────────────────────────────────────
     IMAGE_THEME_CODE = 'code'
     IMAGE_THEME_ISLAMIC = 'islamic'
@@ -157,11 +136,6 @@ class Tenant(models.Model):
         if self.mini_app_domain:
             return f'https://{self.mini_app_domain}'
         return None
-
-    @property
-    def social_profile_urls(self):
-        """Ссылки на профили списком (пустые строки отбрасываются)."""
-        return [line.strip() for line in self.social_profiles.splitlines() if line.strip()]
 
     @property
     def bot_link(self):

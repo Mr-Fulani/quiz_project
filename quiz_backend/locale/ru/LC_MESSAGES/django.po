@@ -740,104 +740,6 @@ msgid ""
 "C#."
 msgstr ""
 
-#: blog/context_processors.py:290
-msgid "Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React"
-msgstr ""
-
-#: blog/context_processors.py:291
-msgid ""
-"Experienced Full Stack Developer specializing in Python, Django, React, and "
-"modern web technologies. View my professional resume and portfolio."
-msgstr ""
-
-#: blog/context_processors.py:292
-msgid ""
-"full stack developer, Python developer, Django developer, React developer, "
-"web developer resume, portfolio"
-msgstr ""
-
-#: blog/context_processors.py:295
-msgid "Anvar Sh. - Full Stack Web Developer Resume"
-msgstr ""
-
-#: blog/context_processors.py:296
-msgid ""
-"Experienced Full Stack Developer specializing in Python, Django, React, and "
-"modern web technologies."
-msgstr ""
-
-#: blog/context_processors.py:299
-msgid "Anvar Sh. - Full Stack Developer Resume"
-msgstr ""
-
-#: blog/context_processors.py:300
-msgid ""
-"Experienced developer specializing in Python, Django, React, and modern web "
-"technologies."
-msgstr ""
-
-#: blog/context_processors.py:304 blog/context_processors.py:309
-msgid "About Anvar Sh. - Web Developer & Programming Instructor"
-msgstr ""
-
-#: blog/context_processors.py:305
-msgid ""
-"Learn about Anvar Sh., a passionate web developer and programming instructor "
-"creating educational content and powerful web applications."
-msgstr ""
-
-#: blog/context_processors.py:306
-msgid ""
-"about developer, programming instructor, web developer story, coding mentor, "
-"educational content creator"
-msgstr ""
-
-#: blog/context_processors.py:310
-msgid ""
-"Learn about Anvar Sh., a passionate web developer and programming instructor."
-msgstr ""
-
-#: blog/context_processors.py:313
-msgid "About Anvar Sh. - Web Developer"
-msgstr "Обо мне — Квиз Проект"
-
-#: blog/context_processors.py:314
-msgid ""
-"Passionate web developer and programming instructor creating educational "
-"content."
-msgstr ""
-
-#: blog/context_processors.py:318
-msgid "Contact Anvar Sh. - Web Development Services & Collaboration"
-msgstr ""
-
-#: blog/context_processors.py:319
-msgid ""
-"Get in touch for web development services, collaboration opportunities, or "
-"programming consultation. Available for freelance projects."
-msgstr ""
-
-#: blog/context_processors.py:320
-msgid ""
-"contact developer, web development services, freelance developer, "
-"programming consultation, collaboration"
-msgstr ""
-
-#: blog/context_processors.py:323 blog/context_processors.py:326
-msgid "Contact Anvar Sh. - Web Development Services"
-msgstr ""
-
-#: blog/context_processors.py:324
-msgid ""
-"Get in touch for web development services, collaboration opportunities, or "
-"programming consultation."
-msgstr ""
-
-#: blog/context_processors.py:327
-msgid ""
-"Get in touch for web development services and collaboration opportunities."
-msgstr ""
-
 #: blog/mixins.py:27 blog/views.py:525 blog/views.py:552 blog/views.py:596
 #: blog/views.py:648 blog/views.py:690 blog/views.py:805 blog/views.py:827
 #: blog/views.py:850 blog/views.py:954 blog/views.py:1029 blog/views.py:1975
@@ -2926,3 +2828,38 @@ msgstr "Нет элементов в теме"
 #: blog/templates/blog/quizes.html:84
 msgid "available"
 msgstr "доступно"
+
+#: blog/context_processors.py
+#, python-format
+msgid "%(name)s - %(title)s: resume and portfolio"
+msgstr "%(name)s — %(title)s: резюме и портфолио"
+
+#: blog/context_processors.py
+#, python-format
+msgid "Resume and portfolio of %(name)s, %(title)s."
+msgstr "Резюме и портфолио: %(name)s, %(title)s."
+
+#: blog/context_processors.py
+#, python-format
+msgid "%(name)s - Resume"
+msgstr "%(name)s — резюме"
+
+#: blog/context_processors.py
+#, python-format
+msgid "About %(name)s - %(title)s"
+msgstr "О себе: %(name)s — %(title)s"
+
+#: blog/context_processors.py
+#, python-format
+msgid "Learn more about %(name)s, %(title)s."
+msgstr "Подробнее о %(name)s: %(title)s."
+
+#: blog/context_processors.py
+#, python-format
+msgid "Contact %(name)s - %(title)s"
+msgstr "Связаться: %(name)s — %(title)s"
+
+#: blog/context_processors.py
+#, python-format
+msgid "Get in touch with %(name)s for collaboration, projects and questions."
+msgstr "Свяжитесь с %(name)s по вопросам сотрудничества, проектов и не только."

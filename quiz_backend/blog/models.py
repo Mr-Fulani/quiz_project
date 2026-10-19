@@ -1696,6 +1696,11 @@ class TenantInfo(models.Model):
     
     bio_ru = models.TextField(blank=True, verbose_name="О себе (RU)")
     bio_en = models.TextField(blank=True, verbose_name="О себе (EN)")
+
+    home_text_ru = models.TextField(blank=True, verbose_name="Текст на главной (RU)",
+                                    help_text="Абзацы разделяются пустой строкой. Если пусто — берётся «О себе».")
+    home_text_en = models.TextField(blank=True, verbose_name="Текст на главной (EN)",
+                                    help_text="Абзацы разделяются пустой строкой. Если пусто — берётся «О себе».")
     
     # Соцсети
     telegram = models.CharField(max_length=100, blank=True, verbose_name="Telegram (@username или ссылка)")
