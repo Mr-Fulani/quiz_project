@@ -317,13 +317,14 @@ async def prepare_publication(
         external_link = task.external_link
         if not external_link:
             logger.warning(f"🔗 external_link не задан для задачи ID {task.id}. Попытка получить ссылку по умолчанию...")
-            external_link = await default_link_service.get_default_link(language, task.topic.name)
+            external_link = await default_link_service.get_default_link(language, task.topic.name, task.tenant_id)
             if external_link:
                 logger.info(f"🔗 Получена ссылка по умолчанию: {external_link}")
             else:
-                # Резервная ссылка, если ничего не найдено
-                external_link = "https://t.me/tyt_python"
-                logger.info(f"🔗 Не удалось получить ссылку по умолчанию, используется резервная: {external_link}")
+                raise ValueError(
+                    f"Нет ссылки «Узнать больше» для задачи ID {task.id}: задайте ссылку по умолчанию "
+                    f"или главную статическую ссылку, либо DEFAULT_FALLBACK_LINK в окружении бота"
+                )
     else:
         logger.info(f"🔗 Используется переданная извне ссылка: {external_link}")
 

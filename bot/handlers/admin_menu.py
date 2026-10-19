@@ -1459,8 +1459,11 @@ async def callback_get_main_fallback_link(call: types.CallbackQuery, db_session:
                 f"Пользователю {call.from_user.username} отправлен список главных ссылок, message_id: {sent_message.message_id}")
         else:
             # Если нет установленных главных ссылок, показать стандартную ссылку
+            standard_link = await default_link_service.get_standard_link()
             sent_message = await call.message.answer(
-                "⚠️ Главные статические ссылки не установлены. Используется стандартная ссылка:\nhttps://t.me/proger_dude"
+                "⚠️ Главные статические ссылки не установлены. "
+                + (f"Используется стандартная ссылка:\n{standard_link}" if standard_link
+                   else "Стандартная ссылка тоже не задана (нет сайта тенанта и DEFAULT_FALLBACK_LINK).")
             )
             logger.info(
                 f"Пользователь {user_id} запросил главные ссылки, но они не установлены. message_id: {sent_message.message_id}")

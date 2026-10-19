@@ -1,8 +1,12 @@
 import logging
+import os
+from typing import Optional
+
 from sqlalchemy import update
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import DefaultLink, Task, MainFallbackLink
+from bot.database.models import DefaultLink, Task, MainFallbackLink, Tenant
+from bot.tenancy import current_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +16,27 @@ class DefaultLinkService:
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
 
-    async def get_default_link(self, language: str, topic: str) -> str:
+    async def get_standard_link(self, tenant_id: Optional[int] = None) -> Optional[str]:
+        """
+        Стандартная ссылка, когда главная статическая не задана: сайт тенанта
+        (tenant_id или тенант текущего бота), иначе DEFAULT_FALLBACK_LINK из окружения.
+        """
+        if tenant_id is None:
+            tenant_id = current_tenant_id.get()
+        if tenant_id is not None:
+            try:
+                tenant = await self.db_session.get(Tenant, tenant_id)
+                if tenant and tenant.domain:
+                    return f"https://{tenant.domain}"
+            except Exception as e:
+                logger.error(f"Ошибка при получении сайта тенанта {tenant_id}: {e}")
+        return os.getenv("DEFAULT_FALLBACK_LINK") or None
+
+    async def get_default_link(self, language: str, topic: str, tenant_id: Optional[int] = None) -> Optional[str]:
         """
         Возвращает ссылку по умолчанию для указанного языка и темы из базы данных.
         Если ссылки нет, возвращает главную статическую ссылку для языка.
-        Если и её нет, возвращает стандартную ссылку.
+        Если и её нет, возвращает стандартную ссылку (см. get_standard_link).
         """
         try:
             logger.debug(f"Запрос на получение ссылки по умолчанию для языка '{language}' и темы '{topic}'.")
@@ -43,10 +63,10 @@ class DefaultLinkService:
                     return fallback_link.link
                 else:
                     logger.warning(f"Главная статическая ссылка для языка '{language}' не найдена. Используется стандартная ссылка.")
-                    return "https://t.me/tyt_python"
+                    return await self.get_standard_link(tenant_id)
         except Exception as e:
             logger.error(f"Ошибка при получении ссылки по умолчанию: {e}")
-            return "https://t.me/tyt_python"
+            return await self.get_standard_link(tenant_id)
 
 
     async def get_all_main_fallback_links(self) -> list:
@@ -216,7 +236,7 @@ class DefaultLinkService:
             logger.error(f"Ошибка при удалении главной статической ссылки: {e}")
             return False
 
-    async def get_main_fallback_link(self, language: str) -> str:
+    async def get_main_fallback_link(self, language: str) -> Optional[str]:
         """
         Возвращает главную статическую ссылку для указанного языка. Если её нет, возвращает стандартную ссылку.
         """
@@ -230,7 +250,7 @@ class DefaultLinkService:
                 return fallback_link.link
             else:
                 logger.warning(f"Главная статическая ссылка для языка '{language}' не установлена. Используется стандартная ссылка.")
-                return "https://t.me/tyt_python"
+                return await self.get_standard_link()
         except Exception as e:
             logger.error(f"Ошибка при получении главной статической ссылки: {e}")
-            return "https://t.me/tyt_python"
+            return await self.get_standard_link()
