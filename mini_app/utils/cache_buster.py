@@ -1,7 +1,6 @@
 """
 Утилиты для обхода кэша в Telegram WebApp
 """
-import time
 import os
 import hashlib
 from typing import Optional
@@ -9,64 +8,47 @@ from typing import Optional
 CACHE_BUSTER_CACHE = {}
 
 
-def get_cache_buster() -> str:
-    """
-    Возвращает timestamp для обхода кэша
-    В продакшене можно использовать хэш файла
-    """
-    return str(int(time.time()))
-
-
 def get_file_hash(file_path: str) -> Optional[str]:
     """
-    Возвращает MD5 хэш файла для кэширования
-    Кэширует результат для производительности.
+    Возвращает короткий MD5 хэш содержимого файла (версия для URL) или None, если файла нет.
+    Кэшируется по времени изменения файла: правка файла сразу даёт новую версию.
     """
-    if file_path in CACHE_BUSTER_CACHE:
-        return CACHE_BUSTER_CACHE[file_path]
-
     full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../static', file_path.replace('/static/', ''))
     try:
-        if os.path.exists(full_path):
-            with open(full_path, 'rb') as f:
-                content = f.read()
-                file_hash = hashlib.md5(content).hexdigest()[:8]
-                CACHE_BUSTER_CACHE[file_path] = file_hash
-                return file_hash
-    except Exception as e:
-        # В случае ошибки возвращаем timestamp
-        print(f"Ошибка при генерации хэша для файла {full_path}: {e}")
-        pass
-    
-    # Если файл не найден или ошибка, используем timestamp
-    return get_cache_buster()
+        mtime = os.path.getmtime(full_path)
+    except OSError:
+        return None
+
+    cached = CACHE_BUSTER_CACHE.get(file_path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+
+    try:
+        with open(full_path, 'rb') as f:
+            file_hash = hashlib.md5(f.read()).hexdigest()[:8]
+    except OSError:
+        return None
+    CACHE_BUSTER_CACHE[file_path] = (mtime, file_hash)
+    return file_hash
 
 
 def get_versioned_url(static_path: str, filename: str) -> str:
     """
-    Возвращает URL с версией для статических файлов, используя хэш файла.
-    Если хэш не может быть получен, используется timestamp или жестко заданная версия.
-    
+    Возвращает URL с версией для статических файлов: ?v=<хэш содержимого>.
+
+    Версия меняется только при изменении файла, поэтому браузер и nginx кэшируют файл надолго
+    (nginx отдаёт /static/ с ?v на год, см. nginx-prod.conf). Раньше к URL добавлялось
+    текущее время, и файлы не кэшировались вовсе. Если файла нет — версия из STATIC_VERSIONS.
+
     Args:
         static_path: базовый путь к файлу (например, '/static/js/')
         filename: имя файла (например, 'tasks.js')
-    
+
     Returns:
-        URL с параметром версии (хэш файла).
+        URL с параметром версии.
     """
-    file_hash = get_file_hash(f'{static_path}{filename}')
-    
-    # Используем версию из STATIC_VERSIONS как fallback, если хэш не получен
-    version_from_config = STATIC_VERSIONS.get(filename, '1.0')
-    
-    # Принудительно используем версию из конфига для критически важных файлов
-    if filename in STATIC_VERSIONS:
-        return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}&force={int(time.time())}"
-    # Если есть хэш, используем его, иначе используем версию из конфига + timestamp
-    elif file_hash:
-        return f"{static_path}{filename}?v={file_hash}"
-    else:
-        return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}"
+    version = get_file_hash(f'{static_path}{filename}') or STATIC_VERSIONS.get(filename, '1.0')
+    return f"{static_path}{filename}?v={version}"
 
 
 # Версии для критически важных файлов
