@@ -3,10 +3,14 @@ from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 
 from accounts.models import MiniAppUser
+from accounts.tests.test_telegram_webapp_auth import make_init_data
 from tasks.models import MiniAppTaskStatistics, Task, TaskTranslation
 from tenants.middleware import clear_tenant_cache
 from tenants.models import Tenant
 from topics.models import Subtopic, Topic
+
+
+BOT_TOKEN = '333333:subtopic-tenant-token'
 
 
 @override_settings(ALLOWED_HOSTS=['*'])
@@ -14,13 +18,17 @@ class SubtopicDetailSimpleTests(TestCase):
     def setUp(self):
         clear_tenant_cache()
         self.tenant = Tenant.objects.create(
-            slug='sd-a', name='A', domain='sd-a.example.com', mini_app_domain='mini.sd-a.example.com', site_name='A'
+            slug='sd-a', name='A', domain='sd-a.example.com', mini_app_domain='mini.sd-a.example.com', site_name='A',
+            bot_token=BOT_TOKEN,
         )
         self.other_tenant = Tenant.objects.create(slug='sd-b', name='B', domain='sd-b.example.com', site_name='B')
         self.topic = Topic.objects.create(tenant=self.tenant, name='Python')
         self.subtopic = Subtopic.objects.create(topic=self.topic, name='Functions')
         self.user = MiniAppUser.objects.create(tenant=self.tenant, telegram_id=7001, username='u')
-        self.host = {'HTTP_HOST': 'mini.sd-a.example.com'}
+        self.host = {
+            'HTTP_HOST': 'mini.sd-a.example.com',
+            'HTTP_X_TELEGRAM_INIT_DATA': make_init_data(BOT_TOKEN, {'id': 7001}),
+        }
 
     def add_tasks(self, count):
         tasks = []
@@ -69,3 +77,11 @@ class SubtopicDetailSimpleTests(TestCase):
         solved = {item['id']: item['is_solved'] for item in data['results']}
         self.assertEqual(solved, {first.id: True, second.id: False})
         self.assertEqual(data['completed_tasks_count'], 1)
+
+        # Без подписанного initData чужой прогресс по telegram_id не раскрывается
+        anonymous = self.client.get(
+            f'/api/subtopics/{self.subtopic.id}/', {'language': 'en', 'telegram_id': 7001},
+            HTTP_HOST='mini.sd-a.example.com',
+        ).json()
+        self.assertFalse(any(item['is_solved'] for item in anonymous['results']))
+        self.assertEqual(anonymous['completed_tasks_count'], 0)

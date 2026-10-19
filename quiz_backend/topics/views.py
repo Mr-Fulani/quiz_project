@@ -12,6 +12,7 @@ from django.db import models
 from django.db.models import Count, Q
 from tasks.models import TaskTranslation, MiniAppTaskStatistics
 from tenants.mixins import TenantFilteredViewMixin
+from accounts.telegram_webapp_auth import verified_telegram_id_param
 import logging
 
 logger = logging.getLogger(__name__)
@@ -196,7 +197,7 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListAPIView):
         context['subtopic_stats'] = build_subtopic_stats(
             [subtopic.id for subtopic in subtopics],
             request.query_params.get('language', 'en'),
-            telegram_id=request.query_params.get('telegram_id'),
+            telegram_id=verified_telegram_id_param(request),
             tenant=getattr(request, 'tenant', None),
         )
         serializer = self.get_serializer_class()(subtopics, many=True, context=context)
@@ -209,8 +210,7 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        telegram_id = self.request.query_params.get('telegram_id', None)
-        context['telegram_id'] = telegram_id
+        context['telegram_id'] = verified_telegram_id_param(self.request)
         context['request'] = self.request
         return context
 
@@ -235,7 +235,7 @@ def topics_simple(request):
     
     # Получаем язык из query параметров
     language = get_language_from_request(request)
-    telegram_id = request.GET.get('telegram_id', None)
+    telegram_id = verified_telegram_id_param(request)  # прогресс — только своему пользователю (initData)
     
     # Аннотируем количество задач (distinct по задачам) на активном языке и оставляем только темы, где >0
     topics = topics.annotate(
@@ -255,7 +255,8 @@ def topics_simple(request):
             completed_tasks_count=Count(
                 'tasks',
                 filter=models.Q(
-                    tasks__mini_app_statistics__mini_app_user__telegram_id=telegram_id
+                    tasks__mini_app_statistics__mini_app_user__telegram_id=telegram_id,
+                    tasks__mini_app_statistics__mini_app_user__tenant=tenant,
                 ),
                 distinct=True
             )
@@ -332,7 +333,7 @@ def topic_detail_simple(request, topic_id):
         
         # Получаем язык из query параметров
         language = get_language_from_request(request)
-        telegram_id = request.GET.get('telegram_id', None)
+        telegram_id = verified_telegram_id_param(request)  # прогресс — только своему пользователю (initData)
         
         # Подсчитываем количество задач на активном языке (distinct по задачам)
         tasks_count = topic.tasks.filter(
@@ -346,6 +347,7 @@ def topic_detail_simple(request, topic_id):
             from tasks.models import MiniAppTaskStatistics
             completed_tasks_count = MiniAppTaskStatistics.objects.filter(
                 mini_app_user__telegram_id=telegram_id,
+                mini_app_user__tenant=tenant,
                 task__topic=topic
             ).values('task').distinct().count()
         
@@ -403,7 +405,7 @@ def subtopic_detail_simple(request, subtopic_id):
         
         # Получаем язык из query параметров
         language = get_language_from_request(request)
-        telegram_id = request.GET.get('telegram_id', None)
+        telegram_id = verified_telegram_id_param(request)  # прогресс — только своему пользователю (initData)
         level = request.GET.get('level', None) # Получаем параметр уровня сложности
         
         logger.info(f"subtopic_detail_simple: Получен запрос для subtopic_id={subtopic_id}, lang={language}, level={level}")

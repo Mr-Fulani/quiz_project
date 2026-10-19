@@ -105,6 +105,24 @@ def _same_id(value, telegram_id):
     return str(value).strip() == str(telegram_id)
 
 
+def verified_telegram_id_param(request, claimed=None):
+    """
+    telegram_id из query-параметра (или переданный claimed), только если он совпадает
+    с проверенным по initData пользователем; иначе None.
+
+    Для публичных эндпоинтов, где telegram_id лишь добавляет персональный прогресс:
+    без подписи ответ строится как для анонима, а чужой прогресс не раскрывается.
+    """
+    if claimed is None:
+        claimed = request.GET.get('telegram_id')
+    if claimed in (None, ''):
+        return None
+    user = get_verified_telegram_user(request)
+    if user and _same_id(claimed, user['id']):
+        return str(claimed).strip()
+    return None
+
+
 class IsMiniAppUserOrReadOnly(BasePermission):
     """
     Чтение — без ограничений; запись — только с валидным initData.
@@ -156,6 +174,12 @@ class IsMiniAppUserByPk(IsMiniAppUserOrReadOnly):
     """Для MiniAppUserViewSet: pk в URL — это telegram_id пользователя."""
 
     identity_kwargs = ('telegram_id', 'pk')
+
+
+class IsMiniAppUserByPkStrict(IsMiniAppUserByPk):
+    """Как IsMiniAppUserByPk, но initData обязателен и для чтения (приватные данные профиля)."""
+
+    require_for_safe_methods = True
 
 
 class IsMiniAppFeedbackAuthor(IsMiniAppUser):

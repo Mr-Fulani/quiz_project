@@ -22,7 +22,9 @@ from django.utils.translation import activate, gettext_lazy as _
 import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
-from ..telegram_webapp_auth import IsMiniAppUser, IsMiniAppUserByPk, IsMiniAppUserOrReadOnly, get_verified_telegram_user
+from ..telegram_webapp_auth import (
+    IsMiniAppUser, IsMiniAppUserByPkStrict, IsMiniAppUserOrReadOnly, get_verified_telegram_user,
+)
 from topics.models import Topic
 from ..serializers import (
     UserSerializer,
@@ -392,9 +394,10 @@ class ProfileByTelegramID(APIView):
 
 class PublicProfileByTelegramAPIView(APIView):
     """
-    API для получения публичного профиля пользователя по telegram_id.
+    API для получения профиля пользователя по telegram_id.
+    Отдаёт полный профиль (email и личные поля) — только самому пользователю с валидным initData.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUser]
 
     def get(self, request, telegram_id):
         """Получение публичного профиля по telegram_id"""
@@ -592,8 +595,14 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
     Предоставляет полный CRUD для пользователей Mini App.
     """
     queryset = MiniAppUser.objects.all()
-    # Чтение открыто; изменения — только сам пользователь с валидным initData (pk = telegram_id)
-    permission_classes = [IsMiniAppUserByPk]
+    # Свой профиль (чтение и изменение) — только сам пользователь с валидным initData (pk = telegram_id);
+    # список всех пользователей с личными полями — только админам
+    permission_classes = [IsMiniAppUserByPkStrict]
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
     
     def get_queryset(self):
         """
@@ -830,7 +839,8 @@ class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
     """
     queryset = MiniAppUser.objects.all()
     serializer_class = MiniAppUserSerializer
-    permission_classes = [IsMiniAppUserOrReadOnly]
+    # Полный профиль (дата рождения, пол, настройки) — только самому пользователю с валидным initData
+    permission_classes = [IsMiniAppUser]
     lookup_field = 'telegram_id'
     
     def get_object(self):
@@ -1237,8 +1247,9 @@ class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
 class MiniAppUserStatisticsView(APIView):
     """
     APIView для получения статистики пользователя Mini App.
+    Только для самого пользователя (telegram_id в query должен совпадать с проверенным initData).
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsMiniAppUser]
 
     @swagger_auto_schema(
         operation_description="Получение статистики пользователя Mini App по telegram_id.",

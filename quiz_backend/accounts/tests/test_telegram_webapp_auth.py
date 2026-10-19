@@ -155,6 +155,44 @@ class MiniAppEndpointAuthTests(TestCase):
         self.assertFalse(check_admin_access(3003, self.tenant))
         self.assertFalse(check_admin_access(1001, None))
 
+    def test_private_profile_read_requires_own_init_data(self):
+        url = '/api/accounts/miniapp-users/by-telegram/1001/'
+        self.assertIn(self.client.get(url, **self.host).status_code, (401, 403))
+        self.assertIn(self.client.get(url, **self.auth_headers(2002)).status_code, (401, 403))
+        self.assertEqual(self.client.get(url, **self.auth_headers(1001)).status_code, 200)
+
+    def test_statistics_require_own_init_data(self):
+        url = '/api/accounts/miniapp-users/statistics/'
+        self.assertIn(self.client.get(url, {'telegram_id': 1001}, **self.host).status_code, (401, 403))
+        self.assertIn(
+            self.client.get(url, {'telegram_id': 1001}, **self.auth_headers(2002)).status_code, (401, 403)
+        )
+
+    def test_user_list_and_me_are_not_public(self):
+        self.assertIn(self.client.get('/api/accounts/miniapp-users/', **self.host).status_code, (401, 403))
+        self.assertIn(
+            self.client.get('/api/accounts/miniapp-users/me/', {'telegram_id': 1001}, **self.host).status_code,
+            (401, 403),
+        )
+        response = self.client.get(
+            '/api/accounts/miniapp-users/me/', {'telegram_id': 1001}, **self.auth_headers(1001)
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_progress_needs_matching_init_data(self):
+        from accounts.telegram_webapp_auth import verified_telegram_id_param
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        anonymous = factory.get('/', {'telegram_id': 1001}, **self.host)
+        anonymous.tenant = self.tenant
+        self.assertIsNone(verified_telegram_id_param(anonymous))
+        foreign = factory.get('/', {'telegram_id': 1001}, **self.auth_headers(2002))
+        foreign.tenant = self.tenant
+        self.assertIsNone(verified_telegram_id_param(foreign))
+        own = factory.get('/', {'telegram_id': 1001}, **self.auth_headers(1001))
+        own.tenant = self.tenant
+        self.assertEqual(verified_telegram_id_param(own), '1001')
+
     def test_profile_by_telegram_does_not_link_site_account_by_username(self):
         site_user = CustomUser.objects.create_user(username='victim', password='password123', tenant=self.tenant)
         self.post_json(

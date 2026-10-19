@@ -142,11 +142,12 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     def _stats(self, obj):
         stats = self.context.get('subtopic_stats')
         if stats is None or obj.id not in stats:
+            from accounts.telegram_webapp_auth import verified_telegram_id_param
             request = self.context.get('request')
             stats = build_subtopic_stats(
                 [obj.id],
                 get_request_language(self.context),
-                telegram_id=request.query_params.get('telegram_id') if request else None,
+                telegram_id=verified_telegram_id_param(request) if request else None,
                 tenant=getattr(request, 'tenant', None) if request else None,
             )
             self.context.setdefault('subtopic_stats', {}).update(stats)
