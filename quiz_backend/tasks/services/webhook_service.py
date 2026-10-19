@@ -10,6 +10,7 @@ from urllib.parse import urlparse, urlunparse
 
 from tasks.models import Task
 from .default_link_service import DefaultLinkService
+from tenants.scoping import for_tenant_or_shared
 from webhooks.models import GlobalWebhookLink
 
 logger = logging.getLogger(__name__)
@@ -189,7 +190,9 @@ def create_russian_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
             })
 
     # Get global custom links
-    global_links = GlobalWebhookLink.objects.filter(is_active=True).values('name', 'url')
+    global_links = for_tenant_or_shared(
+        GlobalWebhookLink.objects.filter(is_active=True), tasks[0].tenant if tasks else None
+    ).values('name', 'url')
 
     bulk_payload = {
         "type": "quiz_published_russian_only",
@@ -221,7 +224,9 @@ def create_english_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
             })
 
     # Get global custom links
-    global_links = GlobalWebhookLink.objects.filter(is_active=True).values('name', 'url')
+    global_links = for_tenant_or_shared(
+        GlobalWebhookLink.objects.filter(is_active=True), tasks[0].tenant if tasks else None
+    ).values('name', 'url')
 
     bulk_payload = {
         "type": "quiz_published_english_only",
@@ -252,7 +257,9 @@ def create_bulk_webhook_data(tasks: List[Task], include_video: bool = False) -> 
         })
 
     # Get global custom links
-    global_links = GlobalWebhookLink.objects.filter(is_active=True).values('name', 'url')
+    global_links = for_tenant_or_shared(
+        GlobalWebhookLink.objects.filter(is_active=True), tasks[0].tenant if tasks else None
+    ).values('name', 'url')
 
     bulk_payload = {
         "type": "quiz_published_bulk",

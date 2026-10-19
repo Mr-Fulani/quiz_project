@@ -9,8 +9,19 @@ from typing import Dict, List, Optional
 from django.conf import settings
 from django.utils import timezone
 
+from tenants.scoping import for_tenant_or_shared
 from webhooks.models import SocialMediaCredentials, Webhook
 from ..models import Task, TaskTranslation, SocialMediaPost
+
+
+def _active_credentials(platform: str, tenant) -> Optional[SocialMediaCredentials]:
+    """Активные credentials платформы: сначала тенанта задачи, затем общие (без тенанта)."""
+    queryset = SocialMediaCredentials.objects.filter(platform=platform, is_active=True)
+    if tenant is not None:
+        own = queryset.filter(tenant=tenant).first()
+        if own:
+            return own
+    return queryset.filter(tenant__isnull=True).first()
 from .platforms.pinterest_api import PinterestAPI
 from .platforms.facebook_api import FacebookAPI
 # Яндекс Дзен API недоступен, используется только webhook
@@ -106,12 +117,9 @@ def publish_to_platform(task: Task, translation: TaskTranslation, platform: str)
 def _publish_single_platform_api(task: Task, translation: TaskTranslation, platform: str) -> Dict:
     """Публикация в конкретную платформу через API."""
     try:
-        # Проверяем наличие credentials
-        creds = SocialMediaCredentials.objects.filter(
-            platform=platform,
-            is_active=True
-        ).first()
-        
+        # Проверяем наличие credentials (только тенанта задачи или общие)
+        creds = _active_credentials(platform, task.tenant)
+
         if not creds:
             error_msg = f"Нет активных credentials для {platform}"
             logger.warning(f"⚠️ {error_msg}")
@@ -191,12 +199,12 @@ def _publish_single_platform_api(task: Task, translation: TaskTranslation, platf
 def _publish_single_platform_webhook(task: Task, translation: TaskTranslation, platform: str) -> Dict:
     """Публикация в конкретную платформу через webhook."""
     try:
-        # Ищем активные webhook для этой платформы
-        webhooks = Webhook.objects.filter(
+        # Ищем активные webhook для этой платформы (только тенанта задачи или общие)
+        webhooks = for_tenant_or_shared(Webhook.objects.filter(
             is_active=True,
             webhook_type='social_media',
             target_platforms__contains=[platform]
-        )
+        ), task.tenant)
         
         if not webhooks.exists():
             error_msg = f"Нет активных webhook для {platform}"
@@ -327,12 +335,9 @@ def _publish_via_api(task: Task, translation: TaskTranslation) -> List[Dict]:
     
     for platform in API_PLATFORMS:
         try:
-            # Проверяем наличие credentials
-            creds = SocialMediaCredentials.objects.filter(
-                platform=platform,
-                is_active=True
-            ).first()
-            
+            # Проверяем наличие credentials (только тенанта задачи или общие)
+            creds = _active_credentials(platform, task.tenant)
+
             if not creds:
                 logger.warning(f"⚠️ Нет credentials для {platform}, пропускаем")
                 continue
@@ -414,11 +419,11 @@ def _publish_via_webhook(task: Task, translation: TaskTranslation) -> List[Dict]
     """
     results = []
     
-    webhooks = Webhook.objects.filter(
+    webhooks = for_tenant_or_shared(Webhook.objects.filter(
         is_active=True,
         webhook_type='social_media'
-    )
-    
+    ), task.tenant)
+
     if not webhooks.exists():
         logger.info("ℹ️ Нет активных webhook для социальных сетей")
         return results

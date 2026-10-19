@@ -86,8 +86,9 @@ class TaskAdminForm(forms.ModelForm):
         
         from .services.default_link_service import DefaultLinkService
         
-        # Получаем все DefaultLink + текущее значение для выпадающего списка
-        default_links = DefaultLinkService.get_all_default_links()
+        # Получаем DefaultLink тенанта задачи (и общие) + текущее значение для выпадающего списка
+        task_tenant = self.instance.tenant if self.instance.pk else None
+        default_links = DefaultLinkService.get_all_default_links(task_tenant)
         
         # Формируем choices
         choices = [('', '---Автоматически---')]
@@ -100,13 +101,14 @@ class TaskAdminForm(forms.ModelForm):
                 if self.instance.topic:
                     topic_link = DefaultLinkService.get_default_link(
                         translation.language,
-                        self.instance.topic.name
+                        self.instance.topic.name,
+                        tenant=task_tenant,
                     )
                     if topic_link:
                         choices.append((topic_link, f'🎯 Для темы {translation.language.upper()} + {self.instance.topic.name}: {topic_link}'))
                 
                 # Показываем главную ссылку для языка (ОБЯЗАТЕЛЬНА!)
-                main_link = DefaultLinkService.get_main_fallback_link(translation.language)
+                main_link = DefaultLinkService.get_main_fallback_link(translation.language, tenant=task_tenant)
                 if main_link:
                     choices.append((main_link, f'🌐 Главная для {translation.language.upper()}: {main_link}'))
                 else:

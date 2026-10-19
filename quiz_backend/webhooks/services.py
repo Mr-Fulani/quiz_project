@@ -10,6 +10,7 @@ from accounts.models import CustomUser
 from tasks.models import Task
 from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data, create_russian_only_webhook_data, create_english_only_webhook_data
 
+from tenants.scoping import for_tenant_or_shared
 from webhooks.models import Webhook
 
 logger = logging.getLogger(__name__)
@@ -151,8 +152,8 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
     Формирует данные задачи и отправляет их на все активные вебхуки.
     Для вебхуков типа 'russian_only' отправляет только русские данные.
     """
-    # Группируем вебхуки по типу
-    webhooks = list(Webhook.objects.filter(is_active=True))
+    # Группируем вебхуки по типу; только вебхуки тенанта задачи и общие
+    webhooks = list(for_tenant_or_shared(Webhook.objects.filter(is_active=True), task.tenant))
     if not webhooks:
         logger.info("Нет активных вебхуков для задачи %s", task.id)
         return {"total": 0, "success": 0, "failed": 0, "details": []}
@@ -283,7 +284,20 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"], include_video: bool = Fals
         logger.info("Нет опубликованных задач для отправки сводного вебхука.")
         return {"total": 0, "success": 0, "failed": 0, "details": []}
 
-    webhooks = list(Webhook.objects.filter(is_active=True))
+    # Задачи разных тенантов отправляем раздельно: каждому — только его вебхуки
+    tenant_ids = {task.tenant_id for task in tasks}
+    if len(tenant_ids) > 1:
+        merged: Dict[str, Any] = {"total": 0, "success": 0, "failed": 0, "details": []}
+        for tenant_id in tenant_ids:
+            part = send_webhooks_for_bulk_tasks(
+                [task for task in tasks if task.tenant_id == tenant_id], include_video=include_video
+            )
+            for key in ("total", "success", "failed"):
+                merged[key] += part[key]
+            merged["details"].extend(part["details"])
+        return merged
+
+    webhooks = list(for_tenant_or_shared(Webhook.objects.filter(is_active=True), tasks[0].tenant))
     if not webhooks:
         logger.info("Нет активных вебхуков для сводной отправки")
         return {"total": 0, "success": 0, "failed": 0, "details": []}
