@@ -209,7 +209,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def _get_tenant_logo_path(self, request):
         """
         Возвращает путь к логотипу текущего тенанта для генерации изображений.
-        Для quiz-code возвращает None, чтобы использовался глобальный логотип.
+        Если у тенанта включён use_global_logo, возвращает None, чтобы использовался глобальный логотип.
         """
         tenant = getattr(request, 'tenant', None)
         if not tenant:

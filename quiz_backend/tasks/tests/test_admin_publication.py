@@ -71,6 +71,15 @@ class TaskAdminPublicationActionsTests(PublicationTestMixin, TestCase):
         mock_publish.assert_not_called()
         self.assertContains(response, 'Поставлено в очередь 2 задач')
 
+    def test_import_form_preselects_tenant_image_theme(self):
+        self.tenant.image_theme = Tenant.IMAGE_THEME_ISLAMIC
+        self.tenant.save()
+
+        response = self.client.get(reverse('admin:tasks_task_import_json'), HTTP_HOST='pub-a.example.com')
+
+        self.assertContains(response, '<option value="islamic" selected>', html=False)
+        self.assertNotContains(response, '<option value="code" selected>', html=False)
+
     @patch('tasks.tasks.generate_task_images_async.delay')
     def test_generate_images_enqueues_selected_tasks_with_theme(self, mock_delay):
         mock_delay.return_value = MagicMock(id='celery-2')
@@ -157,6 +166,18 @@ class PublishTasksToTelegramAsyncTests(PublicationTestMixin, TestCase):
         mock_publish.assert_called_once()
         task.refresh_from_db()
         self.assertEqual(task.image_url, 'https://cdn.example.com/new.png')
+
+    @patch('tasks.tasks.upload_image_to_s3', return_value='https://cdn.example.com/new.png')
+    @patch('tasks.tasks.generate_image_for_task', return_value=object())
+    @patch('tasks.tasks.publish_task_to_telegram', return_value={'success': True, 'errors': [], 'detailed_logs': []})
+    def test_missing_image_uses_tenant_image_theme(self, mock_publish, mock_generate, mock_upload, *_):
+        self.tenant.image_theme = Tenant.IMAGE_THEME_ISLAMIC
+        self.tenant.save()
+        task = self.make_task('en', image_url=None)
+
+        publish_tasks_to_telegram_async(task_ids=[task.id])
+
+        self.assertEqual(mock_generate.call_args.kwargs['theme'], 'islamic')
 
     @patch('config.tasks.send_webhooks_async.delay')
     @patch('tasks.tasks.publish_task_to_telegram', return_value={'success': True, 'errors': [], 'detailed_logs': []})

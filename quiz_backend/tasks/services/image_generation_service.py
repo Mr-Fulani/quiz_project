@@ -846,13 +846,12 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
 def get_tenant_logo_path(tenant) -> Optional[str]:
     """
     Возвращает путь к логотипу тенанта для генерации изображений.
-    Для quiz-code возвращает None, чтобы использовался глобальный логотип.
+    Если у тенанта включён use_global_logo, возвращает None, чтобы использовался глобальный логотип.
     """
     if not tenant:
         return None
 
-    # Для quiz-code оставляем глобальный логотип без изменений
-    if tenant.slug == 'quiz-code':
+    if tenant.use_global_logo:
         return None
 
     # Для остальных тенантов возвращаем путь к загруженному файлу, если он есть

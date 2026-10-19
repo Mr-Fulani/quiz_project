@@ -111,8 +111,8 @@
         <div class="form-row">
             <label for="image_theme">Выберите тему оформления:</label>
             <select name="image_theme" id="image_theme" class="theme-select">
-                <option value="code" {% if request.tenant.slug != 'iqro-forum' %}selected{% endif %}>💻 Консоль (для программирования)</option>
-                <option value="islamic" {% if request.tenant.slug == 'iqro-forum' %}selected{% endif %}>🕌 Исламская (для религиозных тем)</option>
+                <option value="code" {% if request.tenant.image_theme != 'islamic' %}selected{% endif %}>💻 Консоль (для программирования)</option>
+                <option value="islamic" {% if request.tenant.image_theme == 'islamic' %}selected{% endif %}>🕌 Исламская (для религиозных тем)</option>
             </select>
         </div>
 

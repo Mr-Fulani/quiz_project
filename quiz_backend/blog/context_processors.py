@@ -114,7 +114,7 @@ def personal_info(request):
                     logger.error(f"Error processing user {user.username}: {e}")
                     continue
 
-        is_quiz_code = tenant is not None and tenant.slug == 'quiz-code'
+        is_author_site = tenant is not None and tenant.is_author_site
 
         # Пытаемся получить динамические данные владельца
         try:
@@ -123,7 +123,7 @@ def personal_info(request):
         except Exception:
             dynamic_info = None
 
-        if is_quiz_code and not dynamic_info:
+        if is_author_site and not dynamic_info:
             # Старый хардкод только для основного тенанта и если нет динамики
             personal_info_data = {
                 'name': 'Anvar Sh.',
@@ -334,6 +334,9 @@ def seo_context(request):
     site_desc = tenant.site_description if tenant and tenant.site_description else _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.')
     meta_kws = tenant.meta_keywords if tenant and tenant.meta_keywords else _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding')
     twitter_site = f"@{tenant.bot_username}" if tenant and tenant.bot_username else '@quiz_code_hub'
+    author_name = (tenant.author_name if tenant else '') or 'Developer'
+    social_profile_urls = tenant.social_profile_urls if tenant else []
+    is_author_site = tenant is not None and tenant.is_author_site
 
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
     if host == default_mini_domain:
@@ -374,7 +377,7 @@ def seo_context(request):
         'twitter_description': site_desc[:160],
         'twitter_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         # Добавляем дополнительные мета теги
-        'meta_author': 'Anvar Sh.' if (not tenant or tenant.slug == 'quiz-code') else 'Developer',
+        'meta_author': author_name,
         'meta_copyright': f'© {timezone.now().year} QuizHub. All rights reserved.',
         'meta_rating': 'general',
         'meta_distribution': 'global',
@@ -391,8 +394,7 @@ def seo_context(request):
 
     # Специфичные SEO данные для разных страниц
     if path == reverse('blog:resume'):
-        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
-        if is_quiz_code:
+        if is_author_site:
             seo_data.update({
                 'meta_title': _('Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React'),
                 'meta_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies. View my professional resume and portfolio.'),
@@ -419,8 +421,7 @@ def seo_context(request):
             'og_type': 'profile',
         })
     elif path == reverse('blog:about'):
-        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
-        if is_quiz_code:
+        if is_author_site:
             seo_data.update({
                 'meta_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
                 'meta_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor creating educational content and powerful web applications.'),
@@ -447,8 +448,7 @@ def seo_context(request):
             'og_type': 'profile',
         })
     elif path == reverse('blog:contact'):
-        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
-        if is_quiz_code:
+        if is_author_site:
             seo_data.update({
                 'meta_title': _('Contact Anvar Sh. - Web Development Services & Collaboration'),
                 'meta_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation. Available for freelance projects.'),
@@ -494,13 +494,9 @@ def seo_context(request):
         },
         "author": {
             "@type": "Person",
-            "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer",
+            "name": author_name,
             "url": request.build_absolute_uri('/'),
-            "sameAs": [
-                "https://www.youtube.com/@Mr_Fulani",
-                "https://t.me/Mr_Fulani",
-                "https://www.instagram.com/fulani_developer"
-            ] if (not tenant or tenant.slug == 'quiz-code') else []
+            "sameAs": social_profile_urls
         }
     }
     
@@ -514,15 +510,11 @@ def seo_context(request):
         "description": seo_data['meta_description'],
         "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": "+90-552-582-1497" if (not tenant or tenant.slug == 'quiz-code') else "",
+            "telephone": tenant.contact_phone if tenant else "",
             "contactType": "customer service",
             "availableLanguage": ["English", "Russian"]
         },
-        "sameAs": [
-            "https://www.youtube.com/@Mr_Fulani",
-            "https://t.me/Mr_Fulani",
-            "https://www.instagram.com/fulani_developer"
-        ] if (not tenant or tenant.slug == 'quiz-code') else []
+        "sameAs": social_profile_urls
     }
 
     if is_mini_app:
@@ -643,6 +635,7 @@ def dynamic_seo_context(request):
     # Без тенанта — домен из запроса (домены сайтов задаются в тенантах, не в коде)
     default_domain = tenant.domain if tenant else request.get_host().split(':')[0]
     default_mini_domain = tenant.mini_app_domain if tenant else None
+    author_name = (tenant.author_name if tenant else '') or 'Developer'
 
     # Для production доменов всегда используем HTTPS
     if host in [default_domain, f'www.{default_domain}']:
@@ -763,7 +756,7 @@ def dynamic_seo_context(request):
                             'og_image': og_image_final,
                             'og_url': og_url_final,
                             'og_type': 'article',
-                            'article_author': 'Anvar Sh.' if (not tenant or tenant.slug == 'quiz-code') else 'Developer',
+                            'article_author': author_name,
                             'article_published_time': (post.published_at or post.created_at).isoformat(),
                             'article_modified_time': post.updated_at.isoformat(),
                             'article_section': post.category.name,
@@ -790,7 +783,7 @@ def dynamic_seo_context(request):
                             "url": base_url + post.get_absolute_url(),
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer"
+                                "name": author_name
                             },
                             "publisher": {
                                 "@type": "Organization",
@@ -902,7 +895,7 @@ def dynamic_seo_context(request):
                             "url": og_url_final,
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer"
+                                "name": author_name
                             },
                             "dateCreated": project.created_at.isoformat(),
                             "dateModified": project.updated_at.isoformat(),

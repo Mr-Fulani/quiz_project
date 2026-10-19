@@ -214,7 +214,7 @@ def publish_tasks_to_telegram_async(self, task_ids):
             # Автоматическая генерация изображения, если его нет
             if not task.image_url:
                 tenant = task.tenant
-                image_theme = 'islamic' if tenant and tenant.slug == 'iqro-forum' else 'code'
+                image_theme = tenant.image_theme if tenant else 'code'
                 try:
                     error = _generate_and_upload_image(task, translations[0], image_theme)
                 except Exception as e:

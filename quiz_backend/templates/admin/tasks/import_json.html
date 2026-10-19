@@ -286,8 +286,8 @@
         <div class="form-group">
             <label for="image_theme">Выберите тему изображений:</label>
             <select id="image_theme" name="image_theme" class="theme-select">
-                <option value="code" {% if request.tenant.slug != 'iqro-forum' %}selected{% endif %}>💻 Консоль (Code)</option>
-                <option value="islamic" {% if request.tenant.slug == 'iqro-forum' %}selected{% endif %}>🕌 Исламская (Islamic)</option>
+                <option value="code" {% if request.tenant.image_theme != 'islamic' %}selected{% endif %}>💻 Консоль (Code)</option>
+                <option value="islamic" {% if request.tenant.image_theme == 'islamic' %}selected{% endif %}>🕌 Исламская (Islamic)</option>
             </select>
             <div class="help-text">
                 Эта тема будет применена ко всем генерируемым изображениям для этих задач.
