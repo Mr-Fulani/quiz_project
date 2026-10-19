@@ -6,6 +6,7 @@ from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from bot.database.database import Base
+from bot.utils.storage_urls import StorageURL, StorageURLMap
 import logging
 
 
@@ -23,6 +24,7 @@ class Tenant(Base):
     id = Column(BigInteger, primary_key=True)
     slug = Column(String(100), nullable=False)
     name = Column(String(255), nullable=False)
+    domain = Column(String(255), nullable=True)
     mini_app_domain = Column(String(255), nullable=True)
     bot_token = Column(String(255), nullable=True)
     bot_username = Column(String(100), nullable=True)
@@ -124,11 +126,12 @@ class Task(TenantScopedMixin, Base):
     published = Column(Boolean, default=False, nullable=False)
     create_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     publish_date = Column(DateTime(timezone=True), nullable=True)
-    image_url = Column(String, nullable=True)
+    # Ссылки на файлы хранилища: в БД ключ, в коде полный URL (bot/utils/storage_urls.py)
+    image_url = Column(StorageURL, nullable=True)
     external_link = Column(String, nullable=True)
-    video_url = Column(String, nullable=True)
+    video_url = Column(StorageURL, nullable=True)
     # Совместимость с Django: в БД есть not null JSONB поле video_urls со значением по умолчанию {}
-    video_urls = Column(JSON, nullable=False, default=dict)
+    video_urls = Column(StorageURLMap, nullable=False, default=dict)
     # Совместимость с Django: not null JSONB для прогресса генерации видео
     video_generation_progress = Column(JSON, nullable=False, default=dict)
     # Совместимость с Django: кастомный текст вопроса для видео по языкам

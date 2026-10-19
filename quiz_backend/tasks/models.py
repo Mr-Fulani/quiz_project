@@ -12,6 +12,8 @@ from django.utils.translation import gettext_lazy as _
 import mimetypes
 import os
 
+from tasks.fields import StorageURLField, StorageURLMapField
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,18 +83,18 @@ class Task(models.Model):
         null=True,
         help_text='Дата публикации задачи'
     )
-    image_url = models.URLField(
+    image_url = StorageURLField(
         max_length=255,
         null=True,
-        help_text='URL изображения задачи'
+        help_text='URL изображения задачи (в БД хранится ключ файла в хранилище)'
     )
-    video_url = models.URLField(
+    video_url = StorageURLField(
         max_length=255,
         null=True,
         blank=True,
         help_text='URL видео задачи (для совместимости, основное видео)'
     )
-    video_urls = models.JSONField(
+    video_urls = StorageURLMapField(
         default=dict,
         blank=True,
         help_text='URL видео по языкам: {"ru": "url1", "en": "url2"}'
