@@ -2,7 +2,9 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Topic, Subtopic
-from .serializers import TopicSerializer, SubtopicSerializer, TopicMiniAppSerializer, SubtopicWithTasksSerializer
+from .serializers import (
+    TopicSerializer, SubtopicSerializer, TopicMiniAppSerializer, SubtopicWithTasksSerializer, build_subtopic_stats,
+)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -187,10 +189,17 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListAPIView):
         Переопределяем метод list для сортировки подтем:
         сначала непройденные, потом пройденные.
         """
-        queryset = self.filter_queryset(self.get_queryset())
-        
-        # Сериализуем данные с правильным контекстом
-        serializer = self.get_serializer(queryset, many=True)
+        subtopics = list(self.filter_queryset(self.get_queryset()))
+
+        # Статистика задач всех подтем — тремя агрегатными запросами, а не на каждую подтему
+        context = self.get_serializer_context()
+        context['subtopic_stats'] = build_subtopic_stats(
+            [subtopic.id for subtopic in subtopics],
+            request.query_params.get('language', 'en'),
+            telegram_id=request.query_params.get('telegram_id'),
+            tenant=getattr(request, 'tenant', None),
+        )
+        serializer = self.get_serializer_class()(subtopics, many=True, context=context)
         data = serializer.data
         
         # Сортируем: сначала непройденные (is_completed=False), потом пройденные (is_completed=True)

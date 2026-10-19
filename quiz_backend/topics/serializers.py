@@ -46,9 +46,73 @@ class SubtopicSerializer(serializers.ModelSerializer):
         return normalize_subtopic_name(value)
 
 
+DIFFICULTIES = ('easy', 'medium', 'hard')
+
+
+def build_subtopic_stats(subtopic_ids, language, telegram_id=None, tenant=None):
+    """
+    Статистика задач для набора подтем тремя агрегатными запросами (вместо ~13 запросов
+    на каждую подтему): всего задач, задач по сложности и решённых пользователем по сложности.
+
+    Решённые считаются по translation_group_id (одна задача на разных языках — одна),
+    пользователь ищется в тенанте запроса.
+
+    Returns:
+        dict: {subtopic_id: {'questions_count': int, 'difficulty_counts': {...}, 'solved_counts': {...}}}
+    """
+    from django.db.models import Count, Q
+
+    stats = {
+        subtopic_id: {
+            'questions_count': 0,
+            'difficulty_counts': dict.fromkeys(DIFFICULTIES, 0),
+            'solved_counts': dict.fromkeys(DIFFICULTIES, 0),
+        }
+        for subtopic_id in subtopic_ids
+    }
+    if not stats:
+        return stats
+
+    tasks = Task.objects.filter(
+        Q(published=True) | Q(published_mini_app=True),
+        subtopic_id__in=list(stats),
+        translations__language=language,
+    )
+
+    for row in tasks.values('subtopic_id').annotate(total=Count('id', distinct=True)):
+        stats[row['subtopic_id']]['questions_count'] = row['total']
+
+    for row in tasks.filter(difficulty__in=DIFFICULTIES).values('subtopic_id', 'difficulty').annotate(
+        total=Count('id', distinct=True)
+    ):
+        stats[row['subtopic_id']]['difficulty_counts'][row['difficulty']] = row['total']
+
+    if telegram_id:
+        solved_filter = Q(
+            mini_app_statistics__mini_app_user__telegram_id=telegram_id,
+            mini_app_statistics__successful=True,
+        )
+        if tenant is not None:
+            solved_filter &= Q(mini_app_statistics__mini_app_user__tenant=tenant)
+        solved_rows = tasks.filter(solved_filter, difficulty__in=DIFFICULTIES).values(
+            'subtopic_id', 'difficulty'
+        ).annotate(
+            groups=Count('translation_group_id', distinct=True),
+            # Задачи без группы переводов считаются по одной
+            ungrouped=Count('id', filter=Q(translation_group_id__isnull=True), distinct=True),
+        )
+        for row in solved_rows:
+            stats[row['subtopic_id']]['solved_counts'][row['difficulty']] = row['groups'] + row['ungrouped']
+
+    return stats
+
+
 class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     """
     Сериализатор для подтем с количеством задач (для мини-приложения).
+
+    Статистику задач берёт из context['subtopic_stats'] (build_subtopic_stats для всего списка);
+    без неё считает для одной подтемы.
     """
     name = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
@@ -75,16 +139,24 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         language = get_request_language(self.context)
         return obj.get_localized_name(language)
 
+    def _stats(self, obj):
+        stats = self.context.get('subtopic_stats')
+        if stats is None or obj.id not in stats:
+            request = self.context.get('request')
+            stats = build_subtopic_stats(
+                [obj.id],
+                get_request_language(self.context),
+                telegram_id=request.query_params.get('telegram_id') if request else None,
+                tenant=getattr(request, 'tenant', None) if request else None,
+            )
+            self.context.setdefault('subtopic_stats', {}).update(stats)
+        return stats[obj.id]
+
     def get_questions_count(self, obj):
-        language = get_request_language(self.context)
-        from django.db.models import Q
-        return obj.tasks.filter(
-            Q(published=True) | Q(published_mini_app=True),
-            translations__language=language
-        ).distinct().count()
+        return self._stats(obj)['questions_count']
 
     def get_topic_id(self, obj):
-        return obj.topic.id
+        return obj.topic_id
 
     def get_description(self, obj):
         language = get_request_language(self.context)
@@ -92,42 +164,12 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
 
     def get_difficulty_counts(self, obj):
         """Возвращает количество задач по уровням сложности на активном языке."""
-        language = get_request_language(self.context)
-        from django.db.models import Q
-        qs = obj.tasks.filter(Q(published=True) | Q(published_mini_app=True), translations__language=language)
-        return {
-            'easy': qs.filter(difficulty='easy').values('id').distinct().count(),
-            'medium': qs.filter(difficulty='medium').values('id').distinct().count(),
-            'hard': qs.filter(difficulty='hard').values('id').distinct().count(),
-        }
+        return self._stats(obj)['difficulty_counts']
 
     def get_solved_counts(self, obj):
-        """Количество решённых (имеющих запись статистики mini_app) задач по уровням сложности для конкретного пользователя Telegram.
-        Группирует по translation_group_id, чтобы учитывать задачи на всех языках как одну.
-        """
-        request = self.context.get('request')
-        language = get_request_language(self.context)
-        telegram_id = None
-        if request:
-            telegram_id = request.query_params.get('telegram_id')
-        if not telegram_id:
-            return {'easy': 0, 'medium': 0, 'hard': 0}
-
-        from django.db.models import Q
-        base_qs = Task.objects.filter(
-            subtopic=obj,
-            translations__language=language
-        ).filter(
-            Q(published=True) | Q(published_mini_app=True)
-        ).filter(
-            mini_app_statistics__mini_app_user__telegram_id=telegram_id,
-            mini_app_statistics__successful=True
-        ).values('translation_group_id', 'difficulty').distinct()
-
-        easy = base_qs.filter(difficulty='easy').count()
-        medium = base_qs.filter(difficulty='medium').count()
-        hard = base_qs.filter(difficulty='hard').count()
-        return {'easy': easy, 'medium': medium, 'hard': hard}
+        """Количество решённых задач по уровням сложности для пользователя Telegram
+        (по translation_group_id — задачи на всех языках считаются как одна)."""
+        return self._stats(obj)['solved_counts']
 
     def get_is_completed(self, obj):
         """Определяет, пройдена ли подтема (все задачи решены)."""
