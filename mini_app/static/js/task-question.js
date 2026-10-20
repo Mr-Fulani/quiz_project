@@ -62,35 +62,89 @@
         })();
     }
 
+    // Набор начинается, когда карточка видна на экране. Кроме IntersectionObserver — запасная проверка
+    // по прокрутке (любого контейнера) и размеру окна: в некоторых WebView наблюдатель не срабатывает
+    const waiting = new Set();
+    function isVisible(element) {
+        const rect = element.getBoundingClientRect();
+        const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+        return rect.height > 0 && visible >= Math.min(rect.height, window.innerHeight) * 0.35;
+    }
+    function checkWaiting() {
+        waiting.forEach(entry => {
+            if (!entry.element.isConnected) waiting.delete(entry);  // карточку убрал загрузчик страниц
+            else if (isVisible(entry.element)) entry.start();
+        });
+    }
     function whenVisible(element, callback) {
-        if (!('IntersectionObserver' in window)) { callback(); return; }
-        const observer = new IntersectionObserver(entries => {
-            if (entries.some(e => e.isIntersecting)) { observer.disconnect(); callback(); }
-        }, { threshold: 0.35 });
-        observer.observe(element);
+        let started = false;
+        const entry = { element: element, start: null };
+        const observer = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
+            if (entries.some(e => e.isIntersecting)) entry.start();
+        }, { threshold: 0.35 }) : null;
+        entry.start = () => {
+            if (started) return;
+            started = true;
+            waiting.delete(entry);
+            if (observer) observer.disconnect();
+            callback();
+        };
+        waiting.add(entry);
+        if (observer) observer.observe(element);
+        if (isVisible(element)) entry.start();
+    }
+    document.addEventListener('scroll', checkWaiting, { capture: true, passive: true });
+    window.addEventListener('resize', checkWaiting, { passive: true });
+
+    // Подсветка нужна только при коде: highlight.js подгружается по требованию
+    // (в Mini App страницы задач открываются загрузчиком без отдельного <script>)
+    const HLJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+    let hljsLoading = null;
+    function withHighlighter(callback) {
+        if (window.hljs) { callback(); return; }
+        if (!hljsLoading) {
+            hljsLoading = new Promise(resolve => {
+                const script = document.createElement('script');
+                script.src = HLJS_URL;
+                script.onload = script.onerror = () => resolve();
+                document.head.appendChild(script);
+            });
+        }
+        hljsLoading.then(callback);
     }
 
+    // Обработанные карточки помним по самим элементам, а не по атрибуту: если страница
+    // перерисует разметку (копия получит атрибуты), новая карточка обработается заново
+    const processed = new WeakSet();
+
     function setup(view) {
-        if (view.dataset.tqReady) return;
-        view.dataset.tqReady = '1';
+        if (processed.has(view)) return;
+        processed.add(view);
         const item = view.closest('[data-task-id]');
         const animate = !reduceMotion && !(item && item.dataset.solved === 'true');
 
         if (view.dataset.kind === 'code') {
             const code = view.querySelector('.tq-code code') || view.querySelector('.tq-code');
-            const source = code.textContent.replace(/\s+$/, '');
+            // Исходный текст — из атрибута, если карточку уже обрабатывали (текст мог быть недонабран)
+            const source = view.dataset.tqSource || code.textContent.replace(/\s+$/, '');
+            view.dataset.tqSource = source;
+            view.querySelectorAll('.tq-gutter').forEach(g => g.remove());
             const gutter = document.createElement('pre');
             gutter.className = 'tq-gutter';
             gutter.setAttribute('aria-hidden', 'true');
             gutter.textContent = source.split('\n').map((_, i) => i + 1).join('\n');
             view.querySelector('.tq-body').prepend(gutter);
-            const html = highlightCode(source, view.dataset.language);
-            if (animate) whenVisible(view, () => typeInto(code, html, true));
-            else code.innerHTML = html;
+            withHighlighter(() => {
+                const html = highlightCode(source, view.dataset.language);
+                if (animate) whenVisible(view, () => typeInto(code, html, true));
+                else code.innerHTML = html;
+            });
         } else {
             const text = view.querySelector('.tq-text');
             if (!text) return;
-            const html = markArabic(text.textContent.trim());
+            const source = view.dataset.tqSource || text.textContent.trim();
+            view.dataset.tqSource = source;
+            const html = markArabic(source);
             if (animate) whenVisible(view, () => typeInto(text, html, true));
             else text.innerHTML = html;
         }
@@ -116,13 +170,14 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
     else init();
 
-    // Mini App подменяет содержимое страницы своим загрузчиком — подхватываем новые карточки
+    // Mini App подменяет содержимое страницы своим загрузчиком — подхватываем новые карточки.
+    // setTimeout, а не requestAnimationFrame: тот не срабатывает в неактивной вкладке
     if ('MutationObserver' in window) {
         let scheduled = false;
         new MutationObserver(() => {
             if (scheduled) return;
             scheduled = true;
-            requestAnimationFrame(() => { scheduled = false; init(); });
+            setTimeout(() => { scheduled = false; init(); }, 30);
         }).observe(document.documentElement, { childList: true, subtree: true });
     }
 })();

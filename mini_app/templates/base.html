@@ -242,6 +242,9 @@
     
     <!-- Подключаем стили -->
                <link rel="stylesheet" href="{{ styles_css_url }}">
+               <!-- Вопрос задачи (код/текст): нужен на всех страницах — задачи открываются загрузчиком без перезагрузки -->
+               <link rel="stylesheet" href="{{ get_css_url('task-question.css') }}">
+               <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@600&display=swap">
     
     <!-- Стили для функциональности "поделиться приложением" -->
     <link rel="stylesheet" href="{{ share_app_css_url }}">
@@ -1767,6 +1770,7 @@
 
     <!-- Системный свайп назад от левого края -->
     <script src="{{ get_js_url('edge-back.js') }}"></script>
+    <script src="{{ get_js_url('task-question.js') }}"></script>
     
     <!-- КРИТИЧЕСКИ ВАЖНО: Стили для синхронизации анимации навигации должны быть применены ДО загрузки DOM -->
     <script>

@@ -4,8 +4,6 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ get_css_url('comments.css') }}">
-<link rel="stylesheet" href="{{ get_css_url('task-question.css') }}">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@600&display=swap">
 {% endblock %}
 
 {% block content %}
@@ -96,8 +94,6 @@
          alt="{{ translations.get('task_image_fullscreen', 'Изображение задачи во весь экран') }}">
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="{{ get_js_url('task-question.js') }}"></script>
 <script src="{{ get_js_url('comments.js') }}"></script>
 <script>
 // Инициализация комментариев для каждой задачи (глобальная функция)
