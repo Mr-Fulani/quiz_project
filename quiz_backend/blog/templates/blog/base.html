@@ -752,6 +752,19 @@
         }
     });
 
+    // Возврат «Назад» на страницу другого языка: открываем её на языке, выбранном переключателем
+    // (выбор хранится в cookie django_language). Обычные переходы по ссылкам не трогаем.
+    window.addEventListener('pageshow', function(event) {
+        const navigation = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        if (!event.persisted && !(navigation && navigation.type === 'back_forward')) return;
+        const match = document.cookie.match(/(?:^|;\s*)django_language=([a-z]{2})/);
+        const chosen = match && match[1];
+        const parts = window.location.pathname.split('/');
+        if (!chosen || !['en', 'ru'].includes(parts[1]) || parts[1] === chosen) return;
+        parts[1] = chosen;
+        window.location.replace(parts.join('/') + window.location.search + window.location.hash);
+    });
+
     // Функция переключения языка
     function switchLanguage(lang) {
         const selectedLanguageInput = document.getElementById('selected-language');

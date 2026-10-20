@@ -175,7 +175,14 @@ def custom_set_language(request):
         if current_path.endswith('/') and not new_path.endswith('/'):
             new_path += '/'
         
-        return HttpResponseRedirect(new_path)
+        response = HttpResponseRedirect(new_path)
+        # Запоминаем выбор: при возврате «Назад» на страницу другого языка base.html переводит
+        # на выбранный язык (без cookie выбор терялся). Ссылки с явным префиксом открываются как есть.
+        response.set_cookie(
+            settings.LANGUAGE_COOKIE_NAME, language,
+            max_age=365 * 24 * 60 * 60, samesite='Lax', secure=request.is_secure(),
+        )
+        return response
     
     # Если язык не указан или неверный, редиректим на язык по умолчанию
     return HttpResponseRedirect(f'/{settings.LANGUAGE_CODE}/')
