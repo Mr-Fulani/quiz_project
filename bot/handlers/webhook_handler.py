@@ -100,14 +100,6 @@ async def handle_photo_with_caption(message: Message, bot: Bot, db_session: Asyn
 
         logger.info(f"✅ Задача найдена: {task.id} (message_id: {task.message_id})")
 
-        # Получение ссылки на изображение из задачи
-        image_url = task.image_url
-        if not image_url:
-            logger.warning(f"⚠️ Image URL отсутствует для task_id: {task.id}")
-            return
-
-        logger.debug(f"🌐 Извлечённый image_url: {image_url}")
-
         # Получение всех переводов задачи
         translations = await get_task_translations(task.id, db_session)
         if not translations:

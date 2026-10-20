@@ -79,7 +79,9 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             logger.error(f"❌ Отсутствуют необходимые поля в данных вебхука: {missing}")
             return False
 
-        if not (is_valid_url(data.get("poll_link", "")) and is_valid_url(data.get("image_url", ""))):
+        # Картинка необязательна: она есть только у английских задач (для соцсетей)
+        image_ok = not data.get("image_url") or is_valid_url(data.get("image_url"))
+        if not (is_valid_url(data.get("poll_link", "")) and image_ok):
             logger.error(
                 f"❌ Некорректные URL в данных вебхука: "
                 f"poll_link={data.get('poll_link')}, image_url={data.get('image_url')}"

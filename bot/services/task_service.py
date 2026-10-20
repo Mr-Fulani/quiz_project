@@ -1,5 +1,5 @@
 from datetime import datetime
-import io
+import html
 import json
 import logging
 import random
@@ -7,22 +7,15 @@ import traceback
 import uuid
 from typing import Optional
 
-from PIL import Image
-from aiogram.client.session import aiohttp
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-import bot
 from bot.services.default_link_service import DefaultLinkService
-from bot.services.deletion_service import delete_from_s3
-from bot.services.image_service import generate_image_if_needed
-from bot.services.s3_services import save_image_to_storage
-from bot.config import S3_BUCKET_NAME, S3_REGION
-from bot.database.models import Task, TaskTranslation, Topic, Subtopic, TelegramGroup
-from bot.utils.markdownV2 import escape_markdown
+from bot.database.models import Task, TaskTranslation, Topic, Subtopic, TelegramGroup, Tenant
+from bot.utils.question_format import question_display
 
 
 
@@ -45,27 +38,26 @@ last_import_error_msg = ""
 async def prepare_publication(
     task: Task,
     translation: TaskTranslation,
-    image_url: str,
     db_session: AsyncSession,
     default_link_service: DefaultLinkService,  # Обязательный аргумент
     external_link: Optional[str] = None,
     user_chat_id: int = None
 ):
     """
-    Подготавливает данные для публикации задачи в четыре сообщения:
-    изображение, текст с деталями задачи, опрос и инлайн-кнопка.
+    Подготавливает пост задачи без картинки: сообщение с вопросом (код — блоком с подсветкой)
+    и кнопкой «Узнать подробнее», затем опрос.
 
     Args:
         task (Task): Объект задачи.
         translation (TaskTranslation): Перевод задачи.
-        image_url (str): URL изображения для задачи.
         db_session (AsyncSession): Сессия базы данных.
         external_link (Optional[str]): Ссылка, передаваемая извне (например, из импорта JSON или интерфейса бота).
                                         Если None, будет использована ссылка из задачи или DefaultLinkService.
         user_chat_id (int): ID чата пользователя для уведомлений.
 
     Returns:
-        tuple: Возвращает четыре сообщения (изображение, текст с деталями задачи, опрос и инлайн-кнопка).
+        tuple: (None, сообщение с вопросом, опрос, None, ссылка, вариант «Не знаю») —
+               первая и четвёртая позиции оставлены для совместимости (картинки и отдельной кнопки больше нет).
     """
     logger.info(
         f"🔧 Начало подготовки публикации для задачи ID {task.id} "
@@ -178,35 +170,49 @@ async def prepare_publication(
     lang_translations = translations.get(language, translations['en'])
     logger.debug(f"Используем переводы для языка '{language}': {lang_translations}")
 
-    # Подготовка текстового сообщения с деталями задачи
-    escaped_topic = escape_markdown(task.topic.name)
-    escaped_subtopic = escape_markdown(task.subtopic.name if task.subtopic else lang_translations['no_subtopic'])
-    escaped_difficulty = escape_markdown(task.difficulty.capitalize())
+    # Шапка и вопрос: код — блоком с подсветкой, текст — в опросе (см. bot/utils/question_format.py)
+    tenant = await db_session.get(Tenant, task.tenant_id) if task.tenant_id else None
+    theme = (tenant.image_theme if tenant else None) or 'code'
+    view = question_display(task.topic.name if task.topic else None, translation.question, theme)
+    esc = html.escape
+    topic_name = esc(task.topic.name)
+    subtopic_name = esc(task.subtopic.name if task.subtopic else lang_translations['no_subtopic'])
+    difficulty = esc(task.difficulty.capitalize())
+    if theme == 'code':
+        header = (
+            f"<b>🖥️ {esc(lang_translations['programming_language'])}:</b> {topic_name}\n"
+            f"<b>📂 {esc(lang_translations['topic'])}:</b> {subtopic_name}\n"
+            f"<b>🎯 {esc(lang_translations['difficulty'])}:</b> {difficulty}"
+        )
+    else:
+        header = (
+            f"<b>📚 {esc(lang_translations['topic'])}:</b> {topic_name}\n"
+            f"<b>📂 {esc(lang_translations['subtopic'])}:</b> {subtopic_name}\n"
+            f"<b>🎯 {esc(lang_translations['difficulty'])}:</b> {difficulty}"
+        )
 
-    task_details_text = (
-        f"🖥️ *{lang_translations['programming_language']}*: {escaped_topic}\n"
-        f"📂 *{lang_translations['topic']}*: {escaped_subtopic}\n"
-        f"🎯 *{lang_translations['difficulty']}*: {escaped_difficulty}\n"
-    )
-
-    logger.info(f"📋 Подготовлено текстовое сообщение с деталями задачи:\n{task_details_text}")
+    if view['kind'] == 'code':
+        code_class = f' class="language-{view["language"]}"' if view['language'] else ''
+        post_text = f"{header}\n\n<pre><code{code_class}>{esc(view['body'])}</code></pre>"
+        question_text = view['prompt'] or lang_translations['quiz_question']
+    else:
+        post_text = header
+        question_text = view['body']
+        if len(question_text) > 300:
+            # Длинный вопрос — целиком в сообщении, в опросе Telegram обрежет до 300
+            post_text = f"{header}\n\n<b>{esc(view['body'])}</b>"
+            question_text = question_text[:297] + '...'
 
     text_message = {
         "type": "text",
-        "text": task_details_text,
-        "parse_mode": "MarkdownV2"
+        "text": post_text,
+        "parse_mode": "HTML",
+        "reply_markup": None,
     }
+    logger.info(f"📋 Подготовлено сообщение с вопросом ({view['kind']}) для задачи {task.id}")
 
-    # Подготовка сообщения с изображением
-    question_text = lang_translations['quiz_question']
-    logger.info(f"📝 Текст вопроса на языке '{language}': {question_text}")
-
-    image_message = {
-        "type": "photo",
-        "photo": None,
-        "caption": question_text
-    }
-    logger.info(f"🖼️ Подготовлено сообщение с изображением и вопросом: {image_message['caption']}")
+    # Картинки в Telegram больше нет: вопрос — текстом
+    image_message = None
 
     # Подготовка опроса
     if isinstance(translation.answers, str):
@@ -263,7 +269,8 @@ async def prepare_publication(
         "question": question_text,  # Используем общий вопрос
         "options": options,
         "correct_option_id": correct_option_id,
-        "explanation": translation.explanation or "",
+        # Telegram сам подписывает объяснение «Объяснение» — без своего префикса
+        "explanation": f"💡 {translation.explanation}" if translation.explanation else "",
         "is_anonymous": True,
         "type": "quiz"
     }
@@ -294,23 +301,6 @@ async def prepare_publication(
     learn_more_text = learn_more_text_dict.get(language, "Узнать подробнее")
     logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке '{language}': {learn_more_text}")
 
-    learn_more_about_task_text_dict = {
-        'ru': "Узнать больше о задаче:",
-        'en': "Learn more about the task:",
-        'es': "Saber más sobre la tarea:",
-        'tr': "Görev hakkında daha fazla öğren:",
-        'ar': "تعرف على المزيد حول المهمة:",
-        'fr': "En savoir plus sur la tâche :",
-        'de': "Erfahren Sie mehr über die Aufgabe:",
-        'hi': "कार्य के बारे में अधिक जानें:",
-        'fa': "بیشتر درباره وظیفه بدانید:",
-        'tj': "Дар бораи вазифа бештар маълумот гиред:",
-        'uz': "Vazifa haqida ko‘proq bilish:",
-        'kz': "Тапсырма туралы көбірек біліңіз:"
-    }
-    learn_more_about_task_text = learn_more_about_task_text_dict.get(language, "Узнать больше о задаче:")
-
-    logger.info(f"✅ Текст 'Узнать больше о задаче' на языке '{language}': {learn_more_about_task_text}")
 
     # Если external_link не передан или отсутствует, пытаемся взять его из задачи или базы
     if not external_link:
@@ -321,87 +311,18 @@ async def prepare_publication(
             if external_link:
                 logger.info(f"🔗 Получена ссылка по умолчанию: {external_link}")
             else:
-                raise ValueError(
-                    f"Нет ссылки «Узнать больше» для задачи ID {task.id}: задайте ссылку по умолчанию "
-                    f"или главную статическую ссылку, либо DEFAULT_FALLBACK_LINK в окружении бота"
-                )
+                logger.warning(f"🔗 Нет ссылки «Узнать больше» для задачи ID {task.id}: пост без кнопки")
     else:
         logger.info(f"🔗 Используется переданная извне ссылка: {external_link}")
 
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=learn_more_text, url=external_link))
-    learn_more_button = builder.as_markup()
-
-    button_message = {
-        "type": "text",
-        "text": learn_more_about_task_text,
-        "reply_markup": learn_more_button
-    }
-    logger.info(f"✅ Подготовлено сообщение с кнопкой 'Узнать больше'")
+    if external_link:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text=learn_more_text, url=external_link))
+        text_message["reply_markup"] = builder.as_markup()
+    # Кнопка теперь прикреплена к сообщению с вопросом, отдельного сообщения нет
+    button_message = None
 
     logger.info(f"✅ Подготовка публикации завершена для задачи ID {task.id}")
-
-    # ---- Загрузка итоговой картинки в S3 (только один раз) ----
-    try:
-        # 1) Генерируем PIL.Image (если вернулась None, проверяем почему)
-        pil_image = await generate_image_if_needed(task, user_chat_id)
-        if not pil_image:
-            # Проверяем, есть ли уже URL изображения в задаче
-            if task.image_url:
-                # Изображение уже существует, используем его
-                image_message["photo"] = task.image_url
-                logger.info(f"✅ Используем существующее изображение из задачи: {task.image_url}")
-            else:
-                # Пытаемся скачать image_url если он передан
-                if image_url:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(image_url) as resp:
-                            if resp.status != 200:
-                                raise Exception(f"Не удалось скачать файл по ссылке: {image_url}")
-                            img_data = await resp.read()
-                            pil_image = Image.open(io.BytesIO(img_data)).convert("RGB")
-
-                    # После успешной загрузки продолжаем с загрузкой в S3
-                    # 2) Формируем унифицированное имя файла
-                    language_code = translation.language or "unknown"
-                    custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
-                    custom_filename = custom_filename.replace(" ", "_").lower()
-
-                    # 3) Заливаем изображение в S3
-                    s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
-                    if not s3_url:
-                        raise Exception("Не удалось загрузить изображение в S3.")
-
-                    task.image_url = s3_url
-                    await db_session.commit()
-
-                    # 5) Теперь подставляем результат в image_message
-                    image_message["photo"] = s3_url
-                    logger.info(f"✅ Изображение загружено в S3: {s3_url}")
-                else:
-                    raise Exception("Изображение не сгенерировано и не передан URL для скачивания.")
-        else:
-            # Мы получили новое изображение, продолжаем с его загрузкой в S3
-            # 2) Формируем унифицированное имя файла
-            language_code = translation.language or "unknown"
-            custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
-            custom_filename = custom_filename.replace(" ", "_").lower()
-
-            # 3) Заливаем изображение в S3
-            s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
-            if not s3_url:
-                raise Exception("Не удалось загрузить изображение в S3.")
-
-            task.image_url = s3_url
-            await db_session.commit()
-
-            # 5) Теперь подставляем результат в image_message
-            image_message["photo"] = s3_url
-            logger.info(f"✅ Изображение загружено в S3: {s3_url}")
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при загрузке/генерации изображения для задачи {task.id}: {e}")
-        raise  # пусть вызывающий код обработает
 
     return image_message, text_message, poll_message, button_message, external_link, dont_know_option
 
@@ -560,6 +481,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     topic_id=topic_id,
                     subtopic_id=subtopic_id,
                     difficulty=task_data.get('difficulty', 'medium'),  # Используем значение по умолчанию, если не указано
+                    image_url=task_data.get('image_url'),  # картинка для соцсетей, если есть в JSON
                     published=False,
                     video_urls={},  # not-null поле в БД (совместимо с Django)
                     video_generation_progress={},  # not-null поле в БД (совместимо с Django)
@@ -618,44 +540,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     failed_tasks += 1
                     continue
 
-                # Оставляем 'continue' при отсутствии image_url
-                image_url = task_data.get("image_url")
-                if not image_url:
-                    # Просто прерываем эту задачу,
-                    # НО НЕ увеличиваем failed_tasks и НЕ пишем error_messages
-                    logger.debug(f"⏩ Пропускаем задачу {new_task.id} (нет image_url), без вывода в чат.")
-                    continue
-
-                # А если image_url есть, пробуем publishing / prepare_publication
-                try:
-                    image_message, text_message, poll_message, button_message, external_link_used, dont_know_option = await prepare_publication(
-                        task=new_task,
-                        translation=new_translation,
-                        image_url=image_url,
-                        db_session=db_session,
-                        default_link_service=default_link_service_instance,
-                        user_chat_id=user_chat_id
-                    )
-                    await send_publication_messages(new_task, new_translation, image_message, text_message,
-                                                    poll_message, button_message)
-                except Exception as e:
-                    error_msg = f"Ошибка при подготовке публикации для задачи ID {new_task.id}: {e}"
-                    logger.error(f"❌ {error_msg}")
-                    error_messages.append(error_msg)
-                    failed_tasks += 1
-
-                    # Откат: удаляем загруженное изображение из S3/R2, если оно было загружено
-                    if new_task.image_url:
-                        await delete_from_s3(new_task.image_url)
-                        logger.info(f"🗑️ Изображение удалено из S3/R2: {new_task.image_url}")
-
-                    # Откат: удаляем созданную задачу и перевод
-                    await db_session.delete(new_translation)
-                    await db_session.delete(new_task)
-                    await db_session.commit()
-                    logger.info(f"🔙 Откат изменений для задачи ID {new_task.id}")
-
-                    continue
+                # Импорт только сохраняет задачу; публикация — отдельной командой бота
+                # (вопрос публикуется текстом, картинка не нужна)
 
         except Exception as task_error:
             failed_tasks += 1
@@ -717,15 +603,6 @@ async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
     else:
         logger.info(f"✅ Топик '{topic_name}' найден с ID {topic.id}.")
         return topic.id
-
-
-
-async def send_publication_messages(task, translation, image_message, text_message, poll_message, button_message):
-    await bot.send_photo(chat_id=translation.group_id, photo=image_message['photo'], caption=image_message['caption'])
-    await bot.send_message(chat_id=translation.group_id, text=text_message['text'], parse_mode=text_message['parse_mode'])
-    await bot.send_poll(chat_id=translation.group_id, **poll_message)
-    await bot.send_message(chat_id=translation.group_id, text=button_message['text'], reply_markup=button_message['reply_markup'])
-
 
 
 

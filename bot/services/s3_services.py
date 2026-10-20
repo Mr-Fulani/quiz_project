@@ -4,9 +4,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import aioboto3
-import io
 import logging
-from PIL import Image
 from botocore.exceptions import ClientError
 
 import bot
@@ -19,128 +17,6 @@ from bot.config import (
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
-
-
-
-
-
-async def save_image_to_storage(image: Image.Image, image_name: str, user_chat_id: int) -> Optional[str]:
-    """
-    Асинхронная загрузка изображения в S3/R2 и возврат URL.
-    Автоматически определяет хранилище на основе настроек USE_R2_STORAGE.
-    В случае ошибки отправляется сообщение пользователю.
-
-    Args:
-        image (Image.Image): Объект изображения PIL.
-        image_name (str): Имя изображения для сохранения (может включать путь).
-        user_chat_id (int): ID чата пользователя для уведомления.
-
-    Returns:
-        Optional[str]: URL загруженного изображения или None при ошибке.
-    """
-    try:
-        if not isinstance(image, Image.Image):
-            logger.error(f"Ожидался объект Image, получен тип {type(image)}")
-            await bot.send_message(
-                chat_id=user_chat_id,
-                text=f"⚠️ Ошибка: Ожидался объект Image, получен тип {type(image)}"
-            )
-            return None
-
-        storage_name = 'R2' if USE_R2_STORAGE else 'S3'
-        
-        # Преобразуем изображение в байты с оптимизацией для R2 (экономия хранения)
-        image_bytes = io.BytesIO()
-        image.save(image_bytes, format='PNG', optimize=True)
-        image_bytes.seek(0)
-
-        # Формируем путь с учетом окружения (prod/ или dev/) и типа файла
-        if USE_R2_STORAGE and R2_ENVIRONMENT_PREFIX:
-            # Для R2 используем структуру: {env}/images/
-            if not image_name.startswith(f'{R2_ENVIRONMENT_PREFIX}/') and not image_name.startswith('images/') and not image_name.startswith('videos/'):
-                image_key = f'{R2_ENVIRONMENT_PREFIX}/images/{image_name}'
-            elif image_name.startswith('images/') or image_name.startswith('videos/'):
-                # Если уже есть images/ или videos/, добавляем только env_prefix
-                image_key = f'{R2_ENVIRONMENT_PREFIX}/{image_name}'
-            else:
-                image_key = image_name
-        else:
-            # Для S3 используем простую структуру images/
-            if not image_name.startswith('images/') and not image_name.startswith('videos/'):
-                image_key = f'images/{image_name}'
-            else:
-                image_key = image_name
-
-        # Настройки клиента
-        client_kwargs = {
-            'service_name': 's3',
-            'aws_access_key_id': AWS_ACCESS_KEY_ID,
-            'aws_secret_access_key': AWS_SECRET_ACCESS_KEY,
-        }
-        
-        # Для R2 добавляем endpoint URL
-        if USE_R2_STORAGE and R2_ENDPOINT_URL:
-            client_kwargs['endpoint_url'] = R2_ENDPOINT_URL
-        # Для S3 добавляем region
-        elif not USE_R2_STORAGE:
-            client_kwargs['region_name'] = S3_REGION
-
-        # Асинхронная загрузка в S3/R2
-        session = aioboto3.Session()
-        async with session.client(**client_kwargs) as s3:
-            try:
-                # Попытка загрузить с ACL (R2 может не поддерживать)
-                await s3.put_object(
-                    Bucket=S3_BUCKET_NAME,
-                    Key=image_key,
-                    Body=image_bytes,
-                    ContentType='image/png',
-                    ACL='public-read'
-                )
-            except ClientError as e:
-                # Проверка на ошибку с ACL
-                if e.response['Error']['Code'] == 'AccessControlListNotSupported':
-                    logger.warning(f"Бакет {S3_BUCKET_NAME} не поддерживает ACL. Повторная загрузка без ACL.")
-                    await s3.put_object(
-                        Bucket=S3_BUCKET_NAME,
-                        Key=image_key,
-                        Body=image_bytes,
-                        ContentType='image/png'
-                    )
-                else:
-                    raise e
-
-            # Формируем URL для изображения
-            if USE_R2_STORAGE and R2_PUBLIC_DOMAIN:
-                image_url = f"https://{R2_PUBLIC_DOMAIN}/{image_key}"
-            elif USE_R2_STORAGE and R2_ENDPOINT_URL:
-                # Fallback на endpoint если кастомный домен не настроен
-                image_url = f"https://{S3_BUCKET_NAME}.r2.cloudflarestorage.com/{image_key}"
-            else:
-                # S3 URL
-                image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{image_key}"
-            
-            logger.info(f"✅ Изображение успешно загружено в {storage_name} по URL: {image_url}")
-            return image_url
-
-    except Exception as e:
-        # Логирование ошибки
-        storage_name = 'R2' if USE_R2_STORAGE else 'S3'
-        logger.error(f"❌ Ошибка при загрузке изображения в {storage_name}: {e}")
-
-        # Уведомление пользователя
-        if user_chat_id:
-            try:
-                await bot.send_message(
-                    chat_id=user_chat_id,
-                    text=f"⚠️ Ошибка при загрузке изображения в {storage_name}: {e}"
-                )
-                logger.info(f"Уведомление об ошибке отправлено пользователю в чат {user_chat_id}.")
-            except Exception as notify_error:
-                logger.error(f"❌ Ошибка при отправке уведомления пользователю: {notify_error}")
-
-        return None
-
 
 
 

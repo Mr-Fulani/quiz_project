@@ -96,7 +96,6 @@ async def test_webhook_sender():
 
     with \
             patch('bot.services.task_service.prepare_publication', new=async_prepare_mock), \
-            patch('bot.services.image_service.generate_image_if_needed', return_value=expected_image_url), \
             patch('requests.get', return_value=MagicMock(status_code=200, content=b"fake_image")), \
             patch('webhook_sender.send_quiz_published_webhook') as mock_webhook:
         # Выполнение функции
