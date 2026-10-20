@@ -14,6 +14,13 @@ from webhooks.models import SocialMediaCredentials, Webhook
 from ..models import Task, TaskTranslation, SocialMediaPost
 
 
+def _has_active_social_targets(tenant) -> bool:
+    """Есть ли куда публиковать: активные credentials API-платформ или вебхуки соцсетей (тенанта или общие)."""
+    if any(_active_credentials(platform, tenant) for platform in API_PLATFORMS):
+        return True
+    return for_tenant_or_shared(Webhook.objects.filter(is_active=True, webhook_type='social_media'), tenant).exists()
+
+
 def _active_credentials(platform: str, tenant) -> Optional[SocialMediaCredentials]:
     """Активные credentials платформы: сначала тенанта задачи, затем общие (без тенанта)."""
     queryset = SocialMediaCredentials.objects.filter(platform=platform, is_active=True)
@@ -23,6 +30,7 @@ def _active_credentials(platform: str, tenant) -> Optional[SocialMediaCredential
             return own
     return queryset.filter(tenant__isnull=True).first()
 from .platforms.pinterest_api import PinterestAPI
+from .social_image import ensure_social_image
 from .platforms.facebook_api import FacebookAPI
 # Яндекс Дзен API недоступен, используется только webhook
 # from .platforms.yandex_dzen_api import YandexDzenAPI
@@ -50,6 +58,17 @@ def publish_to_social_media(task: Task, translation: TaskTranslation) -> Dict:
     results = []
     
     logger.info(f"🌐 Начинаем публикацию задачи {task.id} в социальные сети")
+
+    # Без настроенных соцсетей картинку не генерируем
+    if not _has_active_social_targets(task.tenant):
+        logger.info(f"ℹ️ Задача {task.id}: соцсети не настроены, публикация пропущена")
+        return {'total': 0, 'success': 0, 'failed': 0, 'results': []}
+
+    # Картинка для соцсетей: есть или генерируется (только для английских задач)
+    image_url, reason = ensure_social_image(task, translation)
+    if not image_url:
+        logger.info(f"ℹ️ Задача {task.id} не публикуется в соцсети: {reason}")
+        return {'total': 0, 'success': 0, 'failed': 0, 'results': [], 'error': reason}
     
     # 1. Публикация через API (Pinterest, Дзен, Facebook)
     api_results = _publish_via_api(task, translation)
@@ -86,14 +105,14 @@ def publish_to_platform(task: Task, translation: TaskTranslation, platform: str)
     """
     logger.info(f"🌐 Публикация задачи {task.id} в {platform}")
     
-    # Проверяем наличие изображения
-    if not task.image_url:
-        error_msg = "Нет изображения"
-        logger.warning(f"⚠️ Задача {task.id}: {error_msg}")
+    # Картинка для соцсетей: есть или генерируется (только для английских задач)
+    image_url, reason = ensure_social_image(task, translation)
+    if not image_url:
+        logger.warning(f"⚠️ Задача {task.id}: {reason}")
         return {
             'platform': platform,
             'success': False,
-            'error': error_msg
+            'error': reason
         }
     
     # Публикация через API

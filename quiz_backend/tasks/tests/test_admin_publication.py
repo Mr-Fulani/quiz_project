@@ -153,31 +153,19 @@ class PublishTasksToTelegramAsyncTests(PublicationTestMixin, TestCase):
         self.assertEqual([call.kwargs['task'].id for call in mock_publish.call_args_list], [t.id for t in tasks])
         mock_pause.assert_called_once()
 
-    @patch('tasks.tasks.upload_image_to_s3', return_value='https://cdn.example.com/new.png')
-    @patch('tasks.tasks.generate_image_for_task', return_value=object())
+    @patch('tasks.services.social_image.generate_image_for_task')
     @patch('tasks.tasks.publish_task_to_telegram', return_value={'success': True, 'errors': [], 'detailed_logs': []})
-    def test_generates_missing_image_before_publishing(self, mock_publish, mock_generate, mock_upload, *_):
+    def test_publishes_without_image_and_does_not_generate_one(self, mock_publish, mock_generate, *_):
+        # Вопрос публикуется текстом: картинка для Telegram не нужна и не генерируется
         task = self.make_task('en', image_url=None)
 
         publish_tasks_to_telegram_async(task_ids=[task.id])
 
-        mock_generate.assert_called_once()
-        self.assertEqual(mock_generate.call_args.kwargs['theme'], 'code')
         mock_publish.assert_called_once()
+        mock_generate.assert_not_called()
         task.refresh_from_db()
-        self.assertEqual(task.image_url, 'https://cdn.example.com/new.png')
-
-    @patch('tasks.tasks.upload_image_to_s3', return_value='https://cdn.example.com/new.png')
-    @patch('tasks.tasks.generate_image_for_task', return_value=object())
-    @patch('tasks.tasks.publish_task_to_telegram', return_value={'success': True, 'errors': [], 'detailed_logs': []})
-    def test_missing_image_uses_tenant_image_theme(self, mock_publish, mock_generate, mock_upload, *_):
-        self.tenant.image_theme = Tenant.IMAGE_THEME_ISLAMIC
-        self.tenant.save()
-        task = self.make_task('en', image_url=None)
-
-        publish_tasks_to_telegram_async(task_ids=[task.id])
-
-        self.assertEqual(mock_generate.call_args.kwargs['theme'], 'islamic')
+        self.assertTrue(task.published)
+        self.assertFalse(task.image_url)
 
     @patch('config.tasks.send_webhooks_async.delay')
     @patch('tasks.tasks.publish_task_to_telegram', return_value={'success': True, 'errors': [], 'detailed_logs': []})
@@ -193,8 +181,8 @@ class PublishTasksToTelegramAsyncTests(PublicationTestMixin, TestCase):
 
 
 class OtherPublicationTasksTests(PublicationTestMixin, TestCase):
-    @patch('tasks.tasks.upload_image_to_s3', return_value='https://cdn.example.com/gen.png')
-    @patch('tasks.tasks.generate_image_for_task', return_value=object())
+    @patch('tasks.services.social_image.upload_image_to_s3', return_value='https://cdn.example.com/gen.png')
+    @patch('tasks.services.social_image.generate_image_for_task', return_value=object())
     def test_generate_task_images_saves_url(self, mock_generate, mock_upload):
         task = self.make_task(image_url=None)
 
@@ -204,6 +192,15 @@ class OtherPublicationTasksTests(PublicationTestMixin, TestCase):
         self.assertEqual(mock_generate.call_args.kwargs['theme'], 'islamic')
         task.refresh_from_db()
         self.assertEqual(task.image_url, 'https://cdn.example.com/gen.png')
+
+    @patch('tasks.services.social_image.generate_image_for_task')
+    def test_generate_task_images_skips_non_english(self, mock_generate):
+        task = self.make_task('ru', image_url=None)
+
+        result = generate_task_images_async(task_ids=[task.id])
+
+        self.assertEqual(result['generated'], 0)
+        mock_generate.assert_not_called()
 
     @patch('tasks.services.social_media_service.publish_to_platform', return_value={'success': True})
     def test_publish_to_platform_marks_published(self, mock_platform):

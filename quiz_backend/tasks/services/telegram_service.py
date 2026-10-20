@@ -2,6 +2,7 @@
 Сервис для публикации задач в Telegram через Bot API.
 Адаптирован из bot/services/publication_service.py и bot/services/task_service.py.
 """
+import html
 import json
 import logging
 import os
@@ -16,6 +17,9 @@ from django.utils.text import slugify
 from tenants.scoping import bot_token_for
 
 logger = logging.getLogger(__name__)
+
+# Максимальная длина текста сообщения Telegram
+TELEGRAM_MESSAGE_LIMIT = 4096
 
 
 # Словарь переводов для разных языков (синхронизирован с ботом)
@@ -716,92 +720,159 @@ def send_message_with_button(chat_id: str, text: str, button_text: str,
     return None
 
 
+def _task_link(task, translation):
+    """Ссылка для кнопки «Узнать подробнее» и её источник; (None, причина), если ссылки нет."""
+    final_link = None
+    link_source = ""
+    if task.external_link:
+        final_link = task.external_link
+        link_source = "специфичная (выбрана вручную)"
+    else:
+        try:
+            # Определяем базовый URL сайта (приоритет: Тенант задачи -> настройки -> дефолт)
+            site_url = None
+            if hasattr(task, 'tenant') and task.tenant:
+                # У модели Tenant есть свойство .site_url, которое возвращает https://domain
+                site_url = task.tenant.site_url
+
+            if not site_url:
+                site_url = getattr(settings, 'SITE_URL', '')
+
+            if site_url and not site_url.startswith('http'):
+                site_url = f'https://{site_url}'
+
+            topic_name = 'python'
+            if task.topic:
+                try:
+                    topic_name = task.topic.name.lower()
+                except Exception:
+                    logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
+
+            subtopic_name = 'general'
+            if task.subtopic:
+                try:
+                    subtopic_name = task.subtopic.name.lower()
+                except Exception:
+                    logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
+
+            subtopic_slug = slugify(subtopic_name)
+            difficulty = task.difficulty.lower() if task.difficulty else 'easy'
+
+            supported_languages = [
+                lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])
+            ]
+            language_code = (translation.language or '').lower() or 'en'
+            if language_code not in supported_languages:
+                language_code = getattr(settings, 'LANGUAGE_CODE', 'en').split('-')[0].lower() or 'en'
+                if language_code not in supported_languages:
+                    language_code = 'en'
+
+            if site_url:  # без домена сайта ссылку на задачу не построить
+                task_url = f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/"
+                final_link = f"{task_url}#task-{task.id}"
+                link_source = "ссылка на задачу на сайте"
+        except Exception as e:
+            logger.warning(f"Ошибка формирования URL задачи на сайте: {e}", exc_info=True)
+            final_link = None
+
+    if not final_link:
+        from .default_link_service import DefaultLinkService
+
+        final_link, link_source = DefaultLinkService.get_final_link(task, translation)
+    return final_link, link_source
+
+
 def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
     """
-    Публикует задачу в Telegram канал.
-    
-    Args:
-        task: Объект Task из Django ORM
-        translation: Объект TaskTranslation из Django ORM
-        telegram_group: Объект TelegramGroup из Django ORM
-        
-    Returns:
-        Словарь с результатами публикации
+    Публикует задачу в Telegram-канал без картинки.
+
+    Сообщения поста:
+      1. Шапка (язык/тема/сложность) и вопрос: код — блоком с подсветкой, текст — жирным;
+         кнопка «Узнать подробнее», если есть ссылка на задачу.
+      2. Опрос-викторина. Для кода вопрос короткий («Какой будет вывод?» или подпись из задачи),
+         для текстовой задачи — сам вопрос.
+    ID всех сообщений сохраняются в task.telegram_message_ids — по ним пост удаляется.
     """
+    from tasks.question_format import question_display
+
     language = translation.language
     chat_id = telegram_group.group_id
     # Публикуем ботом тенанта задачи (канал тенанта администрирует его бот)
     bot_token = bot_token_for(getattr(task, 'tenant', None) or getattr(telegram_group, 'tenant', None))
-
-    # Получаем переводы для языка
     lang_trans = LANGUAGE_TRANSLATIONS.get(language, LANGUAGE_TRANSLATIONS['en'])
-    
+    esc = html.escape
+
     result = {
         'success': False,
-        'image_sent': False,
         'text_sent': False,
         'poll_sent': False,
         'button_sent': False,
+        'message_ids': [],
         'errors': [],
-        'detailed_logs': []  # Детальные логи для админки
+        'detailed_logs': [],  # Детальные логи для админки
     }
-    
+
     try:
         result['detailed_logs'].append(f"🚀 Начинаем публикацию задачи {task.id} в канал {telegram_group.group_name}")
-        
-        # 1. Отправляем изображение БЕЗ подписи (вопрос будет в опросе)
-        if task.image_url:
-            result['detailed_logs'].append(f"📷 Отправка изображения: {task.image_url[:50]}...")
-            photo_result = send_photo(chat_id, task.image_url, caption=None, bot_token=bot_token)  # Без caption - вопрос будет в опросе
-            time.sleep(1)
-            if photo_result:
-                result['image_sent'] = True
-                result['detailed_logs'].append(f"✅ Изображение отправлено (message_id: {photo_result.get('message_id')})")
-            else:
-                result['errors'].append("Не удалось отправить изображение")
-                result['detailed_logs'].append(f"❌ Не удалось отправить изображение")
-        
-        # 2. Отправляем детали задачи
-        # Безопасный доступ к связанным объектам
-        topic_name = "Unknown"
-        if task.topic:
-            try:
-                topic_name = task.topic.name
-            except Exception:
-                logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
-        
-        subtopic_name = lang_trans['no_subtopic']
-        if task.subtopic:
-            try:
-                subtopic_name = task.subtopic.name
-            except Exception:
-                logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
-        
+        view = question_display(task, translation.question)
+
+        topic_name = task.topic.name if task.topic_id else "Unknown"
+        subtopic_name = task.subtopic.name if task.subtopic_id else lang_trans['no_subtopic']
         difficulty = task.difficulty.capitalize() if task.difficulty else "Unknown"
-        
-        # Экранируем текст для MarkdownV2
-        escaped_topic = escape_markdown_v2(topic_name)
-        escaped_subtopic = escape_markdown_v2(subtopic_name)
-        escaped_difficulty = escape_markdown_v2(difficulty)
-        
-        task_details_text = (
-            f"🖥️ *{lang_trans['programming_language']}*: {escaped_topic}\n"
-            f"📂 *{lang_trans['topic']}*: {escaped_subtopic}\n"
-            f"🎯 *{lang_trans['difficulty']}*: {escaped_difficulty}\n"
-        )
-        
-        result['detailed_logs'].append(f"📝 Отправка деталей задачи")
-        text_result = send_message(chat_id, task_details_text, "MarkdownV2", bot_token=bot_token)
-        time.sleep(0.2)
-        if text_result:
-            result['text_sent'] = True
-            result['detailed_logs'].append(f"✅ Детали задачи отправлены")
+
+        # 1. Шапка и вопрос
+        if view['theme'] == 'code':
+            header = (
+                f"<b>🖥️ {esc(lang_trans['programming_language'])}:</b> {esc(topic_name)}\n"
+                f"<b>📂 {esc(lang_trans['topic'])}:</b> {esc(subtopic_name)}\n"
+                f"<b>🎯 {esc(lang_trans['difficulty'])}:</b> {esc(difficulty)}"
+            )
         else:
-            result['errors'].append("Не удалось отправить детали задачи")
-            result['detailed_logs'].append(f"❌ Не удалось отправить детали задачи")
-        
-        # 3. Подготавливаем и отправляем опрос
-        # Парсим answers
+            header = (
+                f"<b>📚 {esc(lang_trans['topic'])}:</b> {esc(topic_name)}\n"
+                f"<b>📂 {esc(lang_trans['subtopic'])}:</b> {esc(subtopic_name)}\n"
+                f"<b>🎯 {esc(lang_trans['difficulty'])}:</b> {esc(difficulty)}"
+            )
+
+        if view['kind'] == 'code':
+            code_class = f' class="language-{view["language"]}"' if view['language'] else ''
+            text = f"{header}\n\n<pre><code{code_class}>{esc(view['body'])}</code></pre>"
+            poll_question = view['prompt'] or lang_trans['quiz_question']
+        else:
+            text = header
+            poll_question = view['body']
+            if len(poll_question) > 300:
+                # Длинный вопрос — целиком в сообщении, в опросе — начало
+                text = f"{header}\n\n<b>{esc(view['body'])}</b>"
+
+        if len(text) > TELEGRAM_MESSAGE_LIMIT:
+            message = f"Текст поста длиннее {TELEGRAM_MESSAGE_LIMIT} символов ({len(text)}) — сократите код задачи"
+            result['errors'].append(message)
+            result['detailed_logs'].append(f"❌ {message}")
+            return result
+
+        final_link, link_source = _task_link(task, translation)
+        if final_link:
+            result['detailed_logs'].append(f"🔗 Ссылка для кнопки ({link_source}): {final_link}")
+            message_result = send_message_with_button(
+                chat_id, text, lang_trans['learn_more'], final_link, parse_mode='HTML', bot_token=bot_token,
+            )
+            result['button_sent'] = bool(message_result)
+        else:
+            result['detailed_logs'].append(f"ℹ️ Кнопка не добавлена: {link_source or 'нет ссылки на задачу'}")
+            message_result = send_message(chat_id, text, 'HTML', bot_token=bot_token)
+
+        if message_result:
+            result['text_sent'] = True
+            result['message_ids'].append(message_result.get('message_id'))
+            result['detailed_logs'].append(f"✅ Вопрос отправлен (message_id: {message_result.get('message_id')})")
+        else:
+            result['errors'].append("Не удалось отправить вопрос")
+            result['detailed_logs'].append("❌ Не удалось отправить вопрос")
+            return result
+        time.sleep(0.2)
+
+        # 2. Опрос
         if isinstance(translation.answers, str):
             try:
                 wrong_answers = json.loads(translation.answers)
@@ -811,180 +882,49 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                 return result
         else:
             wrong_answers = list(translation.answers)
-        
+
         correct_answer = translation.correct_answer
-        
-        # Удаляем все вхождения правильного ответа из списка неправильных ответов
-        initial_count = len(wrong_answers)
+        # Правильный ответ может быть и в списке вариантов — убираем дубли
         wrong_answers = [x for x in wrong_answers if x != correct_answer]
-        removed_count = initial_count - len(wrong_answers)
-        if removed_count > 0:
-            logger.warning(f"⚠️ Дублирующийся правильный ответ удален ({removed_count} вхождений), обновленные варианты: {wrong_answers}")
-        
-        # Формируем варианты ответов
         options = wrong_answers + [correct_answer]
         random.shuffle(options)
         correct_option_id = options.index(correct_answer)
-        
-        # Добавляем "Я не знаю"
-        dont_know_option = lang_trans['dont_know']
-        options.append(dont_know_option)
-        
-        # Формируем объяснение
-        poll_explanation = None
-        if translation.explanation:
-            poll_explanation = f"{lang_trans['explanation']}: {translation.explanation}"
-        
-        # Используем короткий вопрос, так как код уже на изображении
-        poll_question = lang_trans['quiz_question']  # "Какой будет вывод?" и т.д.
-        
-        result['detailed_logs'].append(f"📊 Отправка quiz опроса (вопрос: '{poll_question}', вариантов: {len(options)})")
-        
+        options.append(lang_trans['dont_know'])
+
+        # Telegram сам подписывает объяснение «Объяснение» — без своего префикса
+        poll_explanation = f"💡 {translation.explanation}" if translation.explanation else None
+
+        result['detailed_logs'].append(f"📊 Отправка опроса (вопрос: '{poll_question[:60]}', вариантов: {len(options)})")
         poll_result = send_poll(
             chat_id=chat_id,
-            question=poll_question,  # Короткий вопрос вместо полного translation.question
+            question=poll_question,
             options=options,
             correct_option_id=correct_option_id,
             explanation=poll_explanation,
             bot_token=bot_token,
         )
-        time.sleep(0.2)
-        
         if poll_result:
             result['poll_sent'] = True
-            poll_message_id = poll_result.get('message_id')
-            result['detailed_logs'].append(f"✅ Опрос отправлен (poll_id: {poll_result.get('poll', {}).get('id', 'N/A')}, message_id: {poll_message_id})")
-            
-            # Сохраняем message_id опроса в задачу для возможности удаления
-            if poll_message_id:
-                task.message_id = poll_message_id
-                task.group = telegram_group
-                task.save(update_fields=['message_id', 'group'])
-                logger.info(f"💾 Сохранен message_id {poll_message_id} для задачи {task.id}")
+            result['message_ids'].append(poll_result.get('message_id'))
+            result['detailed_logs'].append(f"✅ Опрос отправлен (message_id: {poll_result.get('message_id')})")
         else:
             result['errors'].append("Не удалось отправить опрос")
-            # Проверяем длину вопроса для диагностики
-            if len(poll_question) > 300:
-                result['detailed_logs'].append(f"❌ Не удалось отправить опрос: вопрос слишком длинный ({len(poll_question)} символов, макс: 300)")
-            else:
-                result['detailed_logs'].append(f"❌ Не удалось отправить опрос (длина вопроса: {len(poll_question)} символов, макс: 300). Проверьте логи выше для деталей ошибки.")
-        
-        # 4. Определяем итоговую ссылку
-        final_link = None
-        link_source = ""
+            result['detailed_logs'].append("❌ Не удалось отправить опрос")
 
-        if task.external_link:
-            final_link = task.external_link
-            link_source = "специфичная (выбрана вручную)"
-        else:
-            try:
-                # Определяем базовый URL сайта (приоритет: Тенант задачи -> настройки -> дефолт)
-                site_url = None
-                if hasattr(task, 'tenant') and task.tenant:
-                    # У модели Tenant есть свойство .site_url, которое возвращает https://domain
-                    site_url = task.tenant.site_url
-                
-                if not site_url:
-                    site_url = getattr(settings, 'SITE_URL', '')
+        # ID сообщений поста — для удаления; message_id — ID опроса (как раньше)
+        task.telegram_message_ids = [mid for mid in result['message_ids'] if mid]
+        task.message_id = poll_result.get('message_id') if poll_result else task.message_id
+        task.group = telegram_group
+        task.save(update_fields=['telegram_message_ids', 'message_id', 'group'])
 
-                if site_url and not site_url.startswith('http'):
-                    site_url = f'https://{site_url}'
-
-                topic_name = 'python'
-                if task.topic:
-                    try:
-                        topic_name = task.topic.name.lower()
-                    except Exception:
-                        logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
-
-                subtopic_name = 'general'
-                if task.subtopic:
-                    try:
-                        subtopic_name = task.subtopic.name.lower()
-                    except Exception:
-                        logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
-
-                subtopic_slug = slugify(subtopic_name)
-                difficulty = task.difficulty.lower() if task.difficulty else 'easy'
-
-                supported_languages = [
-                    lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])
-                ]
-                language_code = (translation.language or '').lower() or 'en'
-                if language_code not in supported_languages:
-                    language_code = getattr(settings, 'LANGUAGE_CODE', 'en').split('-')[0].lower() or 'en'
-                    if language_code not in supported_languages:
-                        language_code = 'en'
-
-                task_url = f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/"
-                task_anchor = f"#task-{task.id}"
-                final_link = task_url + task_anchor
-                link_source = "ссылка на задачу на сайте"
-            except Exception as e:
-                logger.warning(f"Ошибка формирования URL задачи на сайте: {e}", exc_info=True)
-                final_link = None
-
-        if not final_link:
-            from .default_link_service import DefaultLinkService
-
-            final_link, link_source = DefaultLinkService.get_final_link(task, translation)
-            
-            # Проверяем наличие ссылки
-            if final_link is None:
-                error_msg = f"❌ Нет ссылки для публикации! {link_source}"
-                result['errors'].append(error_msg)
-                result['detailed_logs'].append(error_msg)
-                result['detailed_logs'].append(
-                    "💡 Решение: Создайте главную ссылку (MainFallbackLink) для языка "
-                    f"{translation.language.upper()} в разделе: Webhooks → Main fallback links"
-                )
-                logger.error(f"Задача {task.id}: {error_msg}")
-                return result
-        
-        result['detailed_logs'].append(
-            f"🔗 Ссылка для кнопки ({link_source}): {final_link}"
-        )
-        
-        # Отправляем кнопку с ссылкой
-        button_text = lang_trans['learn_more']  # Текст на кнопке
-        button_message_text = lang_trans['learn_more_about_task']  # Текст сообщения с кнопкой
-        
-        result['detailed_logs'].append(f"🔗 Отправка кнопки '{button_text}'...")
-        
-        button_result = send_message_with_button(
-            chat_id=chat_id,
-            text=button_message_text,
-            button_text=button_text,
-            button_url=final_link,
-            parse_mode=None,  # Без форматирования
-            bot_token=bot_token,
-        )
-        time.sleep(0.2)
-        
-        if button_result:
-            result['button_sent'] = True
-            result['detailed_logs'].append(f"✅ Кнопка отправлена")
-        else:
-            result['errors'].append("Не удалось отправить кнопку (timeout или ошибка API)")
-            result['detailed_logs'].append(f"❌ Не удалось отправить кнопку")
-        
-        # Проверяем общий успех
-        if result['image_sent'] and result['text_sent'] and result['poll_sent']:
+        if result['text_sent'] and result['poll_sent']:
             result['success'] = True
-            logger.info(f"✅ Задача {task.id} успешно опубликована в {chat_id}")
-            result['detailed_logs'].append(f"🎉 Задача {task.id} ПОЛНОСТЬЮ опубликована!")
-        else:
-            logger.warning(f"⚠️ Задача {task.id} опубликована частично: {result}")
-            result['detailed_logs'].append(f"⚠️ Задача {task.id} опубликована ЧАСТИЧНО")
-            result['detailed_logs'].append(f"   Изображение: {'✅' if result['image_sent'] else '❌'}")
-            result['detailed_logs'].append(f"   Детали: {'✅' if result['text_sent'] else '❌'}")
-            result['detailed_logs'].append(f"   Опрос: {'✅' if result['poll_sent'] else '❌'}")
-            result['detailed_logs'].append(f"   Кнопка: {'✅' if result['button_sent'] else '❌'}")
-        
+            logger.info(f"✅ Задача {task.id} опубликована в {chat_id}")
+            result['detailed_logs'].append(f"🎉 Задача {task.id} опубликована")
+
     except Exception as e:
-        logger.error(f"❌ Ошибка при публикации задачи {task.id}: {e}")
+        logger.error(f"❌ Ошибка при публикации задачи {task.id}: {e}", exc_info=True)
         result['errors'].append(str(e))
         result['detailed_logs'].append(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
-    
-    return result
 
+    return result

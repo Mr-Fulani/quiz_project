@@ -15,8 +15,6 @@ from celery import shared_task
 from django.utils import timezone
 
 from .models import Task
-from .services.image_generation_service import generate_image_for_task, get_tenant_logo_path
-from .services.s3_service import upload_image_to_s3
 from .services.telegram_service import publish_task_to_telegram
 
 logger = logging.getLogger(__name__)
@@ -44,48 +42,11 @@ def _pause_between_task_publications(task_id):
     time.sleep(pause_seconds)
 
 
-def _generate_and_upload_image(task, translation, image_theme):
-    """
-    Генерирует изображение задачи, загружает в S3 и сохраняет image_url.
-    Возвращает текст ошибки или None при успехе; при ошибке выставляет task.error.
-    """
-    topic_name = task.topic.name if task.topic else 'python'
-    logger.info(f"🎨 Генерация изображения для задачи {task.id} (тема: {image_theme}, язык: {topic_name})")
-
-    image = generate_image_for_task(
-        translation.question,
-        topic_name,
-        theme=image_theme,
-        custom_logo_path=get_tenant_logo_path(task.tenant),
-    )
-    if not image:
-        task.error = True
-        task.save(update_fields=['error'])
-        return f"Задача {task.id}: не удалось сгенерировать изображение"
-
-    # Формируем имя файла в формате, как в боте
-    language_code = translation.language or "unknown"
-    subtopic_name = task.subtopic.name if task.subtopic else 'general'
-    image_name = f"{task.topic.name}_{subtopic_name}_{language_code}_{task.id}.png"
-    image_name = image_name.replace(" ", "_").lower()
-
-    logger.info(f"☁️ Загрузка в S3: {image_name}...")
-    image_url = upload_image_to_s3(image, image_name)
-    if not image_url:
-        task.error = True
-        task.save(update_fields=['error'])
-        return f"Задача {task.id}: не удалось загрузить в S3"
-
-    task.image_url = image_url
-    task.error = False  # Сбрасываем ошибку если генерация успешна
-    task.save(update_fields=['image_url', 'error'])
-    logger.info(f"✅ Задача {task.id}: изображение загружено в S3: {image_url}")
-    return None
-
-
 @shared_task(bind=True)
 def generate_task_images_async(self, task_ids, image_theme='code'):
-    """Генерирует изображения для задач и загружает их в S3."""
+    """Генерирует картинки для соцсетей (только английские задачи) и загружает их в хранилище."""
+    from tasks.services.social_image import NOT_ENGLISH_REASON, generate_task_image, needs_social_image
+
     generated_count = 0
     errors = []
     logger.info(f"📊 Начинаем генерацию изображений ({image_theme}) для {len(task_ids)} задач...")
@@ -96,8 +57,11 @@ def generate_task_images_async(self, task_ids, image_theme='code'):
             errors.append(f"Задача {task.id}: отсутствуют переводы")
             logger.warning(f"⚠️ {errors[-1]}")
             continue
+        if not needs_social_image(translation):
+            errors.append(f"Задача {task.id} ({translation.language}): {NOT_ENGLISH_REASON}")
+            continue
         try:
-            error = _generate_and_upload_image(task, translation, image_theme)
+            error = generate_task_image(task, translation, image_theme)
         except Exception as e:
             task.error = True
             task.save(update_fields=['error'])
@@ -211,22 +175,7 @@ def publish_tasks_to_telegram_async(self, task_ids):
                 logger.warning(f"Пропуск задачи {task.id}: нет переводов")
                 continue
 
-            # Автоматическая генерация изображения, если его нет
-            if not task.image_url:
-                tenant = task.tenant
-                image_theme = tenant.image_theme if tenant else 'code'
-                try:
-                    error = _generate_and_upload_image(task, translations[0], image_theme)
-                except Exception as e:
-                    task.error = True
-                    task.save(update_fields=['error'])
-                    error = f"Задача {task.id}: {e}"
-                    logger.error(f"Исключение при генерации изображения для задачи {task.id}: {e}", exc_info=True)
-                if error:
-                    errors.append(error)
-                    logger.error(f"❌ {error}")
-                    continue
-
+            # Картинка для Telegram не нужна: вопрос публикуется текстом (см. publish_task_to_telegram)
             # Публикуем каждый перевод в свой канал
             task_published_any_language = False
             for translation in translations:
@@ -320,10 +269,6 @@ def publish_tasks_to_social_async(self, task_ids, platform=None, require_video=F
             if require_video and not task.video_url:
                 logger.warning(f"⚠️ Задача {task.id}: нет видео, пропускаем")
                 continue
-            if not require_video and not task.image_url:
-                logger.warning(f"⚠️ Задача {task.id}: нет изображения, пропускаем")
-                continue
-
             translation = task.translations.first()
             if not translation:
                 logger.warning(f"⚠️ Задача {task.id}: нет переводов, пропускаем")

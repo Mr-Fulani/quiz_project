@@ -26,6 +26,8 @@ class Tenant(Base):
     name = Column(String(255), nullable=False)
     domain = Column(String(255), nullable=True)
     mini_app_domain = Column(String(255), nullable=True)
+    # Тема оформления задач: code — вопрос с кодом, islamic и др. — текстовая карточка
+    image_theme = Column(String(20), nullable=True)
     bot_token = Column(String(255), nullable=True)
     bot_username = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -139,6 +141,8 @@ class Task(TenantScopedMixin, Base):
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)
     message_id = Column(Integer, unique=False, nullable=True)
+    # Совместимость с Django: not null JSONB со списком ID всех сообщений поста
+    telegram_message_ids = Column(JSON, nullable=False, default=list)
     group_id = Column(BigInteger, ForeignKey('telegram_groups.id'), nullable=True)
 
     translations = relationship('TaskTranslation', back_populates='task', cascade="all, delete-orphan")

@@ -86,7 +86,8 @@ class Task(models.Model):
     image_url = StorageURLField(
         max_length=255,
         null=True,
-        help_text='URL изображения задачи (в БД хранится ключ файла в хранилище)'
+        blank=True,
+        help_text='Картинка задачи для соцсетей (только английские задачи); на сайте, в Mini App и Telegram не нужна'
     )
     video_url = StorageURLField(
         max_length=255,
@@ -135,6 +136,11 @@ class Task(models.Model):
     message_id = models.IntegerField(
         null=True,
         help_text='ID связанного сообщения'
+    )
+    telegram_message_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='ID всех сообщений поста в канале (для удаления без задевания соседних постов)'
     )
     description = models.TextField(
         null=True,
@@ -186,6 +192,17 @@ class Task(models.Model):
     def __str__(self):
         return f"Задача {self.id} ({self.get_difficulty_display()})"
     
+    def telegram_post_message_ids(self):
+        """
+        ID сообщений поста задачи в канале. Новые посты хранят их в telegram_message_ids;
+        у старых (картинка, детали, опрос, кнопка) известен только ID опроса — берём соседние.
+        """
+        if self.telegram_message_ids:
+            return list(self.telegram_message_ids)
+        if self.message_id:
+            return [self.message_id + offset for offset in range(-2, 2)]
+        return []
+
     def delete_with_related(self):
         """
         Удаляет задачу вместе со всеми связанными задачами по translation_group_id
@@ -204,10 +221,7 @@ class Task(models.Model):
             dict: Результаты публикации
         """
         from tasks.services.telegram_service import publish_task_to_telegram
-        
-        if not self.image_url:
-            return {'success': False, 'errors': ['Отсутствует изображение']}
-        
+
         # Получаем первый перевод
         translation = self.translations.first()
         if not translation:
@@ -221,8 +235,7 @@ class Task(models.Model):
             task=self,
             translation=translation,
             telegram_group=self.group,
-            external_link=self.external_link
-        )
+        )  # ссылку (в т.ч. external_link) publish_task_to_telegram берёт из задачи сама
         
         if result['success']:
             self.published = True

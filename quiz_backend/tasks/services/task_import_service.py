@@ -17,6 +17,7 @@ from tasks.models import Task, TaskTranslation
 from .s3_service import upload_image_to_s3
 from .image_generation_service import generate_image_for_task
 from .telegram_service import publish_task_to_telegram
+from tasks.services.social_image import SOCIAL_IMAGE_LANGUAGES
 
 logger = logging.getLogger(__name__)
 
@@ -514,10 +515,13 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                             logger.info(f"✅ Создан перевод для задачи {task.id} на языке {language}")
                             detailed_logs.append(f"✅ Создан перевод для задачи {task.id} на языке {language}")
                             
-                            # Генерируем и загружаем изображение если его нет
+                            # Картинка нужна только для соцсетей и только английским задачам;
+                            # на сайте, в Mini App и Telegram вопрос показывается текстом
                             image_url = task_data.get('image_url')
                             
-                            if not image_url:
+                            if not image_url and (language or "").lower() not in SOCIAL_IMAGE_LANGUAGES:
+                                detailed_logs.append(f"ℹ️ Задача {task.id} ({language}): картинка не нужна — делается только для английских задач")
+                            elif not image_url:
                                 logger.info(f"🎨 Генерация изображения для задачи {task.id}")
                                 detailed_logs.append(f"🎨 Генерация изображения для задачи {task.id} (язык кода: {topic_name})")
                                 
@@ -576,7 +580,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                             # Не генерируем видео при загрузке, только при публикации
                             
                             # Публикуем в Telegram если требуется
-                            if publish and telegram_group and task.image_url:
+                            if publish and telegram_group:
                                 try:
                                     logger.info(f"📢 Публикация задачи {task.id} в Telegram")
                                     

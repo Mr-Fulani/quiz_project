@@ -1075,11 +1075,9 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     try:
                         chat_id = str(task.group.group_id)
                         logger.info(f"🗑️ Попытка удаления сообщений для задачи {task.id}: message_id={task.message_id}, chat_id={chat_id}")
-                        # Пробуем удалить несколько сообщений подряд (фото, текст, опрос, кнопка)
-                        # Обычно опрос имеет message_id, а остальные сообщения идут рядом
-                        for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
-                            message_id_to_delete = task.message_id + offset
-                            logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                        # Все сообщения поста (у старых постов — соседние с опросом, см. Task.telegram_post_message_ids)
+                        for message_id_to_delete in task.telegram_post_message_ids():
+                            logger.debug(f"   Попытка удалить message_id {message_id_to_delete}")
                             if delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(task.tenant)):
                                 deleted_messages_count += 1
                                 logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
@@ -1121,10 +1119,9 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 try:
                     chat_id = str(obj.group.group_id)
                     logger.info(f"🗑️ Попытка удаления сообщений для задачи {obj.id}: message_id={obj.message_id}, chat_id={chat_id}")
-                    # Пробуем удалить несколько сообщений подряд
-                    for offset in range(-2, 2):
-                        message_id_to_delete = obj.message_id + offset
-                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                    # Все сообщения поста (у старых постов — соседние с опросом, см. Task.telegram_post_message_ids)
+                    for message_id_to_delete in obj.telegram_post_message_ids():
+                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete}")
                         delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(obj.tenant))
                 except Exception as e:
                     logger.warning(f"Ошибка при удалении сообщений для задачи {obj.id}: {e}", exc_info=True)
@@ -1163,10 +1160,9 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 try:
                     chat_id = str(task.group.group_id)
                     logger.info(f"🗑️ Попытка удаления сообщений для задачи {task.id}: message_id={task.message_id}, chat_id={chat_id}")
-                    # Пробуем удалить несколько сообщений подряд (фото, текст, опрос, кнопка)
-                    for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
-                        message_id_to_delete = task.message_id + offset
-                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                    # Все сообщения поста (у старых постов — соседние с опросом, см. Task.telegram_post_message_ids)
+                    for message_id_to_delete in task.telegram_post_message_ids():
+                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete}")
                         if delete_message(chat_id, message_id_to_delete, bot_token=bot_token_for(task.tenant)):
                             deleted_messages_count += 1
                             logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
@@ -1245,11 +1241,11 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             messages.INFO
         )
 
-    @admin.action(description='Сгенерировать изображения для выбранных задач')
-    @admin.action(description='🎨 Сгенерировать изображения')
+    @admin.action(description='🎨 Картинки для соцсетей (только английские задачи)')
     def generate_images(self, request, queryset):
         """
-        Генерирует изображения для выбранных задач (в фоне, через Celery).
+        Генерирует картинки для соцсетей (в фоне, через Celery) — только для английских задач:
+        на сайте, в Mini App и Telegram вопрос показывается текстом.
         Сначала показывает промежуточную страницу выбора темы.
         """
         # Если тема еще не выбрана, показываем страницу подтверждения
@@ -1263,8 +1259,22 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         from .tasks import generate_task_images_async
 
         # Тема выбрана, ставим генерацию в очередь
+        from .services.social_image import SOCIAL_IMAGE_LANGUAGES
+
         image_theme = request.POST.get('image_theme', 'code')
-        task_ids = list(queryset.values_list('id', flat=True))
+        task_ids = list(
+            queryset.filter(translations__language__in=SOCIAL_IMAGE_LANGUAGES)
+            .values_list('id', flat=True).distinct()
+        )
+        skipped = queryset.count() - len(task_ids)
+        if skipped:
+            self.message_user(
+                request,
+                f"ℹ️ Пропущено {skipped} задач не на английском: картинки делаются только для английских задач",
+                messages.INFO
+            )
+        if not task_ids:
+            return
         celery_task = generate_task_images_async.delay(task_ids, image_theme)
 
         self.message_user(

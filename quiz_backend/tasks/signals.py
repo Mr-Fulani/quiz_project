@@ -68,15 +68,15 @@ def auto_publish_to_social_media(sender, instance, created, **kwargs):
     if not instance.published:
         return
     
-    # Проверяем, что есть изображение
-    if not instance.image_url:
-        logger.warning(f"⚠️ Задача {instance.id} опубликована без изображения, пропускаем отправку в соцсети")
-        return
-    
     # Получаем перевод задачи
     translation = instance.translations.first()
     if not translation:
         logger.warning(f"⚠️ Задача {instance.id} не имеет переводов, пропускаем отправку в соцсети")
+        return
+
+    # В соцсети идут только английские задачи (картинки делаются только для них)
+    from .services.social_image import needs_social_image
+    if not needs_social_image(translation):
         return
     
     # Проверяем, не отправляли ли уже эту задачу (избегаем дублей)
