@@ -4,6 +4,8 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static_versioned 'blog/css/quiz_styles.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/task_question.css' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@600&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 {% endblock %}
 
@@ -22,19 +24,7 @@
                  data-source-link="{{ task.translation.source_link|default:''|escape }}"
                  data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.url_key subtopic=subtopic.url_slug task_id=task.id %}"
                  {% if task.is_solved %}data-solved="true"{% endif %}>
-                {% if task.translation.question %}
-                    {# Текст вопроса в HTML: раньше он был только на картинке и не индексировался #}
-                    <h2 class="task-question">{{ task.translation.question|linebreaksbr }}</h2>
-                {% endif %}
-                {% if task.image_url %}
-                    <div class="task-image">
-                        <img src="{{ task.image_url|safe_url }}"
-                             alt="{% if task.translation.question %}{{ task.translation.question|striptags|truncatechars:150 }}{% else %}Task {{ task.id }} question{% endif %}"
-                             loading="lazy">
-                    </div>
-                {% else %}
-                    <p>{% trans "Image is missing." %}</p>
-                {% endif %}
+                {% include "blog/includes/task_question.html" %}
 
                 {% if task.translation %}
                     <div class="answers" data-correct="{{ task.translation.correct_answer|escape }}">
@@ -102,6 +92,7 @@
 {% endblock %}
 
 {% block scripts %}
+    <script src="{% static_versioned 'blog/js/task_question.js' %}"></script>
     <script src="{% static_versioned 'blog/js/quiz_combined.js' %}"></script>
     <script src="{% static 'blog/js/auth_modal.js' %}"></script>
     <script>

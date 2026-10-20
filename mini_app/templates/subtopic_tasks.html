@@ -4,6 +4,8 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ get_css_url('comments.css') }}">
+<link rel="stylesheet" href="{{ get_css_url('task-question.css') }}">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@600&display=swap">
 {% endblock %}
 
 {% block content %}
@@ -24,12 +26,8 @@
                  data-solved="{{ task.is_solved | lower }}"
                  data-source-name="{{ task.source_name or '' }}"
                  data-source-link="{{ task.source_link or '' }}">
-                <!-- Картинка задачи -->
-                {% if task.image_url %}
-                <div class="task-image">
-                    <img src="{{ task.image_url }}" alt="{{ translations.get('task_image', 'Изображение задачи') }}" loading="lazy">
-                </div>
-                {% endif %}
+                <!-- Вопрос задачи (код или текст, без картинки) -->
+                {% include "includes/task_question.html" %}
 
                 <!-- Варианты ответов -->
                 <div class="task-answers">
@@ -98,6 +96,8 @@
          alt="{{ translations.get('task_image_fullscreen', 'Изображение задачи во весь экран') }}">
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="{{ get_js_url('task-question.js') }}"></script>
 <script src="{{ get_js_url('comments.js') }}"></script>
 <script>
 // Инициализация комментариев для каждой задачи (глобальная функция)

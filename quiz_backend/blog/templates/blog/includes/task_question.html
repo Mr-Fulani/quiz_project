@@ -1,0 +1,16 @@
+{# Вопрос задачи без картинки: окно с кодом или карточка. Поведение — blog/js/task_question.js #}
+{% with qv=task.question_view %}
+{% if qv.kind == 'code' %}
+<div class="tq tq--code tq-theme--{{ qv.theme }}" data-kind="code" data-language="{{ qv.language|default:'' }}">
+    <div class="tq-editor">
+        <div class="tq-bar" aria-hidden="true"><i class="tq-dot"></i><i class="tq-dot"></i><i class="tq-dot"></i><span class="tq-lang">{{ qv.language|default:'code' }}</span></div>
+        <div class="tq-body"><pre class="tq-code"><code>{{ qv.body }}</code></pre></div>
+    </div>
+    {% if qv.prompt %}<h2 class="tq-prompt">{{ qv.prompt }}</h2>{% endif %}
+</div>
+{% elif qv %}
+<div class="tq tq--text tq-theme--{{ qv.theme }}" data-kind="text">
+    <div class="tq-card"><div class="tq-frame"><h2 class="tq-text" dir="auto">{{ qv.body }}</h2></div></div>
+</div>
+{% endif %}
+{% endwith %}

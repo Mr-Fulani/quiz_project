@@ -14,6 +14,7 @@ from tasks.models import TaskTranslation, MiniAppTaskStatistics
 from tenants.mixins import TenantFilteredViewMixin
 from accounts.telegram_webapp_auth import verified_telegram_id_param
 import logging
+from tasks.question_format import question_display
 
 logger = logging.getLogger(__name__)
 
@@ -426,7 +427,7 @@ def subtopic_detail_simple(request, subtopic_id):
             tasks = tasks.filter(difficulty__iexact=level)
 
         # Переводы нужного языка — одним запросом (раньше translations.filter() на каждую задачу)
-        tasks = tasks.distinct().select_related('topic', 'subtopic').prefetch_related(
+        tasks = tasks.distinct().select_related('topic', 'subtopic', 'tenant').prefetch_related(
             Prefetch(
                 'translations',
                 queryset=TaskTranslation.objects.filter(language=language),
@@ -498,6 +499,7 @@ def subtopic_detail_simple(request, subtopic_id):
                     'difficulty': task.difficulty,
                     'image_url': task.image_url,
                     'question': translation.question,
+                    'question_view': question_display(task, translation.question),
                     'answers': answers,
                     'correct_answer': translation.correct_answer,
                     'explanation': translation.long_explanation or translation.explanation,

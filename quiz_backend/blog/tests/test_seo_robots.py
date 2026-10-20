@@ -350,9 +350,10 @@ class SEORobotsTestCase(TransactionTestCase):
             HTTP_USER_AGENT='Googlebot'
         )
         content = response.content.decode()
-        self.assertIn('class="task-question"', content)
+        # Вопрос выводится текстом (окно с кодом или карточка), картинки на странице нет
+        self.assertIn('class="tq tq--text', content)
         self.assertIn('What does len([1, 2, 3]) return?', content)
-        self.assertIn('alt="What does len([1, 2, 3]) return?"', content)
+        self.assertNotIn('https://example.com/q.png', content)
 
     def test_robots_txt_is_accessible(self):
         """

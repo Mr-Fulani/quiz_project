@@ -1,0 +1,179 @@
+/*
+ * Вопрос задачи без картинки: окно редактора с кодом или текстовая карточка в стиле тенанта.
+ * Разметка — mini_app/templates/includes/task_question.html (сайт: blog/includes/task_question.html);
+ * поведение — task_question.js. Копия файла сайта: quiz_backend/blog/static/blog/css/task_question.css (менять оба).
+ */
+.tq {
+    --tq-ed-bg: #272822;
+    --tq-ed-bar: #1f201b;
+    --tq-ed-fg: #f8f8f2;
+    --tq-ed-muted: #75715e;
+    --tq-ed-rule: #3a3b33;
+    --tq-kw: #66d9ef;
+    --tq-title: #a6e22e;
+    --tq-str: #e6db74;
+    --tq-num: #ae81ff;
+    --tq-comment: #8a8670;
+    --tq-card-bg: #1e2127;
+    --tq-card-frame: #3a3f4b;
+    --tq-card-fg: #f1f3f5;
+    --tq-caret: #f8f8f2;
+    --tq-code-font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --tq-arabic-font: "Noto Naskh Arabic", "Amiri", "Geeza Pro", serif;
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+    min-width: 0;
+}
+.tq-theme--islamic {
+    --tq-card-bg: #0b4a3a;
+    --tq-card-frame: #d9b13b;
+    --tq-card-fg: #f3efe2;
+    --tq-caret: #d9b13b;
+}
+
+/* Окно редактора */
+.tq-editor {
+    background: var(--tq-ed-bg);
+    color: var(--tq-ed-fg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 14px 34px -22px rgba(0, 0, 0, .7);
+    min-width: 0;
+}
+.tq-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    background: var(--tq-ed-bar);
+}
+.tq-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #ff5f56; }
+.tq-dot + .tq-dot { background: #ffbd2e; }
+.tq-dot + .tq-dot + .tq-dot { background: #27c93f; }
+.tq-lang {
+    display: inline;
+    margin-left: 8px;
+    font: 12px/1 var(--tq-code-font);
+    color: var(--tq-ed-muted);
+    text-transform: lowercase;
+}
+.tq-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    overflow-x: auto;
+    padding: 14px 0 18px;
+}
+.tq-body .tq-code { grid-column: 2; }
+.tq-gutter,
+.tq-code {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    white-space: pre;
+    font: clamp(12.5px, 1.6vw, 15px)/1.7 var(--tq-code-font);
+    tab-size: 4;
+}
+.tq-gutter {
+    color: var(--tq-ed-muted);
+    text-align: right;
+    padding: 0 12px 0 14px;
+    border-right: 1px solid var(--tq-ed-rule);
+    user-select: none;
+}
+.tq-code { padding: 0 18px 0 14px; color: var(--tq-ed-fg); }
+/* стили сайта для `pre code` (отступы, блок, фон) внутри окна не нужны */
+.tq .tq-body .tq-code code {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    white-space: inherit;
+}
+/* global.css сайта делает все span блочными — внутри кода они строчные */
+.tq-code span,
+.tq-text span { display: inline; font: inherit; }
+.tq-code .hljs-keyword, .tq-code .hljs-built_in, .tq-code .hljs-literal,
+.tq-code .hljs-type, .tq-code .hljs-meta { color: var(--tq-kw); }
+.tq-code .hljs-title, .tq-code .hljs-function .hljs-title { color: var(--tq-title); }
+.tq-code .hljs-string, .tq-code .hljs-attr { color: var(--tq-str); }
+.tq-code .hljs-number { color: var(--tq-num); }
+.tq-code .hljs-comment { color: var(--tq-comment); font-style: italic; }
+.tq-code .hljs-params, .tq-code .hljs-subst, .tq-code .hljs-operator,
+.tq-code .hljs-variable, .tq-code .hljs-property { color: var(--tq-ed-fg); }
+
+.tq-prompt {
+    margin: 0;
+    font-size: 1.05em;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Текстовая карточка */
+.tq-card {
+    background: var(--tq-card-bg);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 14px 34px -22px rgba(0, 0, 0, .7);
+}
+.tq-frame {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: clamp(170px, 28vw, 240px);
+    padding: clamp(22px, 4vw, 36px) clamp(18px, 4vw, 34px);
+    border: 3px solid var(--tq-card-frame);
+    border-radius: 18px;
+    text-align: center;
+}
+.tq-theme--islamic .tq-frame::after {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 1px solid rgba(217, 177, 59, .45);
+    border-radius: 13px;
+    pointer-events: none;
+}
+.tq .tq-frame .tq-text {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--tq-card-fg);
+    font-size: clamp(19px, 2.6vw, 27px);
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    unicode-bidi: plaintext;
+}
+.tq .tq-ar {
+    font-family: var(--tq-arabic-font);
+    font-size: 1.22em;
+    line-height: 1.3;
+    unicode-bidi: isolate;
+}
+.tq .tq-nobr { white-space: nowrap; }
+/* Варианты ответа целиком на арабском: шрифт сайта перебивается намеренно — у него нет хорошей арабицы */
+.answer-option.tq-ar-answer,
+.quiz-option.tq-ar-answer {
+    font-family: "Noto Naskh Arabic", "Amiri", "Geeza Pro", serif !important;
+    font-size: 1.2em;
+}
+
+.tq-caret {
+    display: inline-block;
+    width: .55em;
+    height: 1.1em;
+    margin-left: 1px;
+    background: var(--tq-caret);
+    vertical-align: -.18em;
+    animation: tq-blink 1s steps(1) infinite;
+}
+.tq--text .tq-caret { width: 3px; margin: 0 2px; }
+@keyframes tq-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .tq-caret { animation: none; }
+}

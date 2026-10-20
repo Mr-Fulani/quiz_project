@@ -17,6 +17,8 @@ STATIC_VERSIONS = {
     'font-awesome.min.css': '2.0',
     'font-awesome.min.js': '2.0',
     'resources.css': '2.0',
-    'interactions.js': '2.3',
+    'interactions.js': '2.4',
     'interactions.css': '2.3',
+    'task_question.js': '1.0',
+    'task_question.css': '1.0',
 }

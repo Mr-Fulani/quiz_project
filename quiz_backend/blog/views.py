@@ -44,6 +44,7 @@ from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
 from tenants.scoping import site_host
+from tasks.question_format import question_display
 
 
 from .mixins import BreadcrumbsMixin
@@ -1731,7 +1732,7 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
             difficulty=difficulty.lower(),
             translations__language=preferred_language
         )
-        .select_related('topic', 'subtopic')
+        .select_related('topic', 'subtopic', 'tenant')
         .prefetch_related(
             Prefetch(
                 'translations',
@@ -1755,7 +1756,7 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
                 difficulty=difficulty.lower(),
                 translations__language=preferred_language
             )
-            .select_related('topic')
+            .select_related('topic', 'tenant')
             .prefetch_related(
                 Prefetch(
                     'translations',
@@ -1785,6 +1786,8 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     for task in page_obj:
         translation = task.translations.first()  # Перевод уже загружен через prefetch_related
         task.translation = translation
+        # Вопрос показывается текстом (окно с кодом или карточка), без картинки
+        task.question_view = question_display(task, translation.question) if translation else None
         if translation:
             try:
                 answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
